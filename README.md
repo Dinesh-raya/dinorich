@@ -2,8 +2,6 @@
 
 A real-time multiplayer Monopoly-inspired board game with a Pan-India theme. Features property trading, auctions, jail mechanics, dice rolling, and more — all in a dark neon cyberpunk aesthetic.
 
-![Game Preview](main.jpg)
-
 ## Tech Stack
 
 | Layer | Technology |
@@ -210,8 +208,6 @@ dino-wolf-BT-v2-organized/
 ├── setup.sh                    # Linux/macOS one-click setup
 ├── start.bat                   # Windows one-click start
 ├── start.sh                    # Linux/macOS one-click start
-├── main.jpg                    # Game preview image
-├── options.jpg                 # Options preview
 └── reference-images.txt        # UI design references
 ```
 
@@ -277,10 +273,3 @@ cd frontend && npm install
 
 This project is for educational and personal use.
 
----
-
-## Screenshots
-
-| Lobby | Game Board | Property Detail |
-|-------|------------|-----------------|
-| ![Lobby](options.jpg) | ![Board](main.jpg) | In-game modal |
