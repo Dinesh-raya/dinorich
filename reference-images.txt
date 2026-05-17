@@ -1,0 +1,94 @@
+REFERENCE IMAGE 1 — MAIN GAMEPLAY BOARD UI
+
+A modern online multiplayer Monopoly-inspired board game interface with a dark neon cyberpunk/glassmorphism design style.
+
+The game board forms a square around the outer edges of the screen, similar to Monopoly. The center area is mostly empty and reserved for large animated 3D dice, turn indicators, and a live activity feed.
+
+Board structure:
+- Square property layout surrounding the screen
+- Corner tiles include Start, Prison, Vacation, and Go To Prison
+- Property tiles contain:
+  - City/location names
+  - Price labels
+  - Country flag icons
+  - Color-coded property groups
+
+Special tiles include:
+- Airports
+- Water company
+- Electric company
+- Treasure cards
+- Surprise cards
+- Tax tiles
+
+Center area:
+- Large floating realistic 3D dice
+- Current player turn text
+- Multiplayer activity log/feed
+
+Bottom section:
+- Share room button
+- Copy room link button
+- Room settings button
+- Player list panel
+- Currency/player balance indicators
+
+Visual style:
+- Dark purple/black background
+- Neon cyan, purple, and pink highlights
+- Rounded UI cards
+- Soft glow and blur effects
+- Glassmorphism panels
+- Modern multiplayer game aesthetic
+- Minimal clean typography
+- Responsive desktop/mobile friendly design
+
+Animations implied:
+- Smooth dice rolling animation
+- Hover glow effects on tiles
+- Sliding panels
+- Floating UI transitions
+- Real-time multiplayer updates
+- Soft interaction animations
+
+The overall interface should feel premium, futuristic, highly polished, immersive, and visually smooth.
+
+
+
+REFERENCE IMAGE 2 — ROOM SETTINGS UI
+
+A modern dark-themed multiplayer board-game room settings interface with a premium neon-purple glassmorphism aesthetic. The UI is displayed as a vertically scrollable settings panel with rounded corners, soft shadows, blur effects, and glowing purple toggle switches.
+
+The layout contains multiple settings rows. Each row includes:
+- A small icon on the left
+- A bold setting title
+- Smaller muted descriptive text underneath
+- A toggle switch or dropdown aligned to the right
+
+Main sections include:
+- Maximum players dropdown selector
+- Private room toggle
+- Allow bots toggle
+- Board map selector
+- Gameplay rule toggles
+- Starting cash selector
+- Randomize player order toggle
+
+Gameplay rules include:
+- x2 rent on full-set properties
+- Vacation cash
+- Auction
+- Mortgage
+- Even build
+- Prison-related rent rule
+
+Visual style:
+- Dark black/purple background
+- Neon violet accents
+- Minimal clean typography
+- Soft glowing interactive controls
+- Thin divider lines between sections
+- Mobile-friendly responsive layout
+- Smooth modern multiplayer game UI aesthetic
+
+The interface should feel futuristic, clean, polished, and optimized for smooth animations and transitions.

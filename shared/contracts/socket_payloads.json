@@ -1,0 +1,23 @@
+{
+  "version": "1.0.0",
+  "room:create": {
+    "name": "string(1..30)",
+    "color": "string(2..30)",
+    "is_private": "boolean"
+  },
+  "room:join": {
+    "room_code": "string(4..8)",
+    "name": "string(1..30)",
+    "color": "string(2..30)",
+    "reconnect_token": "string|optional"
+  },
+  "room:update_settings": {
+    "settings": "RoomSettings"
+  },
+  "property:buy": {
+    "property_id": "int(0..39)"
+  },
+  "auction:bid": {
+    "amount": "int(>=1)"
+  }
+}

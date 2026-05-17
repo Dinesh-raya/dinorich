@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  dino-richup:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/persistence/game_data.sqlite:/app/backend/game_data.sqlite
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DINO_SECRET_KEY=${DINO_SECRET_KEY:-CHANGE_ME_IN_PRODUCTION}
+      - DINO_CORS_ORIGINS=${DINO_CORS_ORIGINS:-*}
