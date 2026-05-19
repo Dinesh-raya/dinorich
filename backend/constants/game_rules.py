@@ -15,7 +15,7 @@ class GameRules:
     
     # Timing (seconds)
     DEFAULT_TURN_TIMER = 60
-    AUCTION_TIMER = 15
+    AUCTION_TIMER = 9
     DISCONNECT_TIMEOUT = 120
     
     # Dice

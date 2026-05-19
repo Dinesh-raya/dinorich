@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../stores/gameStore';
 import { soundManager } from '../utils/audio';
 import { socket } from '../services/socket';
+import { animations } from '../animations';
 import { formatMoney } from '../utils/format';
 
 interface TradeModalProps {
@@ -99,6 +100,10 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
           <motion.div
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={onClose}
+            variants={animations.modalBackdrop}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
           />
 
           {/* Modal */}
@@ -108,10 +113,10 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
               background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 20, 60, 0.98) 100%)',
               boxShadow: '0 0 60px rgba(168, 85, 247, 0.15), 0 0 120px rgba(168, 85, 247, 0.05)'
             }}
-            initial={{ scale: 0.9, y: 30, opacity: 0 }}
-            animate={{ scale: 1, y: 0, opacity: 1 }}
-            exit={{ scale: 0.9, y: 30, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            variants={animations.modalContent}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
           >
             {/* Header */}
             <div className="flex justify-between items-center p-6 border-b border-accent-500/20">
@@ -214,7 +219,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => setOfferingMoney(Math.max(0, offeringMoney - 1000))}
-                            className="w-7 h-7 rounded bg-surface/50 border border-white/10 text-text-muted hover:text-text-main"
+                            className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main"
                           >
                             -
                           </button>
@@ -223,7 +228,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                           </span>
                           <button
                             onClick={() => setOfferingMoney(Math.min(myPlayer.money, offeringMoney + 1000))}
-                            className="w-7 h-7 rounded bg-surface/50 border border-white/10 text-text-muted hover:text-text-main"
+                            className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main"
                           >
                             +
                           </button>
@@ -270,7 +275,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => setRequestingMoney(Math.max(0, requestingMoney - 1000))}
-                            className="w-7 h-7 rounded bg-surface/50 border border-white/10 text-text-muted hover:text-text-main"
+                            className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main"
                           >
                             -
                           </button>
@@ -279,7 +284,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                           </span>
                           <button
                             onClick={() => setRequestingMoney(Math.min(selectedPlayerData.money, requestingMoney + 1000))}
-                            className="w-7 h-7 rounded bg-surface/50 border border-white/10 text-text-muted hover:text-text-main"
+                            className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main"
                           >
                             +
                           </button>

@@ -229,6 +229,45 @@ class SoundManager {
       this.play('player_bankrupt');
     }
   }
+
+  playCardDraw(type: 'treasury' | 'surprise' = 'treasury') {
+    this.play(type === 'treasury' ? 'community_chest' : 'chance_card');
+  }
+
+  playJailEntry() {
+    this.play('player_jail');
+  }
+
+  playJailEscape() {
+    this.play('player_free');
+  }
+
+  playBuild(type: 'house' | 'hotel' = 'house') {
+    this.play(type === 'house' ? 'build_house' : 'build_hotel');
+  }
+
+  playMortgage() {
+    this.play('mortgage');
+  }
+
+  playUnmortgage() {
+    this.play('unmortgage');
+  }
+
+  playBankruptcy() {
+    this.play('player_bankrupt');
+  }
+
+  playTradeComplete() {
+    this.playSequence([
+      { name: 'buy_property', delay: 0 },
+      { name: 'dice_double', delay: 300 }
+    ]);
+  }
+
+  playPassGo() {
+    this.play('pass_go');
+  }
 }
 
 export const soundManager = new SoundManager();

@@ -19,5 +19,26 @@
   },
   "auction:bid": {
     "amount": "int(>=1)"
+  },
+  "trade:create": {
+    "to_player_id": "string",
+    "offering_money": "int(>=0)",
+    "requesting_money": "int(>=0)",
+    "offering_properties": "int[]",
+    "requesting_properties": "int[]",
+    "offering_get_out_of_jail_cards": "int(>=0)",
+    "requesting_get_out_of_jail_cards": "int(>=0)"
+  },
+  "trade:accept": {
+    "trade_id": "string"
+  },
+  "trade:reject": {
+    "trade_id": "string"
+  },
+  "trade:cancel": {
+    "trade_id": "string"
+  },
+  "room:kick_player": {
+    "target_player_id": "string"
   }
 }

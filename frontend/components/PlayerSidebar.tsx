@@ -3,6 +3,17 @@ import { animations } from '../animations';
 import { useState } from 'react';
 import { formatMoneyShort } from '../utils/format';
 
+// Map color hex to icon
+const COLOR_ICONS: Record<string, string> = {
+  '#ef4444': '🔴',
+  '#3b82f6': '🔵',
+  '#22c55e': '🟢',
+  '#eab308': '🟡',
+  '#a855f7': '🟣',
+  '#f97316': '🟠',
+};
+const getColorIcon = (color: string) => COLOR_ICONS[color] || '⚪';
+
 interface Player {
   id: string;
   name: string;
@@ -86,14 +97,14 @@ export const PlayerSidebar = ({
       animate="visible"
     >
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-900/50 to-accent-900/30 p-4 border-b border-primary-500/30">
+      <div className="bg-gradient-to-r from-primary-900/50 to-accent-900/30 p-3 border-b border-primary-500/30">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-primary-300 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-primary-300 flex items-center gap-2">
               <span className="text-accent-400">👥</span>
               Players ({players.length})
             </h2>
-            <p className="text-text-muted text-sm">Total: {formatMoney(totalMoney)}</p>
+            <p className="text-text-muted text-xs">Total: {formatMoney(totalMoney)}</p>
           </div>
           
           {/* Sort controls */}
@@ -101,7 +112,7 @@ export const PlayerSidebar = ({
             {(['money', 'name', 'position'] as const).map((sortType) => (
               <button
                 key={sortType}
-                className={`px-2 py-1 text-xs rounded-md transition-colors ${sortBy === sortType ? 'bg-primary-500/30 text-primary-300' : 'text-text-muted hover:text-text-main'}`}
+                className={`px-3 py-2 text-xs rounded-md transition-colors min-h-[44px] ${sortBy === sortType ? 'bg-primary-500/30 text-primary-300' : 'text-text-muted hover:text-text-main'}`}
                 onClick={() => setSortBy(sortType)}
               >
                 {sortType.charAt(0).toUpperCase() + sortType.slice(1)}
@@ -111,8 +122,8 @@ export const PlayerSidebar = ({
         </div>
 
         {/* Stats summary */}
-        <div className="grid grid-cols-2 gap-2 mt-3">
-          <div className="bg-success-500/10 border border-success-500/20 rounded-lg p-2">
+        <div className="grid grid-cols-2 gap-1.5 mt-2">
+          <div className="bg-success-500/10 border border-success-500/20 rounded-lg p-1.5">
             <div className="text-xs text-text-muted">Richest</div>
             <div className="text-sm font-bold text-success-400 truncate" title={richestPlayer.name}>
               {richestPlayer.name}
@@ -140,15 +151,15 @@ export const PlayerSidebar = ({
             return (
               <motion.div
                 key={player.id}
-                className={`border-b border-white/10 ${isCurrent ? 'bg-primary-900/20' : 'hover:bg-surface/30'} transition-colors cursor-pointer`}
+                className={`border-b border-white/10 ${isActive ? 'bg-primary-900/30 border-l-2 border-l-primary-500' : isCurrent ? 'bg-primary-900/15' : 'hover:bg-surface/30'} transition-colors cursor-pointer`}
                 variants={animations.fadeIn}
                 initial="hidden"
                 animate="visible"
                 transition={{ delay: index * 0.05 }}
                 onClick={() => togglePlayerExpansion(player.id)}
-                whileHover={{ x: 4 }}
+                whileHover={{ x: 3 }}
               >
-                <div className="p-3">
+                <div className="p-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       {/* Player rank */}
@@ -156,12 +167,13 @@ export const PlayerSidebar = ({
                         {rank}
                       </div>
 
-                      {/* Player color indicator */}
+                      {/* Player color indicator with icon */}
                       <div className="relative">
                         <div
-                          className="w-8 h-8 rounded-full border-2 border-white/50 shadow-lg"
-                          style={{ backgroundColor: player.color }}
+                          className="w-10 h-10 rounded-full border-2 border-white/50 shadow-lg flex items-center justify-center text-xl"
+                          style={{ backgroundColor: player.color + '40' }}
                         >
+                          {getColorIcon(player.color)}
                           {isCurrent && (
                             <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary-500 rounded-full border border-white animate-pulse"></div>
                           )}

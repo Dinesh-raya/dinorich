@@ -20,7 +20,11 @@
     "DICE_RESULT": "game:dice_result",
     "END_TURN": "game:end_turn",
     "BANKRUPTCY": "game:bankruptcy",
-    "GAME_OVER": "game:over"
+    "GAME_OVER": "game:over",
+    "PAY_JAIL_FINE": "game:pay_jail_fine",
+    "USE_JAIL_CARD": "game:use_jail_card",
+    "PAY_TAX": "game:pay_tax",
+    "COLLECT_RENT": "game:collect_rent"
   },
   "PROPERTY": {
     "BUY": "property:buy",
@@ -37,5 +41,15 @@
   "CARD": {
     "DRAW": "card:draw",
     "RESULT": "card:result"
+  },
+  "TRADE": {
+    "CREATE": "trade:create",
+    "ACCEPT": "trade:accept",
+    "REJECT": "trade:reject",
+    "CANCEL": "trade:cancel",
+    "OFFER": "trade:offer",
+    "COMPLETED": "trade:completed",
+    "REJECTED": "trade:rejected",
+    "CANCELLED": "trade:cancelled"
   }
 }

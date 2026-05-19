@@ -11,14 +11,16 @@ def roll_dice() -> DiceState:
     return DiceState(
         die1=die1,
         die2=die2,
+        total=die1 + die2,
         is_double=(die1 == die2),
         doubles_count=0  # Handled by TurnManager
     )
 
-def handle_jail_roll(player: PlayerState, dice: DiceState) -> bool:
+def handle_jail_roll(player: PlayerState, dice: DiceState, strict_mode: bool = False) -> bool:
     """
     Returns True if player escaped jail via doubles.
-    After MAX_JAIL_TURNS failed attempts, player is forced out.
+    In non-strict mode: after MAX_JAIL_TURNS failed attempts, player is forced out.
+    In strict mode: player must roll doubles, pay fine, or use card - no auto-release.
     """
     if dice.is_double:
         player.is_in_jail = False
@@ -27,8 +29,8 @@ def handle_jail_roll(player: PlayerState, dice: DiceState) -> bool:
 
     player.jail_turns += 1
 
-    # Force release after MAX_JAIL_TURNS failed attempts
-    if player.jail_turns >= GameRules.MAX_JAIL_TURNS:
+    # In non-strict mode, force release after MAX_JAIL_TURNS failed attempts
+    if not strict_mode and player.jail_turns >= GameRules.MAX_JAIL_TURNS:
         player.is_in_jail = False
         player.jail_turns = 0
         return True

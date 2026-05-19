@@ -5,63 +5,33 @@ import { AuctionModal } from '../components/AuctionModal';
 import { PlayerSidebar } from '../components/PlayerSidebar';
 import { RoomSettings } from '../components/RoomSettings';
 import { AudioSettings } from '../components/AudioSettings';
-import { ToastContainer } from '../components/Toast';
+import { ToastContainer, showToast } from '../components/Toast';
 import { BankruptModal, GameOverModal } from '../components/BankruptModal';
-import { TradeModal } from '../components/TradeModal';
-import { motion, AnimatePresence } from 'framer-motion';
+import { TradeModal, TradeNotification } from '../components/TradeModal';
+import { CardDrawModal } from '../components/CardDrawModal';
+import { motion } from 'framer-motion';
 import { soundManager } from '../utils/audio';
+import boardData from '../../shared/configs/board_config.json';
 
-// Floating Game Log Notification Component
-const GameLogNotification = ({ historyLog }: { historyLog: string[] }) => {
-  const [latestLog, setLatestLog] = useState<string | null>(null);
-  const [isVisible, setIsVisible] = useState(false);
-  const prevLogLength = useRef(0);
-
-  useEffect(() => {
-    if (historyLog.length > prevLogLength.current && historyLog.length > 0) {
-      const newLog = historyLog[historyLog.length - 1];
-      setLatestLog(newLog);
-      setIsVisible(true);
-
-      // Hide after 4 seconds
-      const timer = setTimeout(() => {
-        setIsVisible(false);
-      }, 4000);
-
-      return () => clearTimeout(timer);
-    }
-    prevLogLength.current = historyLog.length;
-  }, [historyLog]);
-
-  return (
-    <AnimatePresence>
-      {isVisible && latestLog && (
-        <motion.div
-          className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-20 pointer-events-none"
-          initial={{ opacity: 0, y: 20, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -10, scale: 0.95 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-        >
-          <div className="glass-panel px-5 py-3 rounded-xl border border-primary-500/30 max-w-md backdrop-blur-xl"
-            style={{
-              background: 'linear-gradient(135deg, rgba(34, 211, 238, 0.15) 0%, rgba(15, 23, 42, 0.95) 100%)',
-              boxShadow: '0 8px 32px rgba(34, 211, 238, 0.2), 0 0 60px rgba(34, 211, 238, 0.1)'
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-primary-400 rounded-full animate-pulse"></div>
-              <p className="text-sm text-text-main font-medium">{latestLog}</p>
-            </div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-};
+// Hindu mythology inspired default player names
+const PLAYER_NAME_POOL = [
+  'Shiva', 'Vishnu', 'Hanuman', 'Krishna', 'Rama', 'Ganesha',
+  'Kartikeya', 'Narayana', 'Rudra', 'Mahadev', 'Parashurama',
+  'Indra', 'Surya', 'Agni', 'Varuna', 'Vayu', 'Yama',
+  'Lakshmi', 'Saraswati', 'Durga',
+];
+const getRandomName = () => PLAYER_NAME_POOL[Math.floor(Math.random() * PLAYER_NAME_POOL.length)];
 
 function App() {
-  const { connected, room, game, connect, createRoom, joinRoom, error, myId } = useGameStore();
+  const connected = useGameStore(s => s.connected);
+  const room = useGameStore(s => s.room);
+  const game = useGameStore(s => s.game);
+  const connect = useGameStore(s => s.connect);
+  const createRoom = useGameStore(s => s.createRoom);
+  const joinRoom = useGameStore(s => s.joinRoom);
+  const error = useGameStore(s => s.error);
+  const myId = useGameStore(s => s.myId);
+  const incomingTrade = useGameStore(s => s.incomingTrade);
   const [name, setName] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [showRoomSettings, setShowRoomSettings] = useState(false);
@@ -71,6 +41,7 @@ function App() {
   const [bankruptPlayer, setBankruptPlayer] = useState<{ name: string; creditorName?: string } | null>(null);
   const [showGameOverModal, setShowGameOverModal] = useState(false);
   const [gameWinner, setGameWinner] = useState<{ name: string; isWinner: boolean } | null>(null);
+  const [gameStandings, setGameStandings] = useState<any[]>([]);
   const [showTradeModal, setShowTradeModal] = useState(false);
   const prevBankruptStatus = useRef<Record<string, boolean>>({});
 
@@ -107,6 +78,37 @@ function App() {
         name: winner.name,
         isWinner: winner.id === myId
       });
+
+      // Compute final standings
+      const HOUSE_PRICES: Record<string, number> = {
+        brown: 50000, light_blue: 50000, pink: 100000, orange: 100000,
+        red: 150000, yellow: 150000, green: 200000, dark_blue: 200000
+      };
+      const allPlayers = Object.values(players);
+      const standings = allPlayers.map(p => {
+        const props = (p.properties_owned || []).map((id: number) => game.properties?.[id]).filter(Boolean);
+        const propValue = props.reduce((sum: number, prop: any) => {
+          const config = boardData.tiles.find((t: any) => t.id === prop.tile_id);
+          const price = config?.price || 0;
+          const housePrice = HOUSE_PRICES[config?.color || ''] || 50000;
+          return sum + price + (prop.houses || 0) * housePrice + (prop.hotels || 0) * housePrice * 5;
+        }, 0);
+        return {
+          id: p.id,
+          name: p.name,
+          color: p.color,
+          money: p.money,
+          properties: props.length,
+          netWorth: p.money + propValue,
+          isBankrupt: p.is_bankrupt
+        };
+      }).sort((a, b) => {
+        if (a.isBankrupt && !b.isBankrupt) return 1;
+        if (!a.isBankrupt && b.isBankrupt) return -1;
+        return b.netWorth - a.netWorth;
+      }).map((p, i) => ({ ...p, rank: i + 1 }));
+
+      setGameStandings(standings);
       setShowGameOverModal(true);
     }
   }, [game, myId]);
@@ -162,7 +164,7 @@ function App() {
             >
               🦕
             </motion.div>
-            <h1 className="heading-cyber text-5xl font-bold text-primary-300 neon-glow mb-2">
+            <h1 className="heading-cyber text-3xl sm:text-4xl lg:text-5xl font-bold text-primary-300 neon-glow mb-2">
               DINO-RICHUP
             </h1>
             <p className="text-text-muted font-cyber tracking-widest text-sm">PAN-INDIA EDITION</p>
@@ -181,20 +183,24 @@ function App() {
           <div className="space-y-6">
             <div>
               <label className="block text-sm text-text-muted mb-2 font-cyber">YOUR NAME</label>
-              <input 
+              <input
                 className="w-full bg-surface/50 border-2 border-primary-500/30 rounded-xl p-4 text-white placeholder:text-text-muted focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
-                value={name} 
-                onChange={e => setName(e.target.value)} 
+                value={name}
+                onChange={e => setName(e.target.value)}
                 placeholder="Enter your name"
               />
             </div>
+
+            <p className="text-xs text-text-muted text-center">
+              Color will be assigned automatically (unique per player)
+            </p>
 
             <motion.button
               className="w-full btn-primary py-4 text-lg font-bold rounded-xl flex items-center justify-center gap-3"
               onClick={() => {
                 soundManager.playButtonClick();
                 soundManager.playGameStart();
-                createRoom(name || 'Player', 'cyan');
+                createRoom(name || getRandomName());
               }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -212,10 +218,10 @@ function App() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm text-text-muted mb-2 font-cyber">ROOM CODE</label>
-                <input 
+                <input
                   className="w-full bg-surface/50 border-2 border-accent-500/30 rounded-xl p-4 text-white placeholder:text-text-muted uppercase tracking-widest focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-500/50"
-                  value={roomCode} 
-                  onChange={e => setRoomCode(e.target.value.toUpperCase())} 
+                  value={roomCode}
+                  onChange={e => setRoomCode(e.target.value.toUpperCase())}
                   placeholder="ABCDEF"
                   maxLength={6}
                 />
@@ -225,7 +231,7 @@ function App() {
                 className="w-full btn-accent py-4 text-lg font-bold rounded-xl flex items-center justify-center gap-3"
                 onClick={() => {
                   soundManager.playButtonClick();
-                  joinRoom(roomCode, name || 'Player', 'cyan');
+                  joinRoom(roomCode, name || getRandomName());
                 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -259,17 +265,38 @@ function App() {
             >
               🎮
             </motion.div>
-            <h2 className="heading-cyber text-4xl font-bold text-primary-300 mb-2">WAITING ROOM</h2>
+            <h2 className="heading-cyber text-2xl sm:text-3xl lg:text-4xl font-bold text-primary-300 mb-2">WAITING ROOM</h2>
             <p className="text-text-muted font-cyber">Share this code with friends:</p>
             <div className="inline-block mt-4">
               <motion.div
-                className="text-5xl font-bold tracking-[0.3em] text-accent-400 bg-surface/50 px-10 py-5 rounded-2xl border-2 border-accent-500/30 neon-glow-accent font-mono"
+                className="text-3xl sm:text-5xl font-bold tracking-[0.15em] sm:tracking-[0.3em] text-accent-400 bg-surface/50 px-6 sm:px-10 py-3 sm:py-5 rounded-2xl border-2 border-accent-500/30 neon-glow-accent font-mono"
                 animate={{ boxShadow: ['0 0 15px rgba(168, 85, 247, 0.3)', '0 0 30px rgba(168, 85, 247, 0.5)', '0 0 15px rgba(168, 85, 247, 0.3)'] }}
                 transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
               >
                 {room.room_id}
               </motion.div>
               <p className="text-sm text-text-muted mt-3 font-cyber">Room will start when all players join</p>
+            </div>
+
+            {/* Network Share Link */}
+            <div className="mt-6 glass-panel p-4 rounded-xl border border-primary-500/20 max-w-sm mx-auto">
+              <p className="text-primary-300 text-sm font-bold mb-2">LAN Play</p>
+              <p className="text-text-muted text-xs mb-3">Friends on same WiFi can join at:</p>
+              <div className="flex items-center gap-2 bg-surface/50 rounded-lg p-2">
+                <code className="text-primary-400 text-sm flex-1 font-mono">
+                  {window.location.origin}
+                </code>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.origin);
+                    showToast('Link copied!', 'success');
+                  }}
+                  className="glass-button px-3 py-1.5 rounded-lg text-xs"
+                >
+                  📋 Copy
+                </button>
+              </div>
+              <p className="text-text-muted/50 text-[10px] mt-2">Room code: {room.room_id}</p>
             </div>
           </div>
           
@@ -385,6 +412,13 @@ function App() {
   }
 
   // Game Board
+  if (!game || !game.turn_order) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-text-muted text-lg">Loading game...</div>
+      </div>
+    );
+  }
   const activePlayerId = game.turn_order[game.current_turn_index];
   const activePlayerName = activePlayerId ? game.room.players?.[activePlayerId]?.name : 'Unknown';
   const myMoney = myId ? game.room.players?.[myId]?.money : undefined;
@@ -483,7 +517,7 @@ function App() {
       </div>
 
       {/* Main Content - Fullscreen Board Layout */}
-      <div className="flex-1 relative overflow-hidden">
+      <div className="flex-1 relative overflow-hidden pb-16 lg:pb-0">
         {/* Mobile Sidebar (Drawer) */}
         {showMobileMenu && (
           <div className="lg:hidden fixed inset-0 z-40">
@@ -492,7 +526,7 @@ function App() {
               onClick={() => setShowMobileMenu(false)}
             />
             <motion.div
-              className="absolute top-0 left-0 h-full w-80 bg-surface border-r border-white/10 shadow-2xl"
+              className="absolute top-0 left-0 h-full w-72 max-w-[85vw] bg-surface border-r border-white/10 shadow-2xl"
               initial={{ x: -320 }}
               animate={{ x: 0 }}
               transition={{ type: "spring", damping: 25 }}
@@ -558,7 +592,7 @@ function App() {
         )}
 
         {/* Board - Centered Fullscreen */}
-        <div className="absolute inset-0 flex items-center justify-center p-4 lg:p-8">
+        <div className="absolute inset-0 flex items-center justify-center p-2 lg:p-4">
           <Board />
         </div>
 
@@ -590,56 +624,6 @@ function App() {
           </div>
         </motion.div>
 
-        {/* Floating History Panel - Right (Desktop) */}
-        <motion.div
-          className="hidden lg:block absolute right-4 top-4 bottom-4 w-60 z-10"
-          initial={{ x: 280, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ delay: 0.4, type: "spring", damping: 25 }}
-        >
-          <div className="glass-panel-dark h-full rounded-2xl p-4 border border-white/10 overflow-hidden backdrop-blur-xl"
-            style={{
-              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.85) 100%)',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
-            }}
-          >
-            <h3 className="text-sm font-bold text-primary-300 mb-4 flex items-center gap-2 font-cyber">
-              <span>📜</span>
-              GAME HISTORY
-            </h3>
-
-            <div className="space-y-2 overflow-y-auto h-[calc(100%-2.5rem)] pr-1 scrollbar-hide">
-              {game.history_log.slice().reverse().map((log, i) => (
-                <motion.div
-                  key={i}
-                  className={`p-2.5 rounded-lg border border-white/5 transition-all duration-300 ${
-                    i === 0 ? 'bg-primary-500/10 border-primary-500/20' : 'bg-surface/30'
-                  }`}
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: i === 0 ? 1 : 0.7 - (i * 0.05), x: 0 }}
-                  transition={{ delay: i * 0.02 }}
-                >
-                  <p className={`text-xs leading-relaxed ${i === 0 ? 'text-text-main font-medium' : 'text-text-muted'}`}>
-                    {log}
-                  </p>
-                  {i === 0 && (
-                    <p className="text-[10px] text-primary-400 mt-1 font-mono">Just now</p>
-                  )}
-                </motion.div>
-              ))}
-
-              {game.history_log.length === 0 && (
-                <div className="text-center py-8">
-                  <div className="text-2xl mb-2 opacity-50">📝</div>
-                  <p className="text-text-muted text-xs">No events yet</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Floating Game Log Notification - Center Bottom */}
-        <GameLogNotification historyLog={game.history_log} />
 
         {/* Mobile Bottom Bar */}
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface/90 backdrop-blur-xl border-t border-white/10 p-3 z-30">
@@ -688,6 +672,17 @@ function App() {
               <button
                 onClick={() => {
                   soundManager.playButtonClick();
+                  setShowTradeModal(true);
+                }}
+                className="glass-button p-2.5 rounded-xl"
+                title="Trade"
+              >
+                <span className="text-lg">🤝</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  soundManager.playButtonClick();
                   setShowAudioSettings(true);
                 }}
                 className="glass-button p-2.5 rounded-xl"
@@ -730,6 +725,7 @@ function App() {
         isOpen={showGameOverModal}
         winnerName={gameWinner?.name || ''}
         isWinner={gameWinner?.isWinner || false}
+        standings={gameStandings}
         onClose={() => {
           setShowGameOverModal(false);
           // Return to lobby by reloading
@@ -740,6 +736,18 @@ function App() {
         isOpen={showTradeModal}
         onClose={() => setShowTradeModal(false)}
       />
+
+      {/* Incoming Trade Notification */}
+      {incomingTrade && incomingTrade.to_player_id === myId && (
+        <TradeNotification
+          trade={incomingTrade}
+          onAccept={() => useGameStore.getState().acceptTrade(incomingTrade.trade_id)}
+          onReject={() => useGameStore.getState().rejectTrade(incomingTrade.trade_id)}
+        />
+      )}
+
+      {/* Card Draw Modal */}
+      <CardDrawModal />
     </div>
   );
 }

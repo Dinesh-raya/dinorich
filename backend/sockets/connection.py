@@ -7,6 +7,7 @@ from constants.game_rules import GameRules
 from sockets.events import CONNECTION_EVENTS, ROOM_EVENTS
 from sockets.helpers import emit_game_state
 from schemas.room import RoomStatus
+from utils.name_generator import get_random_name
 
 # Track disconnect timeout tasks so they can be cancelled on reconnect
 _disconnect_tasks: Dict[str, asyncio.Task] = {}
@@ -15,7 +16,7 @@ _disconnect_tasks: Dict[str, asyncio.Task] = {}
 async def connect(sid, environ, auth):
     print(f"Client connected: {sid}")
     auth = auth or {}
-    requested_name = auth.get("name", f"Player_{sid[:4]}")
+    requested_name = auth.get("name") or get_random_name()
     signed_session_token = auth.get("sessionToken", "")
     session = session_manager.resolve_session(signed_session_token, requested_name)
     session.player_socket_id = sid

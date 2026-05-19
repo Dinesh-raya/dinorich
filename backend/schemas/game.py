@@ -21,6 +21,8 @@ class GameState(BaseModel):
     state_version: int = Field(0, exclude=True, description="Incremented on every state mutation")
     treasury_deck: List[Dict] = Field(default_factory=list, description="Treasury card deck for this game")
     surprise_deck: List[Dict] = Field(default_factory=list, description="Surprise card deck for this game")
+    houses_remaining: int = Field(32, description="Houses remaining in the bank supply")
+    hotels_remaining: int = Field(12, description="Hotels remaining in the bank supply")
 
     def add_log(self, message: str):
         """Add a history log entry and cap the log size."""

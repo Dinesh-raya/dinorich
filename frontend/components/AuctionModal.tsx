@@ -5,48 +5,31 @@ import { animations } from '../animations';
 import { THEME } from '../constants/theme';
 import { soundManager } from '../utils/audio';
 import { formatMoney } from '../utils/format';
+import boardData from '../../shared/configs/board_config.json';
 
 export const AuctionModal = () => {
   const { auction, myId, placeBid, endAuction, game } = useGameStore();
   const [bidAmount, setBidAmount] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [initialTime, setInitialTime] = useState(15);
+  const [initialTime] = useState(9); // 9 seconds default
 
   useEffect(() => {
     if (auction) {
       setBidAmount(auction.current_bid + 10);
-      const time = auction.time_remaining || 15;
-      setTimeLeft(time);
-      setInitialTime(time);
     }
   }, [auction?.current_bid]);
 
-  // Timer effect
-  useEffect(() => {
-    if (!auction || !auction.active) return;
-    
-    const interval = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    
-    return () => clearInterval(interval);
-  }, [auction]);
-
   if (!auction || !auction.active) return null;
 
+  const timeLeft = auction.time_remaining ?? 0;
   const amIParticipating = !!myId && auction.participants.includes(myId);
   const currentHighestBidder = auction.highest_bidder_id ?
     game?.room.players[auction.highest_bidder_id]?.name : 'No bids yet';
   const myMoney = myId ? (game?.room.players[myId]?.money || 0) : 0;
   const canAffordBid = bidAmount <= myMoney;
-  const propertyName = auction.property_id ? 
-    `Property #${auction.property_id}` : 'Unknown Property';
+
+  // Get property name from board config
+  const tileConfig = boardData.tiles.find((t: any) => t.id === auction.property_id);
+  const propertyName = tileConfig?.name || `Property #${auction.property_id}`;
 
   const quickBidOptions = [100, 500, 1000, 5000];
   const bidIncrementOptions = [10, 50, 100, 500];
@@ -103,34 +86,45 @@ export const AuctionModal = () => {
 
           {/* Auction Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <motion.div 
+            <motion.div
+              key={auction.current_bid}
               className="glass-panel p-6 rounded-2xl border border-primary-500/20"
-              whileHover={{ scale: 1.02 }}
-              variants={animations.fadeIn}
+              initial={{ scale: 1.05, borderColor: 'rgba(34, 211, 238, 0.5)' }}
+              animate={{ scale: 1, borderColor: 'rgba(34, 211, 238, 0.2)' }}
+              transition={{ duration: 0.4 }}
             >
               <p className="text-sm text-text-muted mb-2">Current Highest Bid</p>
               <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-primary-500 rounded-full animate-pulse"></div>
+                <motion.div
+                  className="w-3 h-3 bg-primary-500 rounded-full"
+                  animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                />
                 <p className="text-3xl font-bold text-green-400">{formatMoney(auction.current_bid)}</p>
               </div>
-              <p className="text-xs text-text-muted mt-2">Bidder: {currentHighestBidder}</p>
+              <p className="text-xs text-accent-300 mt-2 font-bold">Bidder: {currentHighestBidder}</p>
             </motion.div>
 
-            <motion.div 
-              className="glass-panel p-6 rounded-2xl border border-accent-500/20"
+            <motion.div
+              className={`glass-panel p-6 rounded-2xl border ${timeLeft <= 5 ? 'border-red-500/50' : timeLeft <= 10 ? 'border-warning-500/40' : 'border-accent-500/20'}`}
               whileHover={{ scale: 1.02 }}
               variants={animations.fadeIn}
+              animate={timeLeft <= 5 ? { boxShadow: ['0 0 0px rgba(239, 68, 68, 0)', '0 0 20px rgba(239, 68, 68, 0.3)', '0 0 0px rgba(239, 68, 68, 0)'] } : {}}
+              transition={timeLeft <= 5 ? { duration: 1, repeat: Infinity } : undefined}
             >
               <p className="text-sm text-text-muted mb-2">Time Remaining</p>
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-accent-500 rounded-full animate-pulse"></div>
-                <p className={`text-3xl font-bold ${timeLeft <= 10 ? 'text-red-400 animate-pulse' : 'text-accent-400'}`}>
-                  {timeLeft}s
-                </p>
+              <div className="flex items-center justify-center">
+                <motion.p
+                  className={`text-5xl font-bold font-mono ${timeLeft <= 5 ? 'text-red-400' : timeLeft <= 10 ? 'text-warning-400' : 'text-accent-400'}`}
+                  animate={timeLeft <= 5 ? { scale: [1, 1.1, 1] } : {}}
+                  transition={timeLeft <= 5 ? { duration: 0.5, repeat: Infinity } : undefined}
+                >
+                  {timeLeft}
+                </motion.p>
               </div>
-              <div className="mt-3 h-2 bg-surface rounded-full overflow-hidden">
-                <motion.div 
-                  className="h-full bg-gradient-to-r from-accent-500 to-primary-500"
+              <div className="mt-3 h-2.5 bg-surface rounded-full overflow-hidden">
+                <motion.div
+                  className={`h-full rounded-full ${timeLeft <= 5 ? 'bg-gradient-to-r from-red-600 to-red-400' : timeLeft <= 10 ? 'bg-gradient-to-r from-warning-600 to-warning-400' : 'bg-gradient-to-r from-accent-500 to-primary-500'}`}
                   initial={{ width: '100%' }}
                   animate={{ width: `${(timeLeft / initialTime) * 100}%` }}
                   transition={{ duration: 1 }}

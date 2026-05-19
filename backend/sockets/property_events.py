@@ -40,6 +40,9 @@ def _make_property_handler(action_fn: Callable, event_name: str, require_buy_pha
         if not success:
             return {"status": "error", "message": msg}
 
+        # Check if debt was resolved by this action (mortgage/sell gives money)
+        turn_manager.check_debt_resolved(room_code, sid)
+
         turn = turn_manager.get_turn_state(room_code)
         if turn:
             if require_buy_phase:

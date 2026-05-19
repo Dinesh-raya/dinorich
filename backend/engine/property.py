@@ -192,6 +192,10 @@ def can_build_house(game_state: GameState, player_id: str, property_id: int) -> 
     if player.money < house_price:
         return False, "Not enough money"
     
+    # Check bank house supply
+    if game_state.houses_remaining <= 0:
+        return False, "No houses available in bank - must auction"
+
     return True, "Can build house"
 
 def build_house(game_state: GameState, player_id: str, property_id: int) -> tuple[bool, str]:
@@ -199,18 +203,19 @@ def build_house(game_state: GameState, player_id: str, property_id: int) -> tupl
     can_build, message = can_build_house(game_state, player_id, property_id)
     if not can_build:
         return False, message
-    
+
     config = get_board_config().get(property_id)
     color = config["color"]
     house_price = GameRules.HOUSE_PRICES.get(color, 0)
-    
+
     player = game_state.room.players[player_id]
     prop_state = game_state.properties[property_id]
-    
+
     # Deduct money and add house
     player.money -= house_price
     prop_state.houses += 1
-    
+    game_state.houses_remaining -= 1
+
     game_state.add_log(f"{player.name} built a house on {config['name']} for ₹{house_price}")
     return True, "House built successfully"
 
@@ -242,20 +247,24 @@ def can_build_hotel(game_state: GameState, player_id: str, property_id: int) -> 
     if prop_state.houses < GameRules.HOUSES_BEFORE_HOTEL:
         return False, f"Need {GameRules.HOUSES_BEFORE_HOTEL} houses before building hotel"
     
-    # Check even building rule for hotels (all properties in group must have at least 3 houses)
+    # Check even building rule for hotels (all properties in group must have at least HOUSES_BEFORE_HOTEL houses)
     other_props_in_group = [game_state.properties[p_id] for p_id in color_group_ids if p_id != property_id]
     for other_prop in other_props_in_group:
-        if other_prop.houses < 3:
-            return False, "All properties in color group must have at least 3 houses before building hotel"
+        if other_prop.houses < GameRules.HOUSES_BEFORE_HOTEL:
+            return False, f"All properties in color group must have at least {GameRules.HOUSES_BEFORE_HOTEL} houses before building hotel"
     
+    # Check bank hotel supply
+    if game_state.hotels_remaining <= 0:
+        return False, "No hotels available in bank - must auction"
+
     # Check if player has enough money
     house_price = GameRules.HOUSE_PRICES.get(color, 0)
     hotel_price = house_price * GameRules.HOTEL_PRICE_MULTIPLIER
-    
+
     player = game_state.room.players[player_id]
     if player.money < hotel_price:
         return False, "Not enough money"
-    
+
     return True, "Can build hotel"
 
 def build_hotel(game_state: GameState, player_id: str, property_id: int) -> tuple[bool, str]:
@@ -263,19 +272,21 @@ def build_hotel(game_state: GameState, player_id: str, property_id: int) -> tupl
     can_build, message = can_build_hotel(game_state, player_id, property_id)
     if not can_build:
         return False, message
-    
+
     config = get_board_config().get(property_id)
     color = config["color"]
     house_price = GameRules.HOUSE_PRICES.get(color, 0)
     hotel_price = house_price * GameRules.HOTEL_PRICE_MULTIPLIER
-    
+
     player = game_state.room.players[player_id]
     prop_state = game_state.properties[property_id]
-    
+
     # Deduct money, remove 4 houses, add hotel
     player.money -= hotel_price
+    game_state.houses_remaining += prop_state.houses  # Return houses to bank
     prop_state.houses = 0
     prop_state.hotels = 1
+    game_state.hotels_remaining -= 1
     
     game_state.add_log(f"{player.name} built a hotel on {config['name']} for ₹{hotel_price} (replaced 4 houses)")
     return True, "Hotel built successfully"
@@ -308,7 +319,8 @@ def sell_house(game_state: GameState, player_id: str, property_id: int) -> tuple
     player = game_state.room.players[player_id]
     prop_state.houses -= 1
     player.money += sell_price
-    
+    game_state.houses_remaining += 1
+
     game_state.add_log(f"{player.name} sold a house on {config['name']} for ₹{sell_price}")
     return True, "House sold successfully"
 
@@ -317,20 +329,26 @@ def sell_hotel(game_state: GameState, player_id: str, property_id: int) -> tuple
     prop_state = game_state.properties.get(property_id)
     if not prop_state or prop_state.owner_id != player_id:
         return False, "You do not own this property"
-    
+
     if prop_state.hotels == 0:
         return False, "No hotel to sell"
-    
+
+    # Check if enough houses in bank to replace hotel
+    if game_state.houses_remaining < 4:
+        return False, "Not enough houses in bank to replace hotel (need 4)"
+
     config = get_board_config().get(property_id)
     color = config["color"]
     house_price = GameRules.HOUSE_PRICES.get(color, 0)
     hotel_price = house_price * GameRules.HOTEL_PRICE_MULTIPLIER
     sell_price = hotel_price // 2  # Half price when selling back
-    
+
     player = game_state.room.players[player_id]
     prop_state.hotels = 0
     prop_state.houses = 4  # Return to 4 houses
     player.money += sell_price
-    
+    game_state.hotels_remaining += 1  # Return hotel to bank
+    game_state.houses_remaining -= 4  # Take 4 houses from bank
+
     game_state.add_log(f"{player.name} sold hotel on {config['name']} for ₹{sell_price} (returned to 4 houses)")
     return True, "Hotel sold successfully"

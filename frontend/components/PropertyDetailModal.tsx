@@ -1,7 +1,9 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../stores/gameStore';
+import { soundManager } from '../utils/audio';
 import boardData from '../../shared/configs/board_config.json';
 import { formatMoney } from '../utils/format';
+import { animations } from '../animations';
 
 interface PropertyDetailModalProps {
   tileId: number | null;
@@ -36,7 +38,7 @@ const HOTEL_PRICE_MULTIPLIER = 5;
 const RENT_LABELS = ['Base', '1 House', '2 Houses', '3 Houses', '4 Houses', 'Hotel'];
 
 export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProps) => {
-  const { game } = useGameStore();
+  const { game, myId } = useGameStore();
 
   if (tileId === null || !game) return null;
 
@@ -59,12 +61,20 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
       >
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+        <motion.div
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          onClick={onClose}
+          variants={animations.modalBackdrop}
+          initial="hidden"
+          animate="visible"
+          exit="hidden"
+        />
         <motion.div
           className="relative bg-surface border-2 border-primary-500/30 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
-          initial={{ scale: 0.9, y: 20 }}
-          animate={{ scale: 1, y: 0 }}
-          exit={{ scale: 0.9, y: 20 }}
+          variants={animations.modalContent}
+          initial="hidden"
+          animate="visible"
+          exit="hidden"
         >
           {/* Header */}
           <div
@@ -217,6 +227,114 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                     {formatMoney((HOUSE_PRICES[tileConfig.color] || 50000) * HOTEL_PRICE_MULTIPLIER)}
                   </span>
                 </div>
+              </div>
+            )}
+
+            {/* Action Buttons - Only show if current user owns the property */}
+            {myId && propState?.owner_id === myId && (isProperty || isAirport || isUtility) && (
+              <div className="space-y-2">
+                {/* Mortgage/Unmortgage */}
+                {game.room?.settings?.mortgage_enabled && (
+                  propState.is_mortgaged ? (
+                    <motion.button
+                      className="w-full py-2 px-4 bg-accent-500/20 border border-accent-500/30 rounded-xl text-accent-300 font-bold text-sm hover:bg-accent-500/30 transition-colors"
+                      onClick={() => {
+                        soundManager.playButtonClick();
+                        useGameStore.getState().unmortgageProperty(tileId);
+                      }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      UNMORTGAGE ({formatMoney(Math.floor((tileConfig.mortgage || 0) * 1.1))})
+                    </motion.button>
+                  ) : (
+                    <motion.button
+                      className="w-full py-2 px-4 bg-warning-500/20 border border-warning-500/30 rounded-xl text-warning-300 font-bold text-sm hover:bg-warning-500/30 transition-colors"
+                      onClick={() => {
+                        soundManager.playButtonClick();
+                        useGameStore.getState().mortgageProperty(tileId);
+                      }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      MORTGAGE ({formatMoney(tileConfig.mortgage || 0)})
+                    </motion.button>
+                  )
+                )}
+
+                {/* Build/Sell - Only for properties with color group */}
+                {isProperty && tileConfig.color && !propState.is_mortgaged && (() => {
+                  const colorGroup = boardData.tiles.filter((t: any) => t.color === tileConfig.color && t.type === 'property');
+                  const hasMonopoly = colorGroup.every((t: any) => game.properties?.[t.id]?.owner_id === myId);
+                  const housePrice = HOUSE_PRICES[tileConfig.color] || 50000;
+                  const hotelPrice = housePrice * HOTEL_PRICE_MULTIPLIER;
+
+                  if (!hasMonopoly) return null;
+
+                  return (
+                    <div className="flex gap-2">
+                      {/* Build House */}
+                      {propState.hotels === 0 && propState.houses < 4 && (
+                        <motion.button
+                          className="flex-1 py-2 px-3 bg-success-500/20 border border-success-500/30 rounded-xl text-success-300 font-bold text-xs hover:bg-success-500/30 transition-colors"
+                          onClick={() => {
+                            soundManager.playButtonClick();
+                            useGameStore.getState().buildHouse(tileId);
+                          }}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          BUILD HOUSE ({formatMoney(housePrice)})
+                        </motion.button>
+                      )}
+
+                      {/* Build Hotel */}
+                      {propState.houses === 4 && propState.hotels === 0 && (
+                        <motion.button
+                          className="flex-1 py-2 px-3 bg-danger-500/20 border border-danger-500/30 rounded-xl text-danger-300 font-bold text-xs hover:bg-danger-500/30 transition-colors"
+                          onClick={() => {
+                            soundManager.playButtonClick();
+                            useGameStore.getState().buildHotel(tileId);
+                          }}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          BUILD HOTEL ({formatMoney(hotelPrice)})
+                        </motion.button>
+                      )}
+
+                      {/* Sell Hotel */}
+                      {propState.hotels > 0 && (
+                        <motion.button
+                          className="flex-1 py-2 px-3 bg-warning-500/20 border border-warning-500/30 rounded-xl text-warning-300 font-bold text-xs hover:bg-warning-500/30 transition-colors"
+                          onClick={() => {
+                            soundManager.playButtonClick();
+                            useGameStore.getState().sellHotel(tileId);
+                          }}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          SELL HOTEL ({formatMoney(Math.floor(hotelPrice / 2))})
+                        </motion.button>
+                      )}
+
+                      {/* Sell House */}
+                      {propState.hotels === 0 && propState.houses > 0 && (
+                        <motion.button
+                          className="flex-1 py-2 px-3 bg-warning-500/20 border border-warning-500/30 rounded-xl text-warning-300 font-bold text-xs hover:bg-warning-500/30 transition-colors"
+                          onClick={() => {
+                            soundManager.playButtonClick();
+                            useGameStore.getState().sellHouse(tileId);
+                          }}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          SELL HOUSE ({formatMoney(Math.floor(housePrice / 2))})
+                        </motion.button>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>

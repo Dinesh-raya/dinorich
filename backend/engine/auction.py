@@ -51,7 +51,7 @@ class AuctionManager:
         auction.highest_bidder_id = player_id
         auction.current_bid = bid_amount
         # Reset timer on new bid to prevent sniping
-        auction.time_remaining = max(auction.time_remaining, 10) 
+        auction.time_remaining = max(auction.time_remaining, GameRules.AUCTION_TIMER)
         
         return True, "Bid placed successfully"
         

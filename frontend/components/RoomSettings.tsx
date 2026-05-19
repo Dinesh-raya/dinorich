@@ -73,14 +73,6 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
     return formatMoneyShort(amount);
   };
 
-  const themeOptions = [
-    { value: 'pan_india', label: 'Pan-India', icon: '🇮🇳' },
-    { value: 'classic', label: 'Classic Monopoly', icon: '🏛️' },
-    { value: 'cyber', label: 'Cyberpunk', icon: '🤖' },
-    { value: 'fantasy', label: 'Fantasy', icon: '🐉' },
-    { value: 'space', label: 'Space', icon: '🚀' },
-  ];
-
   return (
     <AnimatePresence>
       {isOpen && (
@@ -183,7 +175,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                         <motion.button
                           key={num}
                           onClick={() => handleSettingChange('max_players', num)}
-                          className={`w-9 h-9 rounded-lg font-bold text-sm transition-all ${
+                          className={`w-11 h-11 rounded-lg font-bold text-sm transition-all ${
                             settings.max_players === num
                               ? 'bg-purple-500/30 border border-purple-500 text-purple-300 shadow-lg shadow-purple-500/20'
                               : 'bg-surface/50 border border-white/10 text-text-muted hover:border-purple-500/30'
@@ -210,7 +202,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                     <div className="flex items-center gap-3">
                       <motion.button
                         onClick={() => handleSettingChange('starting_cash', Math.max(50000, settings.starting_cash - 50000))}
-                        className="w-8 h-8 rounded-lg bg-surface/50 border border-white/10 text-purple-300 hover:bg-purple-500/20 hover:border-purple-500/30 transition-all"
+                        className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-purple-300 hover:bg-purple-500/20 hover:border-purple-500/30 transition-all"
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         disabled={!isHost || settings.starting_cash <= 50000}
@@ -224,7 +216,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
 
                       <motion.button
                         onClick={() => handleSettingChange('starting_cash', Math.min(1000000, settings.starting_cash + 50000))}
-                        className="w-8 h-8 rounded-lg bg-surface/50 border border-white/10 text-purple-300 hover:bg-purple-500/20 hover:border-purple-500/30 transition-all"
+                        className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-purple-300 hover:bg-purple-500/20 hover:border-purple-500/30 transition-all"
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         disabled={!isHost || settings.starting_cash >= 1000000}
@@ -298,7 +290,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                       </div>
                       <motion.button
                         onClick={() => handleSettingChange(key, !settings[key])}
-                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-all ${
+                        className={`relative inline-flex h-9 w-14 items-center rounded-full transition-all ${
                           settings[key]
                             ? 'bg-purple-500 shadow-lg shadow-purple-500/30'
                             : 'bg-surface border border-white/20'
@@ -306,59 +298,13 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                         whileTap={{ scale: 0.95 }}
                         disabled={!isHost}
                       >
-                        <motion.span
-                          className={`inline-block h-5 w-5 rounded-full bg-white shadow-md transition-all ${
+                        <span
+                          className={`inline-block h-7 w-7 rounded-full bg-white shadow-md transition-transform duration-200 ${
                             settings[key] ? 'translate-x-6' : 'translate-x-1'
                           }`}
-                          layout
                         />
                       </motion.button>
                     </div>
-                  ))}
-                </div>
-              </motion.div>
-
-              {/* Board Theme */}
-              <motion.div
-                className="glass-panel p-6 rounded-2xl border border-purple-500/20"
-                variants={animations.fadeIn}
-                style={{
-                  background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%)',
-                  boxShadow: '0 0 30px rgba(168, 85, 247, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
-                }}
-              >
-                <h3 className="text-lg font-bold text-purple-300 mb-5 flex items-center gap-2 font-cyber">
-                  <span className="text-xl">🎨</span>
-                  BOARD MAP
-                </h3>
-
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                  {themeOptions.map((theme) => (
-                    <motion.button
-                      key={theme.value}
-                      onClick={() => handleSettingChange('board_theme', theme.value)}
-                      className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all relative ${
-                        settings.board_theme === theme.value
-                          ? 'border-purple-500 bg-purple-500/10 shadow-lg shadow-purple-500/20'
-                          : 'border-white/10 bg-surface/30 hover:border-purple-500/30'
-                      }`}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      disabled={!isHost}
-                    >
-                      <span className="text-3xl">{theme.icon}</span>
-                      <span className={`font-medium text-sm ${settings.board_theme === theme.value ? 'text-purple-300' : 'text-text-main'}`}>
-                        {theme.label}
-                      </span>
-                      {settings.board_theme === theme.value && (
-                        <motion.div
-                          className="absolute top-2 right-2 w-3 h-3 bg-purple-500 rounded-full"
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          style={{ boxShadow: '0 0 10px rgba(168, 85, 247, 0.5)' }}
-                        />
-                      )}
-                    </motion.button>
                   ))}
                 </div>
               </motion.div>

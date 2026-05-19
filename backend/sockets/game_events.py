@@ -53,6 +53,19 @@ async def game_dice_roll(sid, data):
         return {"status": "error", "message": "Not your turn or cannot roll"}
 
     await sio.emit(GAME_EVENTS["DICE_RESULT"], result["dice"], room=room_code)
+
+    # Emit card draw event if a card was drawn
+    if result.get("card_drawn"):
+        await sio.emit(
+            "card:result",
+            {
+                "card": result["card_drawn"],
+                "card_type": result.get("card_type", "unknown"),
+                "player_id": sid
+            },
+            room=room_code
+        )
+
     await emit_game_state(room_code, result["game"], result["turn"])
     return {"status": "success"}
 
@@ -73,4 +86,100 @@ async def game_end_turn(sid, data):
     game = turn_manager.get_game(room_code)
     if game and new_turn:
         await emit_game_state(room_code, game, new_turn)
+    return {"status": "success"}
+
+@sio.on("game:declare_bankruptcy")
+@sio.on("game_declare_bankruptcy")
+async def game_declare_bankruptcy(sid, data):
+    if not rate_limiter.allow(f"{sid}:game_declare_bankruptcy"):
+        return {"status": "error", "message": "Too many requests"}
+    room_code, err = get_room_code_or_error(sid)
+    if err:
+        return err
+
+    result = turn_manager.declare_voluntary_bankruptcy(room_code, sid)
+    if not result:
+        return {"status": "error", "message": "Cannot declare bankruptcy right now"}
+
+    game = turn_manager.get_game(room_code)
+
+    # Check if game is over (only 1 player remaining)
+    if game and game.room.status == RoomStatus.FINISHED:
+        # Find the winner
+        active_players = [p for p in game.room.players.values() if not p.is_bankrupt]
+        winner = active_players[0] if active_players else None
+        await sio.emit(
+            GAME_EVENTS["GAME_OVER"],
+            {"winner_id": winner.id if winner else None, "winner_name": winner.name if winner else "Unknown"},
+            room=room_code
+        )
+
+    new_turn = turn_manager.next_turn(room_code)
+    if game and new_turn:
+        await emit_game_state(room_code, game, new_turn)
+    return {"status": "success"}
+
+@sio.on("game:pay_jail_fine")
+@sio.on("game_pay_jail_fine")
+async def game_pay_jail_fine(sid, data):
+    if not rate_limiter.allow(f"{sid}:game_pay_jail_fine"):
+        return {"status": "error", "message": "Too many requests"}
+    room_code, err = get_room_code_or_error(sid)
+    if err:
+        return err
+
+    result = turn_manager.pay_jail_fine(room_code, sid)
+    if not result:
+        return {"status": "error", "message": "Cannot pay jail fine right now"}
+
+    await emit_game_state(room_code, result["game"], result["turn"])
+    return {"status": "success"}
+
+@sio.on("game:use_jail_card")
+@sio.on("game_use_jail_card")
+async def game_use_jail_card(sid, data):
+    if not rate_limiter.allow(f"{sid}:game_use_jail_card"):
+        return {"status": "error", "message": "Too many requests"}
+    room_code, err = get_room_code_or_error(sid)
+    if err:
+        return err
+
+    result = turn_manager.use_jail_card(room_code, sid)
+    if not result:
+        return {"status": "error", "message": "Cannot use jail card right now"}
+
+    await emit_game_state(room_code, result["game"], result["turn"])
+    return {"status": "success"}
+
+@sio.on("game:pay_tax")
+@sio.on("game_pay_tax")
+async def game_pay_tax(sid, data):
+    if not rate_limiter.allow(f"{sid}:game_pay_tax"):
+        return {"status": "error", "message": "Too many requests"}
+    room_code, err = get_room_code_or_error(sid)
+    if err:
+        return err
+
+    use_percentage = data.get("use_percentage", False) if data else False
+    result = turn_manager.pay_tax(room_code, sid, use_percentage)
+    if not result:
+        return {"status": "error", "message": "No pending tax to pay"}
+
+    await emit_game_state(room_code, result["game"], result["turn"])
+    return {"status": "success"}
+
+@sio.on("game:collect_rent")
+@sio.on("game_collect_rent")
+async def game_collect_rent(sid, data):
+    if not rate_limiter.allow(f"{sid}:game_collect_rent"):
+        return {"status": "error", "message": "Too many requests"}
+    room_code, err = get_room_code_or_error(sid)
+    if err:
+        return err
+
+    result = turn_manager.collect_rent(room_code, sid)
+    if not result:
+        return {"status": "error", "message": "No pending rent to collect"}
+
+    await emit_game_state(room_code, result["game"], result["turn"])
     return {"status": "success"}

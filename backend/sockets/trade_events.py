@@ -1,8 +1,9 @@
 from sockets.server import sio
-from rooms.manager import room_manager
 from engine.trade_manager import trade_manager
+from engine.turn_manager import turn_manager
 from services.rate_limiter import rate_limiter
 from sockets.helpers import get_room_code_or_error, emit_game_state
+from schemas.contracts import TradeCreatePayload, TradeActionPayload
 
 @sio.on("trade:create")
 async def trade_create(sid, data):
@@ -14,17 +15,22 @@ async def trade_create(sid, data):
     if err:
         return err
 
-    game = room_manager.get_game(room_code)
+    game = turn_manager.get_game(room_code)
     if not game:
         return {"status": "error", "message": "Game not found"}
 
-    to_player_id = data.get("to_player_id")
-    offering_money = data.get("offering_money", 0)
-    requesting_money = data.get("requesting_money", 0)
-    offering_properties = data.get("offering_properties", [])
-    requesting_properties = data.get("requesting_properties", [])
-    offering_get_out_of_jail_cards = data.get("offering_get_out_of_jail_cards", 0)
-    requesting_get_out_of_jail_cards = data.get("requesting_get_out_of_jail_cards", 0)
+    try:
+        payload = TradeCreatePayload(**data)
+    except Exception as e:
+        return {"status": "error", "message": f"Invalid payload: {e}"}
+
+    to_player_id = payload.to_player_id
+    offering_money = payload.offering_money
+    requesting_money = payload.requesting_money
+    offering_properties = payload.offering_properties
+    requesting_properties = payload.requesting_properties
+    offering_get_out_of_jail_cards = payload.offering_get_out_of_jail_cards
+    requesting_get_out_of_jail_cards = payload.requesting_get_out_of_jail_cards
 
     trade = trade_manager.create_trade(
         game=game,
@@ -70,16 +76,32 @@ async def trade_accept(sid, data):
     if err:
         return err
 
-    game = room_manager.get_game(room_code)
+    game = turn_manager.get_game(room_code)
     if not game:
         return {"status": "error", "message": "Game not found"}
 
-    trade_id = data.get("trade_id")
+    try:
+        payload = TradeActionPayload(**data)
+    except Exception as e:
+        return {"status": "error", "message": f"Invalid payload: {e}"}
+
+    trade_id = payload.trade_id
     if not trade_manager.accept_trade(game, trade_id, sid):
         return {"status": "error", "message": "Cannot accept trade"}
 
+    # Check if active player's debt was resolved by this trade
+    turn_state = turn_manager.get_turn_state(room_code)
+    active_id = turn_state.active_player_id if turn_state else ''
+    turn_manager.check_debt_resolved(room_code, active_id)
+    # Also check for both trade participants
+    trade = trade_manager.get_trade(trade_id)
+    if trade:
+        turn_manager.check_debt_resolved(room_code, trade.from_player_id)
+        turn_manager.check_debt_resolved(room_code, trade.to_player_id)
+
     # Emit updated game state
-    await emit_game_state(room_code, game)
+    turn_state = turn_manager.get_turn_state(room_code)
+    await emit_game_state(room_code, game, turn_state)
 
     # Notify both players
     trade = trade_manager.get_trade(trade_id)
@@ -99,7 +121,12 @@ async def trade_reject(sid, data):
     if err:
         return err
 
-    trade_id = data.get("trade_id")
+    try:
+        payload = TradeActionPayload(**data)
+    except Exception as e:
+        return {"status": "error", "message": f"Invalid payload: {e}"}
+
+    trade_id = payload.trade_id
     if not trade_manager.reject_trade(trade_id, sid):
         return {"status": "error", "message": "Cannot reject trade"}
 
@@ -119,7 +146,12 @@ async def trade_cancel(sid, data):
     if err:
         return err
 
-    trade_id = data.get("trade_id")
+    try:
+        payload = TradeActionPayload(**data)
+    except Exception as e:
+        return {"status": "error", "message": f"Invalid payload: {e}"}
+
+    trade_id = payload.trade_id
     if not trade_manager.cancel_trade(trade_id, sid):
         return {"status": "error", "message": "Cannot cancel trade"}
 

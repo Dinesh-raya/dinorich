@@ -1,7 +1,7 @@
 from pydantic import ValidationError
 from sockets.server import sio
 from rooms.manager import room_manager
-from schemas.contracts import RoomCreatePayload, RoomJoinPayload, RoomUpdateSettingsPayload
+from schemas.contracts import RoomCreatePayload, RoomJoinPayload, RoomUpdateSettingsPayload, KickPlayerPayload
 from schemas.room import RoomStatus
 from services.session_manager import session_manager
 from services.rate_limiter import rate_limiter
@@ -13,30 +13,29 @@ async def room_create(sid, data):
     if not rate_limiter.allow(f"{sid}:room_create"):
         return {"status": "error", "message": "Too many requests"}
     """
-    Expects data: {"name": "PlayerName", "color": "blue"}
+    Expects data: {"name": "PlayerName"}
+    Color is auto-assigned uniquely.
     """
     try:
         payload = RoomCreatePayload.model_validate(data or {})
     except ValidationError as exc:
         return {"status": "error", "message": exc.errors()[0]["msg"]}
     player_name = payload.name
-    player_color = payload.color
     client_session = await sio.get_session(sid)
     session_id = client_session.get("session_id")
     reconnect_token = session_manager.rotate_reconnect_token(session_id)
-    
+
     room_code = room_manager.create_room(
         host_id=sid,
         host_name=player_name,
-        host_color=player_color,
         session_id=session_id,
         reconnect_token=reconnect_token,
         is_private=payload.is_private,
     )
-    
+
     await sio.enter_room(sid, room_code)
     room = room_manager.get_room(room_code)
-    
+
     return {"status": "success", "room": room.model_dump(), "reconnectToken": reconnect_token}
 
 @sio.on('room:join')
@@ -44,7 +43,8 @@ async def room_join(sid, data):
     if not rate_limiter.allow(f"{sid}:room_join"):
         return {"status": "error", "message": "Too many requests"}
     """
-    Expects data: {"room_code": "ABCD", "name": "PlayerName", "color": "purple"}
+    Expects data: {"room_code": "ABCD", "name": "PlayerName"}
+    Color is auto-assigned uniquely.
     """
     try:
         payload = RoomJoinPayload.model_validate(data or {})
@@ -52,7 +52,6 @@ async def room_join(sid, data):
         return {"status": "error", "message": exc.errors()[0]["msg"]}
     room_code = payload.room_code.upper()
     player_name = payload.name
-    player_color = payload.color
     
     room = room_manager.get_room(room_code)
     if not room:
@@ -104,7 +103,6 @@ async def room_join(sid, data):
         room_code=room_code,
         player_id=sid,
         player_name=player_name,
-        player_color=player_color,
         session_id=session_id,
         reconnect_token=reconnect_token,
     )
@@ -166,5 +164,43 @@ async def room_update_settings(sid, data):
         updated_room.model_dump(),
         room=room_code
     )
-    
+
+    return {"status": "success"}
+
+@sio.on('room:kick_player')
+async def room_kick_player(sid, data):
+    if not rate_limiter.allow(f"{sid}:room_kick_player"):
+        return {"status": "error", "message": "Too many requests"}
+
+    room_code = room_manager.get_player_room_code(sid)
+    if not room_code:
+        return {"status": "error", "message": "Not in a room"}
+
+    try:
+        payload = KickPlayerPayload.model_validate(data or {})
+    except ValidationError as exc:
+        return {"status": "error", "message": exc.errors()[0]["msg"]}
+
+    target_id = payload.target_player_id
+    updated_room = room_manager.kick_player(room_code, sid, target_id)
+
+    if not updated_room:
+        return {"status": "error", "message": "Cannot kick player. Must be host and room must be waiting."}
+
+    # Remove kicked player from socket room
+    try:
+        await sio.leave_room(target_id, room_code)
+    except Exception:
+        pass  # Player may already be disconnected
+
+    # Notify kicked player
+    await sio.emit("room:kicked", {"message": "You have been kicked by the host"}, room=target_id)
+
+    # Broadcast updated room state
+    await sio.emit(
+        ROOM_EVENTS["STATE_UPDATE"],
+        updated_room.model_dump(),
+        room=room_code
+    )
+
     return {"status": "success"}

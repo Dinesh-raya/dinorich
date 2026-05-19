@@ -1,6 +1,7 @@
 from typing import Optional
 from schemas.game import GameState
 from schemas.room import RoomStatus
+from engine.property import get_board_config
 
 def declare_bankruptcy(game_state: GameState, debtor_id: str, creditor_id: Optional[str] = None):
     """
@@ -10,26 +11,65 @@ def declare_bankruptcy(game_state: GameState, debtor_id: str, creditor_id: Optio
     debtor = game_state.room.players[debtor_id]
     debtor.is_bankrupt = True
     debtor.money = 0
-    
+
     if creditor_id:
         creditor = game_state.room.players[creditor_id]
+        total_interest = 0
+
         # Transfer properties (avoid duplicates)
         for prop_id in debtor.properties_owned:
             if prop_id not in creditor.properties_owned:
                 prop_state = game_state.properties[prop_id]
                 prop_state.owner_id = creditor_id
                 creditor.properties_owned.append(prop_id)
-            
+
+                # Calculate 10% interest on mortgaged properties
+                if prop_state.is_mortgaged:
+                    config = get_board_config().get(prop_id)
+                    if config:
+                        mortgage_value = config.get("mortgage", 0)
+                        interest = int(mortgage_value * 0.1)
+                        total_interest += interest
+
+        # Auto-deduct interest from creditor
+        if total_interest > 0:
+            creditor.money -= total_interest
+            game_state.add_log(f"{creditor.name} paid ₹{total_interest} interest on mortgaged properties")
+
         game_state.add_log(f"{debtor.name} went bankrupt and transferred assets to {creditor.name}")
     else:
-        # Return to bank
+        # Return to bank - also collect buildings at half price
+        building_refund = 0
+        board_config = get_board_config()
+
         for prop_id in debtor.properties_owned:
             prop_state = game_state.properties[prop_id]
+            config = board_config.get(prop_id)
+
+            # Refund half of building costs
+            if config and config.get("type") == "property":
+                color = config.get("color")
+                if color:
+                    from constants.game_rules import GameRules
+                    house_prices = {
+                        "brown": 50000, "light_blue": 50000,
+                        "pink": 100000, "orange": 100000,
+                        "red": 150000, "yellow": 150000,
+                        "green": 200000, "dark_blue": 200000
+                    }
+                    house_price = house_prices.get(color, 50000)
+                    building_refund += prop_state.houses * (house_price // 2)
+                    building_refund += prop_state.hotels * (house_price * 5 // 2)
+
             prop_state.owner_id = None
             prop_state.is_mortgaged = False
             prop_state.houses = 0
             prop_state.hotels = 0
-            
+
+        # Bank gets the building refund (this money goes to the creditor if any, otherwise lost)
+        if building_refund > 0:
+            game_state.add_log(f"Bank collected ₹{building_refund} from returned buildings")
+
         game_state.add_log(f"{debtor.name} went bankrupt. Assets returned to the bank.")
         
     debtor.properties_owned = []

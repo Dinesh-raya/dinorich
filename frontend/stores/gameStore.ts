@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { socket } from '../services/socket';
 import { showToast } from '../components/Toast';
 import { formatMoney } from '../utils/format';
+import { soundManager } from '../utils/audio';
 
 interface Player {
   id: string;
@@ -47,6 +48,8 @@ interface GameState {
   current_turn_index: number;
   history_log: string[];
   board_config?: Record<number, any>;
+  houses_remaining?: number;
+  hotels_remaining?: number;
 }
 
 interface TurnState {
@@ -54,7 +57,11 @@ interface TurnState {
   phase: string;
   can_roll: boolean;
   can_end_turn: boolean;
+  in_debt: boolean;
+  debt_creditor_id: string | null;
   time_remaining: number;
+  pending_tax: { amount: number; name: string; tile_id: number } | null;
+  pending_rent: { payer_id: string; owner_id: string; amount: number; property_id: number; property_name: string } | null;
 }
 
 interface AuctionState {
@@ -73,6 +80,24 @@ interface DiceResult {
   is_double: boolean;
 }
 
+interface CardDraw {
+  card: any;
+  card_type: string;
+  player_id: string;
+}
+
+interface TradeOffer {
+  trade_id: string;
+  from_player_id: string;
+  to_player_id: string;
+  offering_money: number;
+  requesting_money: number;
+  offering_properties: number[];
+  requesting_properties: number[];
+  offering_get_out_of_jail_cards: number;
+  requesting_get_out_of_jail_cards: number;
+}
+
 interface GameStore {
   connected: boolean;
   myId: string | null;
@@ -81,14 +106,17 @@ interface GameStore {
   turn: TurnState | null;
   auction: AuctionState | null;
   diceResult: DiceResult | null;
+  lastCardDraw: CardDraw | null;
+  incomingTrade: TradeOffer | null;
   error: string | null;
-  
+
   connect: () => void;
-  joinRoom: (code: string, name: string, color: string) => void;
-  createRoom: (name: string, color: string) => void;
+  joinRoom: (code: string, name: string) => void;
+  createRoom: (name: string) => void;
   startGame: () => void;
   rollDice: () => void;
   endTurn: () => void;
+  declareBankruptcy: () => void;
   buyProperty: (id: number) => void;
   startAuction: (propertyId: number) => void;
   placeBid: (amount: number) => void;
@@ -98,6 +126,16 @@ interface GameStore {
   buildHotel: (propertyId: number) => void;
   sellHouse: (propertyId: number) => void;
   sellHotel: (propertyId: number) => void;
+  mortgageProperty: (propertyId: number) => void;
+  unmortgageProperty: (propertyId: number) => void;
+  payJailFine: () => void;
+  useJailCard: () => void;
+  payTax: (usePercentage: boolean) => void;
+  collectRent: () => void;
+  acceptTrade: (tradeId: string) => void;
+  rejectTrade: (tradeId: string) => void;
+  clearCardDraw: () => void;
+  clearIncomingTrade: () => void;
 }
 
 export const useGameStore = create<GameStore>((set) => {
@@ -124,21 +162,7 @@ export const useGameStore = create<GameStore>((set) => {
   });
 
   socket.on('game:state_update', (data: { game: GameState, turn: TurnState }) => {
-    const prevGame = useGameStore.getState().game;
     set({ game: data.game, turn: data.turn, room: data.game.room });
-
-    // Detect new history log entries for toast notifications
-    if (prevGame && data.game.history_log.length > prevGame.history_log.length) {
-      const newLogs = data.game.history_log.slice(prevGame.history_log.length);
-      for (const log of newLogs) {
-        const lower = log.toLowerCase();
-        if (lower.includes('bought') || lower.includes('built')) showToast(log, 'success');
-        else if (lower.includes('bankrupt')) showToast(log, 'error');
-        else if (lower.includes('jail') || lower.includes('tax') || lower.includes('fine')) showToast(log, 'warning');
-        else if (lower.includes('rent') || lower.includes('mortgage') || lower.includes('rolled')) showToast(log, 'info');
-        else showToast(log, 'info');
-      }
-    }
   });
 
   socket.on('auction:start', (data: { auction: AuctionState }) => {
@@ -157,7 +181,41 @@ export const useGameStore = create<GameStore>((set) => {
 
   socket.on('game:dice_result', (data: DiceResult) => {
     set({ diceResult: data });
-    showToast(`Rolled ${data.die1} + ${data.die2} = ${data.total}${data.is_double ? ' (Double!)' : ''}`, 'info');
+  });
+
+  socket.on('game:over', (_data: { winner_id: string | null, winner_name: string }) => {
+    // Game over is handled by App.tsx via room status check
+    // This listener ensures the event is received
+  });
+
+  socket.on('card:result', (data: CardDraw) => {
+    set({ lastCardDraw: data });
+    const playerName = data.player_id === socket.id ? 'You' : 'A player';
+    showToast(`${playerName} drew: ${data.card.text}`, 'info', 5000);
+    soundManager.playCardDraw(data.card_type as 'treasury' | 'surprise');
+  });
+
+  socket.on('trade:offer', (data: TradeOffer) => {
+    if (data.to_player_id === socket.id) {
+      set({ incomingTrade: data });
+      showToast('Incoming trade offer!', 'info');
+    }
+  });
+
+  socket.on('trade:completed', () => {
+    set({ incomingTrade: null });
+    showToast('Trade completed!', 'success');
+    soundManager.playTradeComplete();
+  });
+
+  socket.on('trade:rejected', () => {
+    set({ incomingTrade: null });
+    showToast('Trade was rejected.', 'warning');
+  });
+
+  socket.on('trade:cancelled', () => {
+    set({ incomingTrade: null });
+    showToast('Trade was cancelled.', 'info');
   });
 
   return {
@@ -168,19 +226,21 @@ export const useGameStore = create<GameStore>((set) => {
     turn: null,
     auction: null,
     diceResult: null,
+    lastCardDraw: null,
+    incomingTrade: null,
     error: null,
 
     connect: () => {
-      const playerName = localStorage.getItem('dino_player_name') || 'Player';
+      const playerName = localStorage.getItem('dino_player_name') || '';
       const sessionToken = localStorage.getItem('dino_session_token') || '';
       socket.auth = { name: playerName, sessionToken };
       if (!socket.connected) socket.connect();
     },
 
-    joinRoom: (code, name, color) => {
-      localStorage.setItem('dino_player_name', name || 'Player');
+    joinRoom: (code, name) => {
+      localStorage.setItem('dino_player_name', name);
       const reconnectToken = localStorage.getItem('dino_reconnect_token') || undefined;
-      socket.emit('room:join', { room_code: code, name, color, reconnect_token: reconnectToken }, (response: any) => {
+      socket.emit('room:join', { room_code: code, name, reconnect_token: reconnectToken }, (response: any) => {
         if (response.status === 'error') {
           set({ error: response.message });
         } else {
@@ -192,9 +252,9 @@ export const useGameStore = create<GameStore>((set) => {
       });
     },
 
-    createRoom: (name, color) => {
-      localStorage.setItem('dino_player_name', name || 'Player');
-      socket.emit('room:create', { name, color }, (response: any) => {
+    createRoom: (name) => {
+      localStorage.setItem('dino_player_name', name);
+      socket.emit('room:create', { name }, (response: any) => {
         if (response.status === 'error') {
           set({ error: response.message });
         } else {
@@ -220,6 +280,12 @@ export const useGameStore = create<GameStore>((set) => {
 
     endTurn: () => {
       socket.emit('game:end_turn', {}, (response: any) => {
+        if (response.status === 'error') set({ error: response.message });
+      });
+    },
+
+    declareBankruptcy: () => {
+      socket.emit('game:declare_bankruptcy', {}, (response: any) => {
         if (response.status === 'error') set({ error: response.message });
       });
     },
@@ -282,6 +348,7 @@ export const useGameStore = create<GameStore>((set) => {
           showToast(response.message, 'error');
         } else {
           showToast('House built!', 'success');
+          soundManager.playBuild('house');
         }
       });
     },
@@ -293,6 +360,7 @@ export const useGameStore = create<GameStore>((set) => {
           showToast(response.message, 'error');
         } else {
           showToast('Hotel built!', 'success');
+          soundManager.playBuild('hotel');
         }
       });
     },
@@ -317,6 +385,108 @@ export const useGameStore = create<GameStore>((set) => {
           showToast('Hotel sold!', 'info');
         }
       });
+    },
+
+    mortgageProperty: (propertyId) => {
+      socket.emit('property:mortgage', { property_id: propertyId }, (response: any) => {
+        if (response.status === 'error') {
+          set({ error: response.message });
+          showToast(response.message, 'error');
+        } else {
+          showToast('Property mortgaged!', 'success');
+          soundManager.playMortgage();
+        }
+      });
+    },
+
+    unmortgageProperty: (propertyId) => {
+      socket.emit('property:unmortgage', { property_id: propertyId }, (response: any) => {
+        if (response.status === 'error') {
+          set({ error: response.message });
+          showToast(response.message, 'error');
+        } else {
+          showToast('Property unmortgaged!', 'success');
+          soundManager.playUnmortgage();
+        }
+      });
+    },
+
+    payJailFine: () => {
+      socket.emit('game:pay_jail_fine', {}, (response: any) => {
+        if (response.status === 'error') {
+          set({ error: response.message });
+          showToast(response.message, 'error');
+        } else {
+          showToast('Paid fine and released from jail!', 'success');
+          soundManager.playJailEscape();
+        }
+      });
+    },
+
+    useJailCard: () => {
+      socket.emit('game:use_jail_card', {}, (response: any) => {
+        if (response.status === 'error') {
+          set({ error: response.message });
+          showToast(response.message, 'error');
+        } else {
+          showToast('Used Get Out of Jail Free card!', 'success');
+          soundManager.playJailEscape();
+        }
+      });
+    },
+
+    payTax: (usePercentage: boolean) => {
+      socket.emit('game:pay_tax', { use_percentage: usePercentage }, (response: any) => {
+        if (response.status === 'error') {
+          set({ error: response.message });
+          showToast(response.message, 'error');
+        } else {
+          showToast(usePercentage ? 'Paid 10% of worth!' : 'Tax paid!', 'success');
+        }
+      });
+    },
+
+    collectRent: () => {
+      socket.emit('game:collect_rent', {}, (response: any) => {
+        if (response.status === 'error') {
+          set({ error: response.message });
+          showToast(response.message, 'error');
+        } else {
+          showToast('Rent collected!', 'success');
+        }
+      });
+    },
+
+    acceptTrade: (tradeId: string) => {
+      socket.emit('trade:accept', { trade_id: tradeId }, (response: any) => {
+        if (response.status === 'error') {
+          set({ error: response.message });
+          showToast(response.message, 'error');
+        } else {
+          showToast('Trade accepted!', 'success');
+          set({ incomingTrade: null });
+        }
+      });
+    },
+
+    rejectTrade: (tradeId: string) => {
+      socket.emit('trade:reject', { trade_id: tradeId }, (response: any) => {
+        if (response.status === 'error') {
+          set({ error: response.message });
+          showToast(response.message, 'error');
+        } else {
+          showToast('Trade rejected.', 'info');
+          set({ incomingTrade: null });
+        }
+      });
+    },
+
+    clearCardDraw: () => {
+      set({ lastCardDraw: null });
+    },
+
+    clearIncomingTrade: () => {
+      set({ incomingTrade: null });
     }
   };
 });
