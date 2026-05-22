@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useRef, memo } from 'react';
 import { useGameStore } from '../stores/gameStore';
 import { animations } from '../animations';
@@ -7,7 +7,7 @@ import { DiceAnim } from './DiceAnim';
 import { TokenVisualizer } from './TokenVisualizer';
 import { PropertyDetailModal } from './PropertyDetailModal';
 import { soundManager } from '../utils/audio';
-import { formatMoneyShort } from '../utils/format';
+import { formatMoney, formatMoneyShort } from '../utils/format';
 
 import boardData from '../../shared/configs/board_config.json';
 
@@ -337,13 +337,14 @@ const CenterGameLog = ({ historyLog }: { historyLog: string[] }) => {
 };
 
 export const Board = () => {
-  const { game, myId, turn, diceResult } = useGameStore();
+  const { game, myId, turn, diceResult, moneyChange } = useGameStore();
   const [isRolling, setIsRolling] = useState(false);
   const [diceValues, setDiceValues] = useState({ die1: 1, die2: 1 });
   const [isMoving, setIsMoving] = useState(false);
   const [selectedTile, setSelectedTile] = useState<number | null>(null);
   const [landingTile, setLandingTile] = useState<number | null>(null);
   const [boardZoom, setBoardZoom] = useState(1);
+  const [isShaking, setIsShaking] = useState(false);
 
   // Update dice values when backend sends result
   useEffect(() => {
@@ -367,6 +368,17 @@ export const Board = () => {
       setTimeout(() => setIsMoving(false), 1500);
     }
   }, [diceResult]);
+
+  // Screen shake on bankruptcy
+  useEffect(() => {
+    if (game) {
+      const bankruptPlayers = Object.values(game.room.players).filter((p: any) => p.is_bankrupt);
+      if (bankruptPlayers.length > 0) {
+        setIsShaking(true);
+        setTimeout(() => setIsShaking(false), 500);
+      }
+    }
+  }, [game?.room.players]);
 
   // Handle dice roll (animation handled by DiceAnim component)
   const handleRollDice = () => {
@@ -459,6 +471,26 @@ export const Board = () => {
                   showTotal={!isRolling}
                 />
               </div>
+
+              {/* Floating money change indicator */}
+              <AnimatePresence>
+                {moneyChange && (
+                  <motion.div
+                    key={moneyChange.timestamp}
+                    className="text-center"
+                    initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -30, scale: 1.2 }}
+                    transition={{ type: 'spring', damping: 15, stiffness: 200 }}
+                  >
+                    <span className={`text-2xl md:text-3xl font-black drop-shadow-lg ${
+                      moneyChange.amount > 0 ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {moneyChange.amount > 0 ? '+' : ''}{formatMoney(moneyChange.amount)}
+                    </span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Debt warning — player must resolve or bankrupt */}
               {turn.in_debt && (
@@ -653,7 +685,7 @@ export const Board = () => {
   };
 
   return (
-    <div ref={viewportRef} className="flex-1 flex items-center justify-center overflow-hidden p-1 lg:p-4 relative board-container">
+    <div ref={viewportRef} className={`flex-1 flex items-center justify-center overflow-hidden p-1 lg:p-4 relative board-container ${isShaking ? 'animate-shake' : ''}`}>
       {/* Mobile Zoom Toggle */}
       <motion.button
         className="lg:hidden absolute top-2 right-2 z-30 w-10 h-10 rounded-xl bg-surface/80 border border-primary-500/30 text-primary-300 flex items-center justify-center backdrop-blur-sm shadow-lg"

@@ -98,6 +98,12 @@ interface TradeOffer {
   requesting_get_out_of_jail_cards: number;
 }
 
+interface MoneyChange {
+  amount: number;
+  playerId: string;
+  timestamp: number;
+}
+
 interface GameStore {
   connected: boolean;
   myId: string | null;
@@ -107,6 +113,7 @@ interface GameStore {
   auction: AuctionState | null;
   diceResult: DiceResult | null;
   lastCardDraw: CardDraw | null;
+  moneyChange: MoneyChange | null;
   incomingTrade: TradeOffer | null;
   outgoingTradeId: string | null;
   gameOver: { winner_id: string | null, winner_name: string } | null;
@@ -164,6 +171,7 @@ export const useGameStore = create<GameStore>((set) => {
     set({ game: data.game, turn: data.turn, room: data.game.room, gameOver: null });
     showToast('Game started! Roll the dice to begin.', 'success');
     soundManager.playGameStart();
+    soundManager.startBackgroundMusic('game');
   });
 
   // Track previous state for detecting events
@@ -215,6 +223,19 @@ export const useGameStore = create<GameStore>((set) => {
           }
         }
 
+        // Money change indicator
+        if (prevMoney !== undefined && player.money !== prevMoney && pid === myId) {
+          const diff = player.money - prevMoney;
+          const ts = Date.now();
+          set({ moneyChange: { amount: diff, playerId: pid, timestamp: ts } });
+          setTimeout(() => {
+            set(state => {
+              if (state.moneyChange?.timestamp === ts) return { moneyChange: null };
+              return {};
+            });
+          }, 2000);
+        }
+
         prevPlayerPositions[pid] = player.position;
         prevPlayerMoney[pid] = player.money;
         prevPlayerBankrupt[pid] = player.is_bankrupt;
@@ -245,6 +266,7 @@ export const useGameStore = create<GameStore>((set) => {
     set({ gameOver: data });
     const isWinner = data.winner_id === socket.id;
     soundManager.playGameEnd(isWinner);
+    soundManager.stopBackgroundMusic();
   });
 
   socket.on('card:result', (data: CardDraw) => {
@@ -296,6 +318,7 @@ export const useGameStore = create<GameStore>((set) => {
     incomingTrade: null,
     outgoingTradeId: null,
     gameOver: null,
+    moneyChange: null,
     error: null,
 
     connect: () => {
@@ -374,6 +397,7 @@ export const useGameStore = create<GameStore>((set) => {
           showToast(response.message, 'error');
         } else {
           showToast('Property purchased!', 'success');
+          soundManager.playBuyProperty();
         }
       });
     },
@@ -580,6 +604,7 @@ export const useGameStore = create<GameStore>((set) => {
 
     leaveGame: () => {
       socket.emit('room:leave');
+      soundManager.stopBackgroundMusic();
       set({
         room: null,
         game: null,
