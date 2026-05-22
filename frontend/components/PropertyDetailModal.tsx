@@ -3,7 +3,6 @@ import { useGameStore } from '../stores/gameStore';
 import { soundManager } from '../utils/audio';
 import boardData from '../../shared/configs/board_config.json';
 import { formatMoney } from '../utils/format';
-import { animations } from '../animations';
 
 interface PropertyDetailModalProps {
   tileId: number | null;
@@ -60,17 +59,16 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
         <motion.div
           className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           onClick={onClose}
-          variants={animations.modalBackdrop}
-          initial="hidden"
-          animate="visible"
-          exit="hidden"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
         />
         <motion.div
           className="relative bg-surface border-2 border-primary-500/30 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto overflow-hidden"
-          variants={animations.modalContent}
-          initial="hidden"
-          animate="visible"
-          exit="hidden"
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
         >
           {/* Header */}
           <div

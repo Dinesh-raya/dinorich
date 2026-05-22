@@ -4,7 +4,6 @@ import { useGameStore } from '../stores/gameStore';
 import { soundManager } from '../utils/audio';
 import { socket } from '../services/socket';
 import { showToast } from './Toast';
-import { animations } from '../animations';
 import { formatMoney } from '../utils/format';
 import boardData from '../../shared/configs/board_config.json';
 
@@ -108,10 +107,9 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
           <motion.div
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={onClose}
-            variants={animations.modalBackdrop}
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           />
 
           {/* Modal */}
@@ -121,10 +119,10 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
               background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 20, 60, 0.98) 100%)',
               boxShadow: '0 0 60px rgba(168, 85, 247, 0.15), 0 0 120px rgba(168, 85, 247, 0.05)'
             }}
-            variants={animations.modalContent}
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
           >
             {/* Header */}
             <div className="flex justify-between items-center p-4 sm:p-6 border-b border-accent-500/20">

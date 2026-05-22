@@ -24,7 +24,7 @@ interface RoomSettingsType {
 }
 
 export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
-  const { room, myId, updateRoomSettings } = useGameStore();
+  const { room, myId, updateRoomSettings, kickPlayer } = useGameStore();
 
   // Default settings
   const defaultSettings: RoomSettingsType = {
@@ -81,19 +81,17 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl"
-          variants={animations.modalBackdrop}
         >
           <motion.div
             initial={{ scale: 0.9, y: 30, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.9, y: 30, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border-2 border-purple-500/30 shadow-2xl"
+            className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border-2 border-purple-500/30 shadow-2xl"
             style={{
               background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 20, 60, 0.98) 100%)',
               boxShadow: '0 0 60px rgba(168, 85, 247, 0.15), 0 0 120px rgba(168, 85, 247, 0.05)'
             }}
-            variants={animations.modalContent}
           >
             {/* Header */}
             <div className="flex justify-between items-center p-6 border-b border-purple-500/20">
@@ -120,7 +118,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
 
                 <motion.button
                   onClick={onClose}
-                  className="w-8 h-8 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-danger-400 hover:border-danger-500/30 transition-all flex items-center justify-center"
+                  className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-danger-400 hover:border-danger-500/30 transition-all flex items-center justify-center"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                 >
@@ -349,6 +347,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                             </span>
                           ) : (
                             <motion.button
+                              onClick={() => kickPlayer(player.id)}
                               className="px-3 py-1.5 bg-danger-500/10 text-danger-400 text-xs rounded-lg hover:bg-danger-500/20 transition-colors border border-danger-500/20"
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
