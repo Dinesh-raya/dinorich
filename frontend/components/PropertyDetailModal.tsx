@@ -235,7 +235,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                     <motion.button
                       className="w-full py-2 px-4 bg-accent-500/20 border border-accent-500/30 rounded-xl text-accent-300 font-bold text-sm hover:bg-accent-500/30 transition-colors"
                       onClick={() => {
-                        soundManager.playUnmortgage();
+                        soundManager.playButtonClick();
                         useGameStore.getState().unmortgageProperty(tileId);
                       }}
                       whileHover={{ scale: 1.02 }}
@@ -247,7 +247,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                     <motion.button
                       className="w-full py-2 px-4 bg-warning-500/20 border border-warning-500/30 rounded-xl text-warning-300 font-bold text-sm hover:bg-warning-500/30 transition-colors"
                       onClick={() => {
-                        soundManager.playMortgage();
+                        soundManager.playButtonClick();
                         useGameStore.getState().mortgageProperty(tileId);
                       }}
                       whileHover={{ scale: 1.02 }}
@@ -274,7 +274,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                         <motion.button
                           className="flex-1 py-2 px-3 bg-success-500/20 border border-success-500/30 rounded-xl text-success-300 font-bold text-xs hover:bg-success-500/30 transition-colors"
                           onClick={() => {
-                            soundManager.playBuild('house');
+                            soundManager.playButtonClick();
                             useGameStore.getState().buildHouse(tileId);
                           }}
                           whileHover={{ scale: 1.02 }}
@@ -289,7 +289,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                         <motion.button
                           className="flex-1 py-2 px-3 bg-danger-500/20 border border-danger-500/30 rounded-xl text-danger-300 font-bold text-xs hover:bg-danger-500/30 transition-colors"
                           onClick={() => {
-                            soundManager.playBuild('hotel');
+                            soundManager.playButtonClick();
                             useGameStore.getState().buildHotel(tileId);
                           }}
                           whileHover={{ scale: 1.02 }}
@@ -304,7 +304,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                         <motion.button
                           className="flex-1 py-2 px-3 bg-warning-500/20 border border-warning-500/30 rounded-xl text-warning-300 font-bold text-xs hover:bg-warning-500/30 transition-colors"
                           onClick={() => {
-                            soundManager.playBuild('house');
+                            soundManager.playButtonClick();
                             useGameStore.getState().sellHotel(tileId);
                           }}
                           whileHover={{ scale: 1.02 }}
@@ -319,7 +319,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                         <motion.button
                           className="flex-1 py-2 px-3 bg-warning-500/20 border border-warning-500/30 rounded-xl text-warning-300 font-bold text-xs hover:bg-warning-500/30 transition-colors"
                           onClick={() => {
-                            soundManager.playBuild('house');
+                            soundManager.playButtonClick();
                             useGameStore.getState().sellHouse(tileId);
                           }}
                           whileHover={{ scale: 1.02 }}

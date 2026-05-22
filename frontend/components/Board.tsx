@@ -345,6 +345,7 @@ export const Board = () => {
   const [landingTile, setLandingTile] = useState<number | null>(null);
   const [boardZoom, setBoardZoom] = useState(1);
   const [isShaking, setIsShaking] = useState(false);
+  const shakenPlayers = useRef(new Set<string>());
 
   // Update dice values when backend sends result
   useEffect(() => {
@@ -369,13 +370,15 @@ export const Board = () => {
     }
   }, [diceResult]);
 
-  // Screen shake on bankruptcy
+  // Screen shake on bankruptcy (fires once per new bankruptcy)
   useEffect(() => {
     if (game) {
-      const bankruptPlayers = Object.values(game.room.players).filter((p: any) => p.is_bankrupt);
-      if (bankruptPlayers.length > 0) {
-        setIsShaking(true);
-        setTimeout(() => setIsShaking(false), 500);
+      for (const [pid, player] of Object.entries(game.room.players)) {
+        if ((player as any).is_bankrupt && !shakenPlayers.current.has(pid)) {
+          shakenPlayers.current.add(pid);
+          setIsShaking(true);
+          setTimeout(() => setIsShaking(false), 500);
+        }
       }
     }
   }, [game?.room.players]);
@@ -633,7 +636,6 @@ export const Board = () => {
                       className="bg-success-500 text-white font-bold py-2.5 px-5 rounded-lg hover:bg-success-600 transition-colors text-xs md:text-sm"
                       onClick={() => {
                         const me = game.room.players[myId!];
-                        soundManager.playBuyProperty();
                         useGameStore.getState().buyProperty(me.position);
                       }}
                       whileHover={{ scale: 1.05 }}
