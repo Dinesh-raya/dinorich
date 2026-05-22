@@ -6,7 +6,7 @@ from schemas.room import RoomStatus
 from services.session_manager import session_manager
 from services.rate_limiter import rate_limiter
 from sockets.events import ROOM_EVENTS
-from sockets.helpers import get_room_code_or_error
+from sockets.helpers import get_room_code_or_error, persist_room, persist_game
 
 @sio.on('room:create')
 async def room_create(sid, data):
@@ -36,6 +36,7 @@ async def room_create(sid, data):
     await sio.enter_room(sid, room_code)
     room = room_manager.get_room(room_code)
 
+    persist_room(room_code)
     return {"status": "success", "room": room.model_dump(), "reconnectToken": reconnect_token}
 
 @sio.on('room:join')
@@ -101,6 +102,8 @@ async def room_join(sid, data):
                         room=room_code
                     )
                 
+                persist_room(room_code)
+                persist_game(room_code)
                 return {"status": "success", "room": room.model_dump(), "reconnectToken": player.reconnect_token}
         return {"status": "error", "message": "Cannot join a game already in progress"}
     
@@ -127,7 +130,8 @@ async def room_join(sid, data):
         room.model_dump(),
         room=room_code
     )
-    
+
+    persist_room(room_code)
     return {"status": "success", "room": room.model_dump(), "reconnectToken": reconnect_token}
 
 @sio.on('room:leave')
@@ -153,6 +157,7 @@ async def room_leave(sid):
                 updated_room.model_dump(),
                 room=room_code
             )
+        persist_room(room_code)
     else:
         # Active game: treat as disconnect (don't remove from room.players)
         if sid in room.players:
@@ -215,6 +220,7 @@ async def room_update_settings(sid, data):
         room=room_code
     )
 
+    persist_room(room_code)
     return {"status": "success"}
 
 @sio.on('room:kick_player')
@@ -253,4 +259,5 @@ async def room_kick_player(sid, data):
         room=room_code
     )
 
+    persist_room(room_code)
     return {"status": "success"}

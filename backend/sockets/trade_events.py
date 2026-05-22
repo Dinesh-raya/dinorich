@@ -2,7 +2,7 @@ from sockets.server import sio
 from engine.trade_manager import trade_manager
 from engine.turn_manager import turn_manager
 from services.rate_limiter import rate_limiter
-from sockets.helpers import get_room_code_or_error, emit_game_state
+from sockets.helpers import get_room_code_or_error, emit_game_state, persist_game
 from schemas.contracts import TradeCreatePayload, TradeActionPayload
 
 @sio.on("trade:create")
@@ -113,6 +113,7 @@ async def trade_accept(sid, data):
     await sio.emit("trade:completed", {"trade_id": trade_id}, room=from_player_id)
     await sio.emit("trade:completed", {"trade_id": trade_id}, room=to_player_id)
 
+    persist_game(room_code)
     return {"status": "success"}
 
 @sio.on("trade:reject")

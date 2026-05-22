@@ -7,7 +7,7 @@ from schemas.contracts import PropertyActionPayload, AuctionBidPayload
 from schemas.action import TurnPhase
 from services.rate_limiter import rate_limiter
 from sockets.events import AUCTION_EVENTS
-from sockets.helpers import get_room_code_or_error, emit_game_state
+from sockets.helpers import get_room_code_or_error, emit_game_state, persist_game
 
 @sio.on("auction:start")
 async def auction_start(sid, data):
@@ -102,4 +102,5 @@ async def auction_end(sid, data):
     turn.time_remaining = game.room.settings.turn_timer_seconds
     await sio.emit(AUCTION_EVENTS["END"], {"message": msg}, room=room_code)
     await emit_game_state(room_code, game, turn)
+    persist_game(room_code)
     return {"status": "success"}

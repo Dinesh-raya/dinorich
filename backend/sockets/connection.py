@@ -5,7 +5,7 @@ from typing import Dict
 from services.session_manager import session_manager
 from constants.game_rules import GameRules
 from sockets.events import CONNECTION_EVENTS, ROOM_EVENTS
-from sockets.helpers import emit_game_state
+from sockets.helpers import emit_game_state, persist_room, persist_game
 from schemas.room import RoomStatus
 from utils.name_generator import get_random_name
 
@@ -78,6 +78,7 @@ async def disconnect(sid):
                         updated_room.model_dump(),
                         room=room_code
                     )
+                persist_room(room_code)
             else:
                 # If playing, mark as disconnected and skip turn if active
                 if sid in room.players:
@@ -100,6 +101,8 @@ async def disconnect(sid):
                             if game:
                                 game.add_log(f"{room.players[sid].name} disconnected, turn skipped")
                                 await emit_game_state(room_code, game, new_turn)
+                    persist_room(room_code)
+                    persist_game(room_code)
 
                     # Start disconnect timeout task keyed by session_id
                     task = asyncio.create_task(handle_disconnect_timeout(sid, session_id, room_code))
@@ -161,6 +164,8 @@ async def handle_disconnect_timeout(sid: str, session_id: str, room_code: str):
     new_turn = turn_manager.next_turn(room_code)
     if game and new_turn:
         await emit_game_state(room_code, game, new_turn)
+    persist_room(room_code)
+    persist_game(room_code)
 
     # Clean up session mapping
     session_rooms.pop(session_id, None)

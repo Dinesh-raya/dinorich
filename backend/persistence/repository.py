@@ -32,6 +32,60 @@ def save_snapshot(rooms: Dict[str, RoomState], games: Dict[str, GameState], turn
             conn.close()
     with_db_lock(_do_save)
 
+def save_room(room_code: str, room: RoomState):
+    def _do():
+        conn = get_connection()
+        try:
+            conn.execute(
+                'INSERT OR REPLACE INTO rooms (room_code, state_json) VALUES (?, ?)',
+                (room_code, room.model_dump_json())
+            )
+            conn.commit()
+        except Exception as e:
+            logger.error(f"Failed to save room {room_code}: {e}", exc_info=True)
+        finally:
+            conn.close()
+    with_db_lock(_do)
+
+def save_game(room_code: str, game: GameState, turn: TurnState):
+    def _do():
+        conn = get_connection()
+        try:
+            conn.execute(
+                'INSERT OR REPLACE INTO games (room_code, state_json, turn_json) VALUES (?, ?, ?)',
+                (room_code, game.model_dump_json(), turn.model_dump_json())
+            )
+            conn.commit()
+        except Exception as e:
+            logger.error(f"Failed to save game {room_code}: {e}", exc_info=True)
+        finally:
+            conn.close()
+    with_db_lock(_do)
+
+def delete_room(room_code: str):
+    def _do():
+        conn = get_connection()
+        try:
+            conn.execute('DELETE FROM rooms WHERE room_code = ?', (room_code,))
+            conn.commit()
+        except Exception as e:
+            logger.error(f"Failed to delete room {room_code}: {e}", exc_info=True)
+        finally:
+            conn.close()
+    with_db_lock(_do)
+
+def delete_game(room_code: str):
+    def _do():
+        conn = get_connection()
+        try:
+            conn.execute('DELETE FROM games WHERE room_code = ?', (room_code,))
+            conn.commit()
+        except Exception as e:
+            logger.error(f"Failed to delete game {room_code}: {e}", exc_info=True)
+        finally:
+            conn.close()
+    with_db_lock(_do)
+
 def load_snapshot() -> Tuple[Dict[str, RoomState], Dict[str, GameState], Dict[str, TurnState]]:
     conn = get_connection()
     cursor = conn.cursor()

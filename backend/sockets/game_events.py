@@ -4,7 +4,7 @@ from engine.game_initializer import init_game_state
 from engine.turn_manager import turn_manager
 from services.rate_limiter import rate_limiter
 from sockets.events import GAME_EVENTS, ROOM_EVENTS
-from sockets.helpers import get_room_code_or_error, emit_game_state
+from sockets.helpers import get_room_code_or_error, emit_game_state, persist_room, persist_game
 from schemas.room import RoomStatus
 
 @sio.on("game:start")
@@ -36,6 +36,8 @@ async def game_start(sid, data):
         {"game": game_state.model_dump(), "turn": turn_state.model_dump()},
         room=room_code
     )
+    persist_room(room_code)
+    persist_game(room_code)
     return {"status": "success"}
 
 @sio.on("game:dice_roll")
@@ -65,6 +67,7 @@ async def game_dice_roll(sid, data):
         )
 
     await emit_game_state(room_code, result["game"], result["turn"])
+    persist_game(room_code)
     return {"status": "success"}
 
 @sio.on("game:end_turn")
@@ -83,6 +86,7 @@ async def game_end_turn(sid, data):
     game = turn_manager.get_game(room_code)
     if game and new_turn:
         await emit_game_state(room_code, game, new_turn)
+        persist_game(room_code)
     return {"status": "success"}
 
 @sio.on("game:declare_bankruptcy")
@@ -113,6 +117,7 @@ async def game_declare_bankruptcy(sid, data):
     new_turn = turn_manager.next_turn(room_code)
     if game and new_turn:
         await emit_game_state(room_code, game, new_turn)
+    persist_game(room_code)
     return {"status": "success"}
 
 @sio.on("game:pay_jail_fine")
@@ -128,6 +133,7 @@ async def game_pay_jail_fine(sid, data):
         return {"status": "error", "message": "Cannot pay jail fine right now"}
 
     await emit_game_state(room_code, result["game"], result["turn"])
+    persist_game(room_code)
     return {"status": "success"}
 
 @sio.on("game:use_jail_card")
@@ -143,6 +149,7 @@ async def game_use_jail_card(sid, data):
         return {"status": "error", "message": "Cannot use jail card right now"}
 
     await emit_game_state(room_code, result["game"], result["turn"])
+    persist_game(room_code)
     return {"status": "success"}
 
 @sio.on("game:pay_tax")
@@ -159,5 +166,5 @@ async def game_pay_tax(sid, data):
         return {"status": "error", "message": "No pending tax to pay"}
 
     await emit_game_state(room_code, result["game"], result["turn"])
+    persist_game(room_code)
     return {"status": "success"}
-

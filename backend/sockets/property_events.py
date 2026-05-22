@@ -8,7 +8,7 @@ from schemas.contracts import PropertyActionPayload
 from schemas.action import TurnPhase
 from services.rate_limiter import rate_limiter
 from sockets.events import GAME_EVENTS
-from sockets.helpers import get_room_code_or_error, emit_game_state
+from sockets.helpers import get_room_code_or_error, emit_game_state, persist_game
 
 
 def _make_property_handler(action_fn: Callable, event_name: str, require_buy_phase: bool = False):
@@ -55,6 +55,7 @@ def _make_property_handler(action_fn: Callable, event_name: str, require_buy_pha
                 turn.phase = TurnPhase.ACTION
                 turn.can_end_turn = True
             await emit_game_state(room_code, game, turn)
+            persist_game(room_code)
         return {"status": "success"}
 
     return handler
