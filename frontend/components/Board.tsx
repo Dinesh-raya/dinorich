@@ -346,6 +346,7 @@ export const Board = () => {
   const [boardZoom, setBoardZoom] = useState(1);
   const [isShaking, setIsShaking] = useState(false);
   const shakenPlayers = useRef(new Set<string>());
+  const viewportRef = useRef<HTMLDivElement>(null);
 
   // Update dice values when backend sends result
   useEffect(() => {
@@ -403,7 +404,6 @@ export const Board = () => {
 
   // Use dice values (from backend result or local animation)
   const currentDice = diceValues;
-  const viewportRef = useRef<HTMLDivElement>(null);
 
   const renderTurnPanel = (isMobile: boolean) => {
     return (

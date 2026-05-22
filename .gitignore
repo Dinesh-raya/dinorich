@@ -30,3 +30,4 @@ Thumbs.db
 .claude/
 .openclaude/
 skills-lock.json
+.playwright-mcp/

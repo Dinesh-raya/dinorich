@@ -107,7 +107,8 @@ async def trade_accept(sid, data):
 
     # Emit updated game state
     turn_state = turn_manager.get_turn_state(room_code)
-    await emit_game_state(room_code, game, turn_state)
+    if turn_state:
+        await emit_game_state(room_code, game, turn_state)
 
     # Notify both players (use saved IDs since trade was deleted)
     await sio.emit("trade:completed", {"trade_id": trade_id}, room=from_player_id)

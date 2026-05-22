@@ -89,8 +89,14 @@ def mortgage_property(game_state: GameState, player_id: str, property_id: int) -
     if prop_state.is_mortgaged:
         return False, "Already mortgaged"
         
-    if prop_state.houses > 0 or prop_state.hotels > 0:
-        return False, "Must sell buildings first"
+    # Official rules: ALL buildings in the color group must be sold before ANY property can be mortgaged
+    config = get_board_config().get(property_id)
+    color_group = config.get("color") if config else None
+    if color_group:
+        for pid, ps in game_state.properties.items():
+            pc = get_board_config().get(pid)
+            if pc and pc.get("color") == color_group and (ps.houses > 0 or ps.hotels > 0):
+                return False, f"Must sell all buildings in the {color_group} group first"
         
     config = get_board_config().get(property_id)
     mortgage_value = config.get("mortgage", 0)

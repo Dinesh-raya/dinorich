@@ -1,8 +1,11 @@
 from sockets.server import sio
 from rooms.manager import room_manager
 import asyncio
+import logging
 from typing import Dict
 from services.session_manager import session_manager
+
+logger = logging.getLogger(__name__)
 from constants.game_rules import GameRules
 from sockets.events import CONNECTION_EVENTS, ROOM_EVENTS
 from sockets.helpers import emit_game_state, persist_room, persist_game
