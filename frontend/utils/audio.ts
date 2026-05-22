@@ -1,50 +1,49 @@
 /**
- * Enhanced Audio System with comprehensive sound effects
- * Uses placeholder URLs - replace with actual sound files in production
+ * Audio System with local procedural sound effects
  */
 const SOUNDS = {
   // Dice & Game Actions
-  dice_roll: 'https://assets.mixkit.co/sfx/preview/mixkit-dice-roll-1994.mp3',
-  dice_land: 'https://assets.mixkit.co/sfx/preview/mixkit-dice-land-1995.mp3',
-  dice_double: 'https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3',
-  
+  dice_roll: '/sounds/dice_roll.wav',
+  dice_land: '/sounds/dice_land.wav',
+  dice_double: '/sounds/dice_double.wav',
+
   // Game Events
-  buy_property: 'https://assets.mixkit.co/sfx/preview/mixkit-cash-register-purchase-875.mp3',
-  pay_rent: 'https://assets.mixkit.co/sfx/preview/mixkit-cash-register-coin-drop-1993.mp3',
-  auction_bid: 'https://assets.mixkit.co/sfx/preview/mixkit-auction-bell-1088.mp3',
-  auction_end: 'https://assets.mixkit.co/sfx/preview/mixkit-winning-trumpet-2018.mp3',
-  
+  buy_property: '/sounds/buy_property.wav',
+  pay_rent: '/sounds/pay_rent.wav',
+  auction_bid: '/sounds/auction_bid.wav',
+  auction_end: '/sounds/auction_end.wav',
+
   // Player Actions
-  player_move: 'https://assets.mixkit.co/sfx/preview/mixkit-game-ball-tap-2073.mp3',
-  player_jail: 'https://assets.mixkit.co/sfx/preview/mixkit-prison-door-lock-1258.mp3',
-  player_free: 'https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.mp3',
-  pass_go: 'https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3',
-  
+  player_move: '/sounds/player_move.wav',
+  player_jail: '/sounds/player_jail.wav',
+  player_free: '/sounds/player_free.wav',
+  pass_go: '/sounds/pass_go.wav',
+
   // UI Sounds
-  button_click: 'https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3',
-  button_hover: 'https://assets.mixkit.co/sfx/preview/mixkit-light-button-click-1120.mp3',
-  modal_open: 'https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3',
-  modal_close: 'https://assets.mixkit.co/sfx/preview/mixkit-light-button-click-1120.mp3',
-  
+  button_click: '/sounds/button_click.wav',
+  button_hover: '/sounds/button_hover.wav',
+  modal_open: '/sounds/modal_open.wav',
+  modal_close: '/sounds/modal_close.wav',
+
   // Property Development
-  build_house: 'https://assets.mixkit.co/sfx/preview/mixkit-construction-tool-1385.mp3',
-  build_hotel: 'https://assets.mixkit.co/sfx/preview/mixkit-building-construction-1384.mp3',
-  mortgage: 'https://assets.mixkit.co/sfx/preview/mixkit-cash-register-purchase-875.mp3',
-  unmortgage: 'https://assets.mixkit.co/sfx/preview/mixkit-cash-register-coin-drop-1993.mp3',
-  
+  build_house: '/sounds/build_house.wav',
+  build_hotel: '/sounds/build_hotel.wav',
+  mortgage: '/sounds/mortgage.wav',
+  unmortgage: '/sounds/unmortgage.wav',
+
   // Card Effects
-  chance_card: 'https://assets.mixkit.co/sfx/preview/mixkit-magic-sparkles-3001.mp3',
-  community_chest: 'https://assets.mixkit.co/sfx/preview/mixkit-treasure-chest-opening-1992.mp3',
-  
+  chance_card: '/sounds/chance_card.wav',
+  community_chest: '/sounds/community_chest.wav',
+
   // Game State
-  game_start: 'https://assets.mixkit.co/sfx/preview/mixkit-game-show-intro-331.mp3',
-  game_end: 'https://assets.mixkit.co/sfx/preview/mixkit-winning-trumpet-2018.mp3',
-  player_bankrupt: 'https://assets.mixkit.co/sfx/preview/mixkit-sad-game-over-trombone-471.mp3',
-  player_win: 'https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3',
-  
+  game_start: '/sounds/game_start.wav',
+  game_end: '/sounds/game_end.wav',
+  player_bankrupt: '/sounds/player_bankrupt.wav',
+  player_win: '/sounds/player_win.wav',
+
   // Background Music
-  bgm_menu: 'https://assets.mixkit.co/music/preview/mixkit-game-show-suspense-waiting-667.mp3',
-  bgm_game: 'https://assets.mixkit.co/music/preview/mixkit-game-show-topic-661.mp3',
+  bgm_menu: '/sounds/bgm_menu.wav',
+  bgm_game: '/sounds/bgm_game.wav',
 };
 
 export type SoundName = keyof typeof SOUNDS;

@@ -163,10 +163,63 @@ export const useGameStore = create<GameStore>((set) => {
   socket.on('game:start', (data: { game: GameState, turn: TurnState }) => {
     set({ game: data.game, turn: data.turn, room: data.game.room, gameOver: null });
     showToast('Game started! Roll the dice to begin.', 'success');
+    soundManager.playGameStart();
   });
 
+  // Track previous state for detecting events
+  let prevPlayerPositions: Record<string, number> = {};
+  let prevPlayerMoney: Record<string, number> = {};
+  let prevPlayerBankrupt: Record<string, boolean> = {};
+
   socket.on('game:state_update', (data: { game: GameState, turn: TurnState }) => {
+    const prevGame = useGameStore.getState().game;
     set({ game: data.game, turn: data.turn, room: data.game.room });
+
+    // Detect events from state changes
+    if (prevGame && data.game) {
+      const players = data.game.room.players;
+      const myId = socket.id;
+
+      for (const [pid, player] of Object.entries(players)) {
+        const prevPos = prevPlayerPositions[pid];
+        const prevMoney = prevPlayerMoney[pid];
+        const prevBankrupt = prevPlayerBankrupt[pid];
+
+        // Pass GO: position wrapped (went from high to low)
+        if (prevPos !== undefined && player.position < prevPos && prevPos - player.position > 20) {
+          if (pid === myId) soundManager.playPassGo();
+        }
+
+        // Jail entry: position is 10 and wasn't before
+        if (prevPos !== undefined && player.position === 10 && prevPos !== 10) {
+          if (pid === myId) soundManager.playJailEntry();
+        }
+
+        // Jail escape: position is not 10 and was 10
+        if (prevPos !== undefined && prevPos === 10 && player.position !== 10) {
+          if (pid === myId) soundManager.playJailEscape();
+        }
+
+        // Rent paid: money decreased and landed on owned property
+        if (prevMoney !== undefined && player.money < prevMoney && pid === myId) {
+          const landedTile = data.game.properties?.[player.position];
+          if (landedTile && landedTile.owner_id && landedTile.owner_id !== pid) {
+            soundManager.playPayRent();
+          }
+        }
+
+        // Bankruptcy
+        if (prevBankrupt !== undefined && !prevBankrupt && player.is_bankrupt) {
+          if (pid === myId) {
+            soundManager.playBankruptcy();
+          }
+        }
+
+        prevPlayerPositions[pid] = player.position;
+        prevPlayerMoney[pid] = player.money;
+        prevPlayerBankrupt[pid] = player.is_bankrupt;
+      }
+    }
   });
 
   socket.on('auction:start', (data: { auction: AuctionState }) => {
@@ -181,6 +234,7 @@ export const useGameStore = create<GameStore>((set) => {
   socket.on('auction:end', () => {
     set({ auction: null });
     showToast('Auction ended!', 'info');
+    soundManager.playAuctionEnd();
   });
 
   socket.on('game:dice_result', (data: DiceResult) => {
@@ -189,6 +243,8 @@ export const useGameStore = create<GameStore>((set) => {
 
   socket.on('game:over', (data: { winner_id: string | null, winner_name: string }) => {
     set({ gameOver: data });
+    const isWinner = data.winner_id === socket.id;
+    soundManager.playGameEnd(isWinner);
   });
 
   socket.on('card:result', (data: CardDraw) => {
