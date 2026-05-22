@@ -9,7 +9,7 @@ class PlayerState(BaseModel):
     position: int = Field(0, ge=0, le=39, description="Current tile index 0-39")
     money: int = Field(150000, ge=-10_000_000, le=100_000_000, description="Current balance in ₹")
     is_in_jail: bool = Field(False, description="Whether the player is currently in jail")
-    jail_turns: int = Field(0, ge=0, le=10, description="Number of turns spent in jail")
+    jail_turns: int = Field(0, ge=0, le=100, description="Number of turns spent in jail")
     get_out_of_jail_cards: int = Field(0, description="Number of Get Out of Jail Free cards owned")
     is_bankrupt: bool = Field(False, description="Whether the player is bankrupt and eliminated")
     properties_owned: List[int] = Field(default_factory=list, description="List of tile IDs owned by the player")
