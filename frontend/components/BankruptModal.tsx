@@ -1,5 +1,4 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { animations } from '../animations';
 import { formatMoney } from '../utils/format';
 
 interface BankruptModalProps {
@@ -124,10 +123,9 @@ export const GameOverModal = ({ isOpen, winnerName, isWinner, standings, onClose
           <motion.div
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={onClose}
-            variants={animations.modalBackdrop}
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           />
 
           {/* Modal */}
@@ -137,10 +135,10 @@ export const GameOverModal = ({ isOpen, winnerName, isWinner, standings, onClose
               background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 20, 60, 0.98) 100%)',
               boxShadow: '0 0 60px rgba(168, 85, 247, 0.2), 0 0 120px rgba(168, 85, 247, 0.1)'
             }}
-            variants={animations.modalContent}
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
+            initial={{ scale: 0.8, y: 30, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={{ scale: 0.8, y: 30, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
           >
             {/* Icon */}
             <motion.div
