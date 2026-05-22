@@ -10,7 +10,11 @@ def _secret_key() -> bytes:
     key = os.getenv("DINO_SECRET_KEY", "")
     if not key:
         import logging
-        logging.warning("DINO_SECRET_KEY not set - using insecure dev key. Set DINO_SECRET_KEY in production!")
+        logger = logging.getLogger(__name__)
+        if os.getenv("DINO_ENV", "").lower() == "production":
+            logger.error("DINO_SECRET_KEY not set in production! Session tokens are forgeable. Exiting.")
+            raise RuntimeError("DINO_SECRET_KEY must be set in production. Generate with: python -c \"import secrets; print(secrets.token_hex(32))\"")
+        logger.warning("DINO_SECRET_KEY not set - using insecure dev key. Set DINO_SECRET_KEY in production!")
         return b"dev-only-insecure-key-do-not-use-in-prod"
     return key.encode("utf-8")
 

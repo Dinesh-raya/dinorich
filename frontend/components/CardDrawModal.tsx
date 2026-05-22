@@ -29,32 +29,32 @@ export const CardDrawModal = () => {
     }
   }, [lastCardDraw, clearCardDraw]);
 
-  if (!lastCardDraw || !game) return null;
-
-  const { card, card_type, player_id } = lastCardDraw;
-  const player = game.room.players[player_id];
+  const { card, card_type, player_id } = lastCardDraw || {};
+  const player = card && game && player_id ? game.room.players[player_id] : null;
   const isMe = player_id === myId;
-  const cardStyle = CARD_COLORS[card_type] || CARD_COLORS.treasury;
+  const cardStyle = CARD_COLORS[card_type || ''] || CARD_COLORS.treasury;
 
   // Determine card effect description
   let effectText = '';
-  if (card.action === 'add_money') {
+  if (card?.action === 'add_money') {
     effectText = `+₹${card.amount?.toLocaleString()}`;
-  } else if (card.action === 'pay_money') {
+  } else if (card?.action === 'pay_money') {
     effectText = `-₹${card.amount?.toLocaleString()}`;
-  } else if (card.action === 'move_to') {
-    const destTile = boardData.tiles.find((t: any) => t.id === card.destination);
+  } else if (card?.action === 'move_to') {
+    const destTile = boardData.tiles.find((t: any) => t.id === card.target);
     effectText = `Move to ${destTile?.name || 'GO'}`;
-  } else if (card.action === 'move_relative') {
-    effectText = card.amount < 0 ? `Go back ${Math.abs(card.amount)} spaces` : `Move forward ${card.amount} spaces`;
-  } else if (card.action === 'go_to_jail') {
+  } else if (card?.action === 'move_relative') {
+    const spaces = card.spaces ?? card.amount ?? 0;
+    effectText = spaces < 0 ? `Go back ${Math.abs(spaces)} spaces` : `Move forward ${spaces} spaces`;
+  } else if (card?.action === 'go_to_jail') {
     effectText = 'Go to Jail!';
-  } else if (card.action === 'get_out_of_jail_free') {
+  } else if (card?.action === 'get_out_of_jail_free') {
     effectText = 'Get Out of Jail Free';
   }
 
   return (
     <AnimatePresence>
+      {lastCardDraw && game && (
       <motion.div
         className="fixed inset-0 z-[60] flex items-center justify-center pointer-events-none"
         initial={{ opacity: 0 }}
@@ -113,6 +113,7 @@ export const CardDrawModal = () => {
           </div>
         </motion.div>
       </motion.div>
+      )}
     </AnimatePresence>
   );
 };

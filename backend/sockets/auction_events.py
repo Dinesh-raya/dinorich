@@ -10,7 +10,6 @@ from sockets.events import AUCTION_EVENTS
 from sockets.helpers import get_room_code_or_error, emit_game_state
 
 @sio.on("auction:start")
-@sio.on("auction_start")
 async def auction_start(sid, data):
     if not rate_limiter.allow(f"{sid}:auction_start"):
         return {"status": "error", "message": "Too many requests"}
@@ -25,6 +24,9 @@ async def auction_start(sid, data):
 
     if turn.active_player_id != sid or turn.phase != TurnPhase.BUY:
         return {"status": "error", "message": "Cannot start auction now"}
+
+    if not game.room.settings.auction_enabled:
+        return {"status": "error", "message": "Auctions are disabled in room settings"}
 
     try:
         payload = PropertyActionPayload.model_validate(data or {})
@@ -45,7 +47,6 @@ async def auction_start(sid, data):
     return {"status": "success"}
 
 @sio.on("auction:bid")
-@sio.on("auction_bid")
 async def auction_bid(sid, data):
     if not rate_limiter.allow(f"{sid}:auction_bid"):
         return {"status": "error", "message": "Too many requests"}
@@ -65,7 +66,7 @@ async def auction_bid(sid, data):
     if not player:
         return {"status": "error", "message": "Player not found"}
 
-    success, msg = auction_manager.place_bid(room_code, sid, bid_amount, player.money)
+    success, msg = auction_manager.place_bid(room_code, sid, bid_amount, player.money, player.is_bankrupt)
     if not success:
         return {"status": "error", "message": msg}
 
@@ -74,7 +75,6 @@ async def auction_bid(sid, data):
     return {"status": "success"}
 
 @sio.on("auction:end")
-@sio.on("auction_end")
 async def auction_end(sid, data):
     if not rate_limiter.allow(f"{sid}:auction_end"):
         return {"status": "error", "message": "Too many requests"}
@@ -98,6 +98,8 @@ async def auction_end(sid, data):
         return {"status": "error", "message": msg}
 
     turn.phase = TurnPhase.ACTION
+    turn.can_end_turn = True
+    turn.time_remaining = game.room.settings.turn_timer_seconds
     await sio.emit(AUCTION_EVENTS["END"], {"message": msg}, room=room_code)
     await emit_game_state(room_code, game, turn)
     return {"status": "success"}

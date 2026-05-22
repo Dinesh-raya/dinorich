@@ -1,0 +1,14 @@
+node_modules
+__pycache__
+*.pyc
+.git
+.gitignore
+.env
+*.md
+frontend/node_modules
+frontend/dist
+backend/__pycache__
+backend/persistence/*.sqlite
+*.bat
+*.sh
+docker

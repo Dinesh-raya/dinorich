@@ -2,6 +2,7 @@ from typing import Optional
 from schemas.game import GameState
 from schemas.room import RoomStatus
 from engine.property import get_board_config
+from constants.game_rules import GameRules
 
 def declare_bankruptcy(game_state: GameState, debtor_id: str, creditor_id: Optional[str] = None):
     """
@@ -50,16 +51,15 @@ def declare_bankruptcy(game_state: GameState, debtor_id: str, creditor_id: Optio
             if config and config.get("type") == "property":
                 color = config.get("color")
                 if color:
-                    from constants.game_rules import GameRules
-                    house_prices = {
-                        "brown": 50000, "light_blue": 50000,
-                        "pink": 100000, "orange": 100000,
-                        "red": 150000, "yellow": 150000,
-                        "green": 200000, "dark_blue": 200000
-                    }
-                    house_price = house_prices.get(color, 50000)
+                    house_price = GameRules.HOUSE_PRICES.get(color, 50000)
                     building_refund += prop_state.houses * (house_price // 2)
                     building_refund += prop_state.hotels * (house_price * 5 // 2)
+
+            # Return buildings to bank supply
+            if prop_state.houses > 0:
+                game_state.houses_remaining += prop_state.houses
+            if prop_state.hotels > 0:
+                game_state.hotels_remaining += prop_state.hotels
 
             prop_state.owner_id = None
             prop_state.is_mortgaged = False

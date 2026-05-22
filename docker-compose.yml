@@ -7,9 +7,14 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend/persistence/game_data.sqlite:/app/backend/game_data.sqlite
+      - ./backend/persistence/game_data.sqlite:/app/backend/persistence/game_data.sqlite
     restart: unless-stopped
     environment:
       - NODE_ENV=production
       - DINO_SECRET_KEY=${DINO_SECRET_KEY:-CHANGE_ME_IN_PRODUCTION}
       - DINO_CORS_ORIGINS=${DINO_CORS_ORIGINS:-*}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

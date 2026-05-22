@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../stores/gameStore';
 import { soundManager } from '../utils/audio';
 import { socket } from '../services/socket';
+import { showToast } from './Toast';
 import { animations } from '../animations';
 import { formatMoney } from '../utils/format';
+import boardData from '../../shared/configs/board_config.json';
 
 interface TradeModalProps {
   isOpen: boolean;
@@ -12,12 +14,14 @@ interface TradeModalProps {
 }
 
 export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
-  const { game, myId } = useGameStore();
+  const { game, myId, outgoingTradeId, cancelTrade } = useGameStore();
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [offeringMoney, setOfferingMoney] = useState(0);
   const [requestingMoney, setRequestingMoney] = useState(0);
   const [offeringProperties, setOfferingProperties] = useState<number[]>([]);
   const [requestingProperties, setRequestingProperties] = useState<number[]>([]);
+  const [offeringJailCards, setOfferingJailCards] = useState(0);
+  const [requestingJailCards, setRequestingJailCards] = useState(0);
   const [step, setStep] = useState<'select-player' | 'configure-trade' | 'review'>('select-player');
 
   const myPlayer = myId ? game?.room.players[myId] : null;
@@ -31,6 +35,8 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
       setRequestingMoney(0);
       setOfferingProperties([]);
       setRequestingProperties([]);
+      setOfferingJailCards(0);
+      setRequestingJailCards(0);
       setStep('select-player');
     }
   }, [isOpen]);
@@ -60,11 +66,13 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
       requesting_money: requestingMoney,
       offering_properties: offeringProperties,
       requesting_properties: requestingProperties,
-      offering_get_out_of_jail_cards: 0,
-      requesting_get_out_of_jail_cards: 0
+      offering_get_out_of_jail_cards: offeringJailCards,
+      requesting_get_out_of_jail_cards: requestingJailCards
     }, (response: any) => {
       if (response.status === 'success') {
         onClose();
+      } else {
+        showToast(response.message || 'Failed to create trade', 'error');
       }
     });
   };
@@ -119,14 +127,14 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
             exit="hidden"
           >
             {/* Header */}
-            <div className="flex justify-between items-center p-6 border-b border-accent-500/20">
+            <div className="flex justify-between items-center p-4 sm:p-6 border-b border-accent-500/20">
               <div>
-                <h2 className="text-2xl font-bold text-accent-300 font-cyber">TRADE</h2>
-                <p className="text-text-muted text-sm">Exchange properties and money with other players</p>
+                <h2 className="text-xl sm:text-2xl font-bold text-accent-300 font-cyber">TRADE</h2>
+                <p className="text-text-muted text-xs sm:text-sm">Exchange properties and money with other players</p>
               </div>
               <motion.button
                 onClick={onClose}
-                className="w-8 h-8 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-danger-400 hover:border-danger-500/30 transition-all flex items-center justify-center"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-danger-400 hover:border-danger-500/30 transition-all flex items-center justify-center text-sm"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
               >
@@ -135,12 +143,12 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
             </div>
 
             {/* Content */}
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {/* Step 1: Select Player */}
               {step === 'select-player' && (
                 <div>
-                  <h3 className="text-lg font-bold text-text-main mb-4">Select Player to Trade With</h3>
-                  <div className="grid grid-cols-2 gap-3">
+                  <h3 className="text-base sm:text-lg font-bold text-text-main mb-4">Select Player to Trade With</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {otherPlayers.map(player => (
                       <motion.button
                         key={player.id}
@@ -148,13 +156,13 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                           setSelectedPlayer(player.id);
                           setStep('configure-trade');
                         }}
-                        className="p-4 rounded-xl border border-white/10 bg-surface/30 hover:border-accent-500/30 hover:bg-accent-500/5 transition-all text-left"
+                        className="p-3 sm:p-4 rounded-xl border border-white/10 bg-surface/30 hover:border-accent-500/30 hover:bg-accent-500/5 transition-all text-left"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                       >
                         <div className="flex items-center gap-3">
                           <div
-                            className="w-10 h-10 rounded-full border-2"
+                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2"
                             style={{
                               backgroundColor: player.color,
                               borderColor: player.color,
@@ -162,7 +170,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                             }}
                           />
                           <div>
-                            <p className="font-bold text-text-main">{player.name}</p>
+                            <p className="font-bold text-text-main text-sm sm:text-base">{player.name}</p>
                             <p className="text-xs text-text-muted">{formatMoney(player.money)}</p>
                           </div>
                         </div>
@@ -176,28 +184,28 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
               {step === 'configure-trade' && selectedPlayerData && (
                 <div className="space-y-6">
                   {/* Trade Partner */}
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-surface/30 border border-white/10">
+                  <div className="flex items-center justify-between p-3 sm:p-4 rounded-xl bg-surface/30 border border-white/10">
                     <div className="flex items-center gap-3">
                       <div className="text-center">
                         <div
-                          className="w-10 h-10 rounded-full border-2 mx-auto mb-1"
+                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 mx-auto mb-1"
                           style={{
                             backgroundColor: myPlayer.color,
                             borderColor: myPlayer.color
                           }}
                         />
-                        <p className="text-xs text-text-muted">You</p>
+                        <p className="text-[10px] sm:text-xs text-text-muted">You</p>
                       </div>
-                      <span className="text-2xl text-accent-400">⇄</span>
+                      <span className="text-xl sm:text-2xl text-accent-400">⇄</span>
                       <div className="text-center">
                         <div
-                          className="w-10 h-10 rounded-full border-2 mx-auto mb-1"
+                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 mx-auto mb-1"
                           style={{
                             backgroundColor: selectedPlayerData.color,
                             borderColor: selectedPlayerData.color
                           }}
                         />
-                        <p className="text-xs text-text-muted">{selectedPlayerData.name}</p>
+                        <p className="text-[10px] sm:text-xs text-text-muted">{selectedPlayerData.name}</p>
                       </div>
                     </div>
                     <motion.button
@@ -209,26 +217,28 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                     </motion.button>
                   </div>
 
-                  {/* You Offer */}
-                  <div>
-                    <h4 className="text-sm font-bold text-success-400 mb-3">You Offer</h4>
+                  {/* You Offer and You Request side-by-side on desktop, stacked on mobile */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* You Offer */}
                     <div className="space-y-3">
+                      <h4 className="text-sm font-bold text-success-400 pb-1 border-b border-white/5 font-cyber">You Offer</h4>
+                      
                       {/* Money */}
                       <div className="flex items-center justify-between p-3 rounded-lg bg-surface/30 border border-white/10">
-                        <span className="text-sm text-text-main">Money</span>
-                        <div className="flex items-center gap-2">
+                        <span className="text-xs sm:text-sm text-text-main">Money</span>
+                        <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => setOfferingMoney(Math.max(0, offeringMoney - 1000))}
-                            className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main"
+                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
                           >
                             -
                           </button>
-                          <span className="w-20 text-center font-bold text-success-400">
+                          <span className="w-16 sm:w-20 text-center font-bold text-success-400 text-xs sm:text-sm">
                             {formatMoney(offeringMoney)}
                           </span>
                           <button
                             onClick={() => setOfferingMoney(Math.min(myPlayer.money, offeringMoney + 1000))}
-                            className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main"
+                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
                           >
                             +
                           </button>
@@ -236,55 +246,87 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                       </div>
 
                       {/* Properties */}
-                      <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
-                        {myPlayer.properties_owned.map(propId => {
-                          const prop = game.properties[propId];
-                          if (!prop) return null;
-                          const boardTile = game.board_config?.[propId];
-                          return (
-                            <button
-                              key={propId}
-                              onClick={() => handleToggleOfferingProperty(propId)}
-                              className={`p-2 rounded-lg border text-left text-xs transition-all ${
-                                offeringProperties.includes(propId)
-                                  ? 'border-success-500 bg-success-500/10'
-                                  : 'border-white/10 bg-surface/30 hover:border-white/20'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="w-3 h-3 rounded-sm"
-                                  style={{ backgroundColor: getPropertyColor(boardTile?.color || '') }}
-                                />
-                                <span className="text-text-main truncate">{boardTile?.name || `Property ${propId}`}</span>
-                              </div>
-                            </button>
-                          );
-                        })}
+                      <div>
+                        <p className="text-[10px] text-text-muted mb-1.5 font-cyber">Properties</p>
+                        {myPlayer.properties_owned.length === 0 ? (
+                          <div className="p-3 text-center rounded-lg bg-surface/10 border border-white/5 text-[11px] text-text-muted italic">
+                            No properties owned
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
+                            {myPlayer.properties_owned.map(propId => {
+                              const prop = game.properties[propId];
+                              if (!prop) return null;
+                              const boardTile = boardData.tiles.find((t: any) => t.id === propId);
+                              return (
+                                <button
+                                  key={propId}
+                                  onClick={() => handleToggleOfferingProperty(propId)}
+                                  className={`p-2 rounded-lg border text-left text-[11px] transition-all ${
+                                    offeringProperties.includes(propId)
+                                      ? 'border-success-500 bg-success-500/10'
+                                      : 'border-white/10 bg-surface/30 hover:border-white/20'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <div
+                                      className="w-2.5 h-2.5 rounded-sm shrink-0"
+                                      style={{ backgroundColor: getPropertyColor(boardTile?.color || '') }}
+                                    />
+                                    <span className="text-text-main truncate">{boardTile?.name || `Property ${propId}`}</span>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </div>
 
-                  {/* You Request */}
-                  <div>
-                    <h4 className="text-sm font-bold text-accent-400 mb-3">You Request</h4>
+                      {/* Get Out of Jail Cards */}
+                      {myPlayer.get_out_of_jail_cards > 0 && (
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-surface/30 border border-white/10">
+                          <span className="text-xs sm:text-sm text-text-main">Jail Cards</span>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => setOfferingJailCards(Math.max(0, offeringJailCards - 1))}
+                              className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
+                            >
+                              -
+                            </button>
+                            <span className="w-8 text-center font-bold text-success-400 text-xs sm:text-sm">
+                              {offeringJailCards}
+                            </span>
+                            <button
+                              onClick={() => setOfferingJailCards(Math.min(myPlayer.get_out_of_jail_cards, offeringJailCards + 1))}
+                              className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* You Request */}
                     <div className="space-y-3">
+                      <h4 className="text-sm font-bold text-accent-400 pb-1 border-b border-white/5 font-cyber">You Request</h4>
+                      
                       {/* Money */}
                       <div className="flex items-center justify-between p-3 rounded-lg bg-surface/30 border border-white/10">
-                        <span className="text-sm text-text-main">Money</span>
-                        <div className="flex items-center gap-2">
+                        <span className="text-xs sm:text-sm text-text-main">Money</span>
+                        <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => setRequestingMoney(Math.max(0, requestingMoney - 1000))}
-                            className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main"
+                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
                           >
                             -
                           </button>
-                          <span className="w-20 text-center font-bold text-accent-400">
+                          <span className="w-16 sm:w-20 text-center font-bold text-accent-400 text-xs sm:text-sm">
                             {formatMoney(requestingMoney)}
                           </span>
                           <button
                             onClick={() => setRequestingMoney(Math.min(selectedPlayerData.money, requestingMoney + 1000))}
-                            className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main"
+                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
                           >
                             +
                           </button>
@@ -292,48 +334,95 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                       </div>
 
                       {/* Properties */}
-                      <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
-                        {selectedPlayerData.properties_owned.map(propId => {
-                          const prop = game.properties[propId];
-                          if (!prop) return null;
-                          const boardTile = game.board_config?.[propId];
-                          return (
-                            <button
-                              key={propId}
-                              onClick={() => handleToggleRequestingProperty(propId)}
-                              className={`p-2 rounded-lg border text-left text-xs transition-all ${
-                                requestingProperties.includes(propId)
-                                  ? 'border-accent-500 bg-accent-500/10'
-                                  : 'border-white/10 bg-surface/30 hover:border-white/20'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="w-3 h-3 rounded-sm"
-                                  style={{ backgroundColor: getPropertyColor(boardTile?.color || '') }}
-                                />
-                                <span className="text-text-main truncate">{boardTile?.name || `Property ${propId}`}</span>
-                              </div>
-                            </button>
-                          );
-                        })}
+                      <div>
+                        <p className="text-[10px] text-text-muted mb-1.5 font-cyber">Properties</p>
+                        {selectedPlayerData.properties_owned.length === 0 ? (
+                          <div className="p-3 text-center rounded-lg bg-surface/10 border border-white/5 text-[11px] text-text-muted italic">
+                            No properties owned
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
+                            {selectedPlayerData.properties_owned.map(propId => {
+                              const prop = game.properties[propId];
+                              if (!prop) return null;
+                              const boardTile = boardData.tiles.find((t: any) => t.id === propId);
+                              return (
+                                <button
+                                  key={propId}
+                                  onClick={() => handleToggleRequestingProperty(propId)}
+                                  className={`p-2 rounded-lg border text-left text-[11px] transition-all ${
+                                    requestingProperties.includes(propId)
+                                      ? 'border-accent-500 bg-accent-500/10'
+                                      : 'border-white/10 bg-surface/30 hover:border-white/20'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <div
+                                      className="w-2.5 h-2.5 rounded-sm shrink-0"
+                                      style={{ backgroundColor: getPropertyColor(boardTile?.color || '') }}
+                                    />
+                                    <span className="text-text-main truncate">{boardTile?.name || `Property ${propId}`}</span>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
+
+                      {/* Get Out of Jail Cards */}
+                      {selectedPlayerData.get_out_of_jail_cards > 0 && (
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-surface/30 border border-white/10">
+                          <span className="text-xs sm:text-sm text-text-main">Jail Cards</span>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => setRequestingJailCards(Math.max(0, requestingJailCards - 1))}
+                              className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
+                            >
+                              -
+                            </button>
+                            <span className="w-8 text-center font-bold text-accent-400 text-xs sm:text-sm">
+                              {requestingJailCards}
+                            </span>
+                            <button
+                              onClick={() => setRequestingJailCards(Math.min(selectedPlayerData.get_out_of_jail_cards, requestingJailCards + 1))}
+                              className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Submit */}
-                  <motion.button
-                    onClick={handleSubmitTrade}
-                    className="w-full py-3 rounded-xl font-bold text-lg"
-                    style={{
-                      background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
-                      boxShadow: '0 4px 20px rgba(168, 85, 247, 0.3)'
-                    }}
-                    whileHover={{ scale: 1.02, boxShadow: '0 6px 30px rgba(168, 85, 247, 0.4)' }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    Send Trade Offer
-                  </motion.button>
+                  {/* Actions */}
+                  <div className="space-y-3 pt-4 border-t border-white/10">
+                    <motion.button
+                      onClick={handleSubmitTrade}
+                      className="w-full py-3 rounded-xl font-cyber font-bold text-base sm:text-lg text-white"
+                      style={{
+                        background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                        boxShadow: '0 4px 20px rgba(168, 85, 247, 0.3)'
+                      }}
+                      whileHover={{ scale: 1.02, boxShadow: '0 6px 30px rgba(168, 85, 247, 0.4)' }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      Send Trade Offer
+                    </motion.button>
+
+                    {/* Cancel outgoing trade */}
+                    {outgoingTradeId && (
+                      <motion.button
+                        onClick={() => cancelTrade(outgoingTradeId)}
+                        className="w-full py-2 rounded-lg text-xs sm:text-sm text-danger-400 border border-danger-500/30 hover:bg-danger-500/10 transition-all font-semibold font-cyber"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        Cancel Pending Trade
+                      </motion.button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

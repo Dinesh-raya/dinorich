@@ -34,6 +34,8 @@ def init_game_state(room: RoomState) -> GameState:
         room.players[pid].jail_turns = 0
         room.players[pid].is_bankrupt = False
         room.players[pid].properties_owned = []
+        room.players[pid].get_out_of_jail_cards = 0
+        room.players[pid].connected = True
         
     game_state = GameState(
         room=room,

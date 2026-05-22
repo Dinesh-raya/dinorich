@@ -41,7 +41,9 @@ class TradeManager:
         if from_player.is_bankrupt or to_player.is_bankrupt:
             return None
 
-        # Validate money
+        # Validate money (must be non-negative and player must have enough)
+        if offering_money < 0 or requesting_money < 0:
+            return None
         if from_player.money < offering_money:
             return None
         if to_player.money < requesting_money:
@@ -51,10 +53,22 @@ class TradeManager:
         for prop_id in offering_properties or []:
             if prop_id not in from_player.properties_owned:
                 return None
+            prop_state = game.properties.get(prop_id)
+            if prop_state and (prop_state.houses > 0 or prop_state.hotels > 0):
+                return None  # Cannot trade properties with buildings
 
         for prop_id in requesting_properties or []:
             if prop_id not in to_player.properties_owned:
                 return None
+            prop_state = game.properties.get(prop_id)
+            if prop_state and (prop_state.houses > 0 or prop_state.hotels > 0):
+                return None  # Cannot trade properties with buildings
+
+        # Validate Get Out of Jail Free cards
+        if offering_get_out_of_jail_cards > 0 and from_player.get_out_of_jail_cards < offering_get_out_of_jail_cards:
+            return None
+        if requesting_get_out_of_jail_cards > 0 and to_player.get_out_of_jail_cards < requesting_get_out_of_jail_cards:
+            return None
 
         # Create trade
         trade_id = str(uuid.uuid4())[:8]
@@ -110,6 +124,12 @@ class TradeManager:
         for prop_id in trade.requesting_properties:
             if prop_id not in to_player.properties_owned:
                 return False
+
+        # Validate Get Out of Jail Free cards still available
+        if trade.offering_get_out_of_jail_cards > 0 and from_player.get_out_of_jail_cards < trade.offering_get_out_of_jail_cards:
+            return False
+        if trade.requesting_get_out_of_jail_cards > 0 and to_player.get_out_of_jail_cards < trade.requesting_get_out_of_jail_cards:
+            return False
 
         # Execute trade
         # Transfer money
@@ -185,6 +205,7 @@ class TradeManager:
                 self.player_trades[trade.to_player_id] = [
                     tid for tid in self.player_trades[trade.to_player_id] if tid != trade_id
                 ]
+            del self.active_trades[trade_id]
 
     def get_player_trades(self, player_id: str) -> List[TradeOffer]:
         """Get all active trades for a player."""

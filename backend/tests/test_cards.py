@@ -1,0 +1,276 @@
+"""Tests for engine.cards."""
+import pytest
+import copy
+
+from schemas.room import RoomState, RoomSettings, RoomStatus
+from schemas.player import PlayerState
+from schemas.game import GameState, PropertyState
+from engine.cards import CardEngine, TREASURY_CARDS_TEMPLATE, SURPRISE_CARDS_TEMPLATE
+from constants.game_rules import GameRules
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def make_player(pid: str, name: str, money: int = 150000, color: str = "#ff0000", **kwargs) -> PlayerState:
+    return PlayerState(id=pid, name=name, color=color, money=money, **kwargs)
+
+
+def make_test_game() -> GameState:
+    settings = RoomSettings()
+    p1 = make_player("p1", "Player 1")
+    p2 = make_player("p2", "Player 2", color="#0000ff")
+    room = RoomState(
+        room_id="TEST01",
+        host_id="p1",
+        status=RoomStatus.PLAYING,
+        players={"p1": p1, "p2": p2},
+        settings=settings,
+    )
+    game = GameState(room=room)
+    game.turn_order = ["p1", "p2"]
+    game.treasury_deck = copy.deepcopy(TREASURY_CARDS_TEMPLATE)
+    game.surprise_deck = copy.deepcopy(SURPRISE_CARDS_TEMPLATE)
+    return game
+
+
+def make_card(action: str, **kwargs) -> dict:
+    """Build a card dict with the given action and extra fields."""
+    card = {"text": f"Test card: {action}", "action": action}
+    card.update(kwargs)
+    return card
+
+
+# ---------------------------------------------------------------------------
+# Tests: draw_treasury
+# ---------------------------------------------------------------------------
+
+class TestDrawTreasury:
+    def test_draws_from_top_of_deck(self):
+        game = make_test_game()
+        engine = CardEngine()
+        top_card = game.treasury_deck[0]
+        drawn = engine.draw_treasury(game, "p1")
+        assert drawn["action"] == top_card["action"]
+
+    def test_non_goojf_card_recycled_to_back(self):
+        game = make_test_game()
+        engine = CardEngine()
+        # Ensure top card is not GOOJF
+        while game.treasury_deck[0]["action"] == "get_out_of_jail_free":
+            game.treasury_deck.append(game.treasury_deck.pop(0))
+        original_len = len(game.treasury_deck)
+        card = game.treasury_deck[0]
+        engine.draw_treasury(game, "p1")
+        # Non-GOOJF cards go to back, so deck length stays the same
+        assert len(game.treasury_deck) == original_len
+        # Card should now be at the end
+        assert game.treasury_deck[-1]["action"] == card["action"]
+
+    def test_goojf_card_removed_from_deck(self):
+        game = make_test_game()
+        engine = CardEngine()
+        # Place GOOJF card at top
+        goojf = {"text": "Get Out of Jail Free card", "action": "get_out_of_jail_free"}
+        game.treasury_deck.insert(0, goojf)
+        original_len = len(game.treasury_deck)
+        engine.draw_treasury(game, "p1")
+        # GOOJF removed, deck is 1 shorter
+        assert len(game.treasury_deck) == original_len - 1
+        # Player has the card
+        assert game.room.players["p1"].get_out_of_jail_cards == 1
+
+
+# ---------------------------------------------------------------------------
+# Tests: draw_surprise
+# ---------------------------------------------------------------------------
+
+class TestDrawSurprise:
+    def test_draws_from_top_of_deck(self):
+        game = make_test_game()
+        engine = CardEngine()
+        top_card = game.surprise_deck[0]
+        drawn = engine.draw_surprise(game, "p1")
+        assert drawn["action"] == top_card["action"]
+
+    def test_non_goojf_card_recycled_to_back(self):
+        game = make_test_game()
+        engine = CardEngine()
+        while game.surprise_deck[0]["action"] == "get_out_of_jail_free":
+            game.surprise_deck.append(game.surprise_deck.pop(0))
+        original_len = len(game.surprise_deck)
+        engine.draw_surprise(game, "p1")
+        assert len(game.surprise_deck) == original_len
+
+
+# ---------------------------------------------------------------------------
+# Tests: execute_card - add_money
+# ---------------------------------------------------------------------------
+
+class TestExecuteCardAddMoney:
+    def test_adds_money_to_player(self):
+        game = make_test_game()
+        engine = CardEngine()
+        initial = game.room.players["p1"].money
+        card = make_card("add_money", amount=20000)
+        engine.execute_card(game, "p1", card)
+        assert game.room.players["p1"].money == initial + 20000
+
+
+# ---------------------------------------------------------------------------
+# Tests: execute_card - pay_money
+# ---------------------------------------------------------------------------
+
+class TestExecuteCardPayMoney:
+    def test_deducts_money_from_player(self):
+        game = make_test_game()
+        engine = CardEngine()
+        initial = game.room.players["p1"].money
+        card = make_card("pay_money", amount=5000)
+        engine.execute_card(game, "p1", card)
+        assert game.room.players["p1"].money == initial - 5000
+
+    def test_pay_money_adds_to_free_parking_if_enabled(self):
+        game = make_test_game()
+        game.room.settings.free_parking_jackpot = True
+        engine = CardEngine()
+        card = make_card("pay_money", amount=5000)
+        engine.execute_card(game, "p1", card)
+        assert game.free_parking_pool == 5000
+
+    def test_pay_money_no_free_parking_if_disabled(self):
+        game = make_test_game()
+        game.room.settings.free_parking_jackpot = False
+        engine = CardEngine()
+        card = make_card("pay_money", amount=5000)
+        engine.execute_card(game, "p1", card)
+        assert game.free_parking_pool == 0
+
+
+# ---------------------------------------------------------------------------
+# Tests: execute_card - move_to
+# ---------------------------------------------------------------------------
+
+class TestExecuteCardMoveTo:
+    def test_move_to_target_position(self):
+        game = make_test_game()
+        game.room.players["p1"].position = 5
+        engine = CardEngine()
+        card = make_card("move_to", target=0)
+        engine.execute_card(game, "p1", card)
+        assert game.room.players["p1"].position == 0
+
+    def test_move_to_passing_go_collects_reward(self):
+        game = make_test_game()
+        game.room.players["p1"].position = 15
+        initial_money = game.room.players["p1"].money
+        engine = CardEngine()
+        card = make_card("move_to", target=0)
+        engine.execute_card(game, "p1", card)
+        assert game.room.players["p1"].position == 0
+        assert game.room.players["p1"].money == initial_money + GameRules.GO_REWARD
+
+    def test_move_to_not_passing_go_no_reward(self):
+        game = make_test_game()
+        game.room.players["p1"].position = 0
+        initial_money = game.room.players["p1"].money
+        engine = CardEngine()
+        card = make_card("move_to", target=15)
+        engine.execute_card(game, "p1", card)
+        assert game.room.players["p1"].position == 15
+        assert game.room.players["p1"].money == initial_money  # No GO reward
+
+
+# ---------------------------------------------------------------------------
+# Tests: execute_card - move_relative
+# ---------------------------------------------------------------------------
+
+class TestExecuteCardMoveRelative:
+    def test_move_relative_backward(self):
+        game = make_test_game()
+        game.room.players["p1"].position = 10
+        engine = CardEngine()
+        card = make_card("move_relative", spaces=-3)
+        engine.execute_card(game, "p1", card)
+        assert game.room.players["p1"].position == 7
+
+    def test_move_relative_wraps_around_board(self):
+        game = make_test_game()
+        game.room.players["p1"].position = 1
+        engine = CardEngine()
+        card = make_card("move_relative", spaces=-3)
+        engine.execute_card(game, "p1", card)
+        # (1 - 3) % 40 = -2 % 40 = 38
+        assert game.room.players["p1"].position == 38
+
+
+# ---------------------------------------------------------------------------
+# Tests: execute_card - go_to_jail
+# ---------------------------------------------------------------------------
+
+class TestExecuteCardGoToJail:
+    def test_sends_player_to_jail(self):
+        game = make_test_game()
+        game.room.players["p1"].position = 20
+        engine = CardEngine()
+        card = make_card("go_to_jail")
+        engine.execute_card(game, "p1", card)
+        assert game.room.players["p1"].position == GameRules.JAIL_TILE
+        assert game.room.players["p1"].is_in_jail is True
+
+
+# ---------------------------------------------------------------------------
+# Tests: execute_card - get_out_of_jail_free
+# ---------------------------------------------------------------------------
+
+class TestExecuteCardGetOOJF:
+    def test_increments_goojf_cards(self):
+        game = make_test_game()
+        game.room.players["p1"].get_out_of_jail_cards = 0
+        engine = CardEngine()
+        card = make_card("get_out_of_jail_free")
+        engine.execute_card(game, "p1", card)
+        assert game.room.players["p1"].get_out_of_jail_cards == 1
+
+
+# ---------------------------------------------------------------------------
+# Tests: return_goojf_card and deck cycling
+# ---------------------------------------------------------------------------
+
+class TestReturnGoojfAndDeckCycling:
+    def test_return_goojf_to_treasury_deck(self):
+        game = make_test_game()
+        engine = CardEngine()
+        initial_len = len(game.treasury_deck)
+        engine.return_goojf_card(game, "treasury")
+        assert len(game.treasury_deck) == initial_len + 1
+        assert game.treasury_deck[-1]["action"] == "get_out_of_jail_free"
+
+    def test_return_goojf_to_surprise_deck(self):
+        game = make_test_game()
+        engine = CardEngine()
+        initial_len = len(game.surprise_deck)
+        engine.return_goojf_card(game, "surprise")
+        assert len(game.surprise_deck) == initial_len + 1
+        assert game.surprise_deck[-1]["action"] == "get_out_of_jail_free"
+
+    def test_deck_cycles_through_all_cards(self):
+        game = make_test_game()
+        engine = CardEngine()
+        # Remove GOOJF cards and place them back so all cards are non-GOOJF for cycling test
+        deck = game.treasury_deck
+        goojf_cards = [c for c in deck if c["action"] == "get_out_of_jail_free"]
+        non_goojf = [c for c in deck if c["action"] != "get_out_of_jail_free"]
+        # Draw all non-GOOJF cards
+        drawn_actions = []
+        for _ in range(len(non_goojf)):
+            # Skip GOOJF if at top
+            while deck and deck[0]["action"] == "get_out_of_jail_free":
+                deck.append(deck.pop(0))
+            if not deck:
+                break
+            card = engine.draw_treasury(game, "p1")
+            drawn_actions.append(card["action"])
+        # All non-GOOJF actions should have been drawn
+        assert len(drawn_actions) == len(non_goojf)

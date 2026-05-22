@@ -8,7 +8,6 @@ from sockets.helpers import get_room_code_or_error, emit_game_state
 from schemas.room import RoomStatus
 
 @sio.on("game:start")
-@sio.on("game_start")
 async def game_start(sid, data):
     if not rate_limiter.allow(f"{sid}:game_start"):
         return {"status": "error", "message": "Too many requests"}
@@ -40,7 +39,6 @@ async def game_start(sid, data):
     return {"status": "success"}
 
 @sio.on("game:dice_roll")
-@sio.on("game_dice_roll")
 async def game_dice_roll(sid, data):
     if not rate_limiter.allow(f"{sid}:game_dice_roll"):
         return {"status": "error", "message": "Too many requests"}
@@ -70,7 +68,6 @@ async def game_dice_roll(sid, data):
     return {"status": "success"}
 
 @sio.on("game:end_turn")
-@sio.on("game_end_turn")
 async def game_end_turn(sid, data):
     if not rate_limiter.allow(f"{sid}:game_end_turn"):
         return {"status": "error", "message": "Too many requests"}
@@ -89,7 +86,6 @@ async def game_end_turn(sid, data):
     return {"status": "success"}
 
 @sio.on("game:declare_bankruptcy")
-@sio.on("game_declare_bankruptcy")
 async def game_declare_bankruptcy(sid, data):
     if not rate_limiter.allow(f"{sid}:game_declare_bankruptcy"):
         return {"status": "error", "message": "Too many requests"}
@@ -120,7 +116,6 @@ async def game_declare_bankruptcy(sid, data):
     return {"status": "success"}
 
 @sio.on("game:pay_jail_fine")
-@sio.on("game_pay_jail_fine")
 async def game_pay_jail_fine(sid, data):
     if not rate_limiter.allow(f"{sid}:game_pay_jail_fine"):
         return {"status": "error", "message": "Too many requests"}
@@ -136,7 +131,6 @@ async def game_pay_jail_fine(sid, data):
     return {"status": "success"}
 
 @sio.on("game:use_jail_card")
-@sio.on("game_use_jail_card")
 async def game_use_jail_card(sid, data):
     if not rate_limiter.allow(f"{sid}:game_use_jail_card"):
         return {"status": "error", "message": "Too many requests"}
@@ -152,7 +146,6 @@ async def game_use_jail_card(sid, data):
     return {"status": "success"}
 
 @sio.on("game:pay_tax")
-@sio.on("game_pay_tax")
 async def game_pay_tax(sid, data):
     if not rate_limiter.allow(f"{sid}:game_pay_tax"):
         return {"status": "error", "message": "Too many requests"}
@@ -168,18 +161,3 @@ async def game_pay_tax(sid, data):
     await emit_game_state(room_code, result["game"], result["turn"])
     return {"status": "success"}
 
-@sio.on("game:collect_rent")
-@sio.on("game_collect_rent")
-async def game_collect_rent(sid, data):
-    if not rate_limiter.allow(f"{sid}:game_collect_rent"):
-        return {"status": "error", "message": "Too many requests"}
-    room_code, err = get_room_code_or_error(sid)
-    if err:
-        return err
-
-    result = turn_manager.collect_rent(room_code, sid)
-    if not result:
-        return {"status": "error", "message": "No pending rent to collect"}
-
-    await emit_game_state(room_code, result["game"], result["turn"])
-    return {"status": "success"}

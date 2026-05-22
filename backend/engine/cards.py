@@ -39,16 +39,28 @@ class CardEngine:
     def draw_treasury(self, game_state: GameState, player_id: str) -> Dict[str, Any]:
         deck = game_state.treasury_deck
         card = deck.pop(0)
-        deck.append(card)
+        # GOOJF cards are removed from deck when drawn (returned when used)
+        if card["action"] != "get_out_of_jail_free":
+            deck.append(card)
         self.execute_card(game_state, player_id, card)
         return card
 
     def draw_surprise(self, game_state: GameState, player_id: str) -> Dict[str, Any]:
         deck = game_state.surprise_deck
         card = deck.pop(0)
-        deck.append(card)
+        # GOOJF cards are removed from deck when drawn (returned when used)
+        if card["action"] != "get_out_of_jail_free":
+            deck.append(card)
         self.execute_card(game_state, player_id, card)
         return card
+
+    def return_goojf_card(self, game_state: GameState, deck_type: str = "treasury"):
+        """Return a GOOJF card to the deck when a player uses one."""
+        goojf_card = {"text": "Get Out of Jail Free card", "action": "get_out_of_jail_free"}
+        if deck_type == "treasury":
+            game_state.treasury_deck.append(goojf_card)
+        else:
+            game_state.surprise_deck.append(goojf_card)
 
     def execute_card(self, game_state: GameState, player_id: str, card: Dict[str, Any]):
         player = game_state.room.players[player_id]
@@ -60,7 +72,8 @@ class CardEngine:
             player.money += card["amount"]
         elif action == "pay_money":
             player.money -= card["amount"]
-            game_state.free_parking_pool += card["amount"]
+            if game_state.room.settings.free_parking_jackpot:
+                game_state.free_parking_pool += card["amount"]
         elif action == "move_to":
             target = card["target"]
             current = player.position

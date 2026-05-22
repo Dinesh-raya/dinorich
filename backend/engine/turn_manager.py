@@ -3,7 +3,7 @@ from schemas.game import GameState
 from schemas.action import TurnState, DiceState, TurnPhase
 from engine.dice import roll_dice, handle_jail_roll
 from engine.movement import move_player, send_to_jail
-from engine.property import pay_rent, get_board_config
+from engine.property import get_board_config
 from engine.cards import card_engine
 from engine.bankruptcy import declare_bankruptcy
 from constants.game_rules import GameRules
@@ -57,9 +57,6 @@ class TurnManager:
         game.current_turn_index = next_idx
         next_player_id = game.turn_order[next_idx]
 
-        # Waive any uncollected rent from previous turn
-        self.waive_rent(room_code)
-
         # Reset turn state
         self.active_doubles_count[room_code] = 0
         new_turn = TurnState(
@@ -93,7 +90,12 @@ class TurnManager:
             if escaped:
                 jail_escape = True
                 if not dice.is_double:
+                    # Non-double jail escape: player stays on jail tile, turn ends
                     game.add_log(f"{player.name} served maximum jail time and is released")
+                    turn.can_roll = False
+                    turn.can_end_turn = True
+                    turn.phase = TurnPhase.END
+                    return {"dice": dice.model_dump(), "game": game, "turn": turn}
             else:
                 # Turn ends if they fail to roll doubles
                 turn.can_roll = False
@@ -137,73 +139,82 @@ class TurnManager:
         # Initialize result (will be overridden if card is drawn)
         result = None
 
-        # Rent logic
-        pos = player.position
-        config = get_board_config().get(pos)
-        if config and config["type"] in ["property", "airport", "utility"]:
-            prop_state = game.properties.get(pos)
-            if not prop_state:
+        # Helper to evaluate tile effects at current position
+        def evaluate_tile(tile_pos):
+            nonlocal creditor_id, result
+            config = get_board_config().get(tile_pos)
+            if config and config["type"] in ["property", "airport", "utility"]:
+                prop_state = game.properties.get(tile_pos)
+                if not prop_state:
+                    turn.phase = TurnPhase.ACTION
+                elif prop_state.owner_id is None:
+                    turn.phase = TurnPhase.BUY
+                elif prop_state.owner_id != player_id and not prop_state.is_mortgaged:
+                    creditor_id = prop_state.owner_id
+                    creditor = game.room.players[creditor_id]
+                    from engine.property import calculate_rent
+                    rent_amount = calculate_rent(game, tile_pos, dice.total)
+                    player.money -= rent_amount
+                    creditor.money += rent_amount
+                    turn.phase = TurnPhase.ACTION
+                    game.add_log(f"{player.name} paid ₹{rent_amount} rent to {creditor.name} for {config['name']}")
+                else:
+                    turn.phase = TurnPhase.ACTION
+            elif config and config["type"] == "tax":
+                tax = config.get("amount", 0)
+                turn.pending_tax = {"amount": tax, "name": config["name"], "tile_id": tile_pos}
                 turn.phase = TurnPhase.ACTION
-            elif prop_state.owner_id is None:
-                turn.phase = TurnPhase.BUY # Wait for buy action or auction
-            elif prop_state.owner_id != player_id and not prop_state.is_mortgaged:
-                creditor_id = prop_state.owner_id
-                # Calculate rent amount but don't auto-pay
-                from engine.property import calculate_rent
-                rent_amount = calculate_rent(game, pos)
-                if config["type"] == "utility":
-                    rent_amount = dice.total * (10000 if sum(1 for p in game.properties.values() if p.owner_id == creditor_id and get_board_config().get(p.tile_id, {}).get("type") == "utility") >= 2 else 4000)
-                turn.pending_rent = {
-                    "payer_id": player_id,
-                    "owner_id": creditor_id,
-                    "amount": rent_amount,
-                    "property_id": pos,
-                    "property_name": config["name"]
-                }
+                turn.can_end_turn = False
+                game.add_log(f"{player.name} landed on {config['name']} (₹{tax})")
+            elif config and config["type"] == "treasury":
+                card = card_engine.draw_treasury(game, player_id)
                 turn.phase = TurnPhase.ACTION
-                game.add_log(f"{player.name} landed on {config['name']} (owned by {game.room.players[creditor_id].name})")
+                result = {"dice": dice.model_dump(), "game": game, "turn": turn, "card_drawn": card, "card_type": "treasury"}
+                # If card sent player to jail, end the turn
+                if player.is_in_jail:
+                    turn.can_roll = False
+                    turn.can_end_turn = True
+                    turn.phase = TurnPhase.END
+                # Re-evaluate if card moved player (e.g. "Advance to" cards)
+                elif player.position != tile_pos:
+                    evaluate_tile(player.position)
+            elif config and config["type"] == "surprise":
+                card = card_engine.draw_surprise(game, player_id)
+                turn.phase = TurnPhase.ACTION
+                result = {"dice": dice.model_dump(), "game": game, "turn": turn, "card_drawn": card, "card_type": "surprise"}
+                # If card sent player to jail, end the turn
+                if player.is_in_jail:
+                    turn.can_roll = False
+                    turn.can_end_turn = True
+                    turn.phase = TurnPhase.END
+                # Re-evaluate if card moved player (e.g. "Go back 3 spaces")
+                elif player.position != tile_pos:
+                    evaluate_tile(player.position)
+            elif config and config["type"] == "corner" and tile_pos == 20:
+                if game.room.settings.free_parking_jackpot and game.free_parking_pool > 0:
+                    player.money += game.free_parking_pool
+                    game.add_log(f"{player.name} collected Free Parking jackpot of ₹{game.free_parking_pool}!")
+                    game.free_parking_pool = 0
+                turn.phase = TurnPhase.ACTION
             else:
                 turn.phase = TurnPhase.ACTION
-        elif config and config["type"] == "tax":
-            tax = config.get("amount", 0)
-            # Don't auto-deduct - let player choose flat or 10%
-            turn.pending_tax = {"amount": tax, "name": config["name"], "tile_id": pos}
-            turn.phase = TurnPhase.ACTION
-            turn.can_end_turn = False  # Must pay tax before ending turn
-            game.add_log(f"{player.name} landed on {config['name']} (₹{tax})")
-        elif config and config["type"] == "treasury":
-            card = card_engine.draw_treasury(game, player_id)
-            turn.phase = TurnPhase.ACTION
-            result = {"dice": dice.model_dump(), "game": game, "turn": turn, "card_drawn": card, "card_type": "treasury"}
-        elif config and config["type"] == "surprise":
-            card = card_engine.draw_surprise(game, player_id)
-            turn.phase = TurnPhase.ACTION
-            result = {"dice": dice.model_dump(), "game": game, "turn": turn, "card_drawn": card, "card_type": "surprise"}
-        elif config and config["type"] == "corner" and pos == 20:
-            # Free Parking
-            if game.room.settings.free_parking_jackpot and game.free_parking_pool > 0:
-                player.money += game.free_parking_pool
-                game.add_log(f"{player.name} collected Free Parking jackpot of ₹{game.free_parking_pool}!")
-                game.free_parking_pool = 0
-            turn.phase = TurnPhase.ACTION
-        else:
-            turn.phase = TurnPhase.ACTION
+
+        evaluate_tile(player.position)
 
         # Check if player is in debt (negative balance)
         if player.money < 0:
             turn.in_debt = True
             turn.debt_creditor_id = creditor_id
             turn.can_roll = False
-            turn.can_end_turn = False  # Cannot end turn until debt is resolved
+            turn.can_end_turn = False
             turn.phase = TurnPhase.DEBT
             game.add_log(f"{player.name} is in debt (₹{player.money}). Must trade, mortgage, or declare bankruptcy.")
         else:
             turn.in_debt = False
             turn.debt_creditor_id = None
 
-        # Only allow end turn if not in debt and can't roll
-        # During BUY phase, player must buy or auction - cannot end turn
-        if not turn.in_debt and turn.phase != TurnPhase.BUY:
+        # Only allow end turn if not in debt, not in BUY phase, and no pending tax
+        if not turn.in_debt and turn.phase != TurnPhase.BUY and not turn.pending_tax:
             turn.can_end_turn = not turn.can_roll
         elif turn.phase == TurnPhase.BUY:
             turn.can_end_turn = False
@@ -232,55 +243,6 @@ class TurnManager:
             game.add_log(f"{player.name} resolved their debt. Balance: ₹{player.money}")
 
         return turn
-
-    def collect_rent(self, room_code: str, owner_id: str) -> Optional[dict]:
-        """Property owner collects pending rent."""
-        turn = self.turn_states.get(room_code)
-        game = self.games.get(room_code)
-        if not turn or not game:
-            return None
-        if not turn.pending_rent:
-            return None
-        if turn.pending_rent["owner_id"] != owner_id:
-            return None
-
-        payer = game.room.players.get(turn.pending_rent["payer_id"])
-        owner = game.room.players.get(owner_id)
-        if not payer or not owner:
-            return None
-
-        amount = turn.pending_rent["amount"]
-        if payer.money >= amount:
-            payer.money -= amount
-            owner.money += amount
-            game.add_log(f"{owner.name} collected ₹{amount} rent from {payer.name}")
-        else:
-            # Payer can't afford - will go into debt
-            payer.money -= amount
-            owner.money += amount
-            game.add_log(f"{owner.name} collected ₹{amount} rent from {payer.name} (debt)")
-            turn.in_debt = True
-            turn.debt_creditor_id = owner_id
-
-        turn.pending_rent = None
-        return {"game": game, "turn": turn}
-
-    def waive_rent(self, room_code: str) -> Optional[dict]:
-        """Waive uncollected rent (owner didn't collect before next turn)."""
-        turn = self.turn_states.get(room_code)
-        game = self.games.get(room_code)
-        if not turn or not game:
-            return None
-        if not turn.pending_rent:
-            return None
-
-        owner = game.room.players.get(turn.pending_rent["owner_id"])
-        payer = game.room.players.get(turn.pending_rent["payer_id"])
-        if owner and payer:
-            game.add_log(f"{owner.name} forgot to collect rent from {payer.name} - rent waived!")
-
-        turn.pending_rent = None
-        return {"game": game, "turn": turn}
 
     def pay_jail_fine(self, room_code: str, player_id: str) -> Optional[dict]:
         """Player pays fine to get out of jail."""
@@ -335,6 +297,9 @@ class TurnManager:
         player.is_in_jail = False
         player.jail_turns = 0
 
+        # Return GOOJF card to the deck (standard Monopoly rule)
+        card_engine.return_goojf_card(game, "treasury")
+
         game.add_log(f"{player.name} used a Get Out of Jail Free card")
 
         # After using card, player can roll
@@ -385,7 +350,17 @@ class TurnManager:
             game.free_parking_pool += tax_amount
 
         turn.pending_tax = None
-        turn.can_end_turn = True
+
+        # Check if tax payment caused negative balance
+        if player.money < 0:
+            turn.in_debt = True
+            turn.debt_creditor_id = None  # Owed to bank
+            turn.can_roll = False
+            turn.can_end_turn = False
+            turn.phase = TurnPhase.DEBT
+            game.add_log(f"{player.name} is in debt (₹{player.money}). Must trade, mortgage, or declare bankruptcy.")
+        else:
+            turn.can_end_turn = True
 
         return {"game": game, "turn": turn}
 
@@ -409,6 +384,11 @@ class TurnManager:
         game = self.games.get(room_code)
         if not turn or not game:
             return None, None
+
+        # Don't tick turn timer during BUY, AUCTION, DEBT phase, or when there's pending tax
+        if turn.phase in (TurnPhase.BUY, TurnPhase.AUCTION, TurnPhase.DEBT) or turn.pending_tax:
+            return turn, None
+
         turn.time_remaining = max(0, turn.time_remaining - 1)
         auto_roll_dice = None
         if turn.time_remaining == 0:

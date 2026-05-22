@@ -8,8 +8,13 @@ logging.basicConfig(level=getattr(logging, log_level, logging.INFO))
 logger = logging.getLogger('socketio')
 
 # Initialize the Socket.IO server with CORS enabled
-raw_origins = os.getenv("DINO_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000")
-cors_origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+# Default: "*" for LAN play. For internet-facing deployments, set DINO_CORS_ORIGINS to your domain(s).
+# SECURITY: When exposing to the internet, always restrict CORS and set DINO_SECRET_KEY.
+raw_origins = os.getenv("DINO_CORS_ORIGINS", "*")
+if raw_origins == "*":
+    cors_origins = "*"
+else:
+    cors_origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
 sio = socketio.AsyncServer(
     async_mode='asgi',
     cors_allowed_origins=cors_origins,

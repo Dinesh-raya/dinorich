@@ -1,0 +1,270 @@
+"""Tests for engine.turn_manager."""
+import pytest
+from unittest.mock import patch
+
+from schemas.room import RoomState, RoomSettings, RoomStatus
+from schemas.player import PlayerState
+from schemas.game import GameState, PropertyState
+from schemas.action import TurnState, DiceState, TurnPhase
+from engine.turn_manager import TurnManager
+from constants.game_rules import GameRules
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def make_player(pid: str, name: str, money: int = 150000, color: str = "#ff0000", **kwargs) -> PlayerState:
+    return PlayerState(id=pid, name=name, color=color, money=money, **kwargs)
+
+
+def make_test_game() -> GameState:
+    """Create a minimal game state for testing."""
+    settings = RoomSettings()
+    p1 = make_player("p1", "Player 1")
+    p2 = make_player("p2", "Player 2", color="#0000ff")
+    room = RoomState(
+        room_id="TEST01",
+        host_id="p1",
+        status=RoomStatus.PLAYING,
+        players={"p1": p1, "p2": p2},
+        settings=settings,
+    )
+    game = GameState(room=room)
+    game.turn_order = ["p1", "p2"]
+    # Register all board properties so color group lookups work
+    from engine.property import get_board_config
+    for tile_id, config in get_board_config().items():
+        if config.get("type") in ("property", "airport", "utility"):
+            game.properties[tile_id] = PropertyState(tile_id=tile_id)
+    # Populate card decks so tests don't fail on empty decks
+    from engine.cards import TREASURY_CARDS_TEMPLATE, SURPRISE_CARDS_TEMPLATE
+    import copy
+    game.treasury_deck = copy.deepcopy(TREASURY_CARDS_TEMPLATE)
+    game.surprise_deck = copy.deepcopy(SURPRISE_CARDS_TEMPLATE)
+    return game
+
+
+def start(game: GameState) -> TurnManager:
+    """Start a game and return the TurnManager."""
+    tm = TurnManager()
+    tm.start_game("TEST01", game)
+    return tm
+
+
+# ---------------------------------------------------------------------------
+# Tests: next_turn
+# ---------------------------------------------------------------------------
+
+class TestNextTurn:
+    def test_advances_to_next_player(self):
+        game = make_test_game()
+        tm = start(game)
+        # After start_game, current_turn_index is 0 (p1). next_turn -> p2.
+        turn = tm.next_turn("TEST01")
+        assert turn is not None
+        assert turn.active_player_id == "p2"
+        assert turn.phase == TurnPhase.ROLL
+        assert turn.can_roll is True
+        assert turn.can_end_turn is False
+
+    def test_wraps_around_to_first_player(self):
+        game = make_test_game()
+        tm = start(game)
+        tm.next_turn("TEST01")  # p1 -> p2
+        turn = tm.next_turn("TEST01")  # p2 -> p1
+        assert turn is not None
+        assert turn.active_player_id == "p1"
+
+    def test_skips_bankrupt_player(self):
+        game = make_test_game()
+        tm = start(game)
+        game.room.players["p2"].is_bankrupt = True
+        turn = tm.next_turn("TEST01")
+        assert turn.active_player_id == "p1"  # Skipped bankrupt p2, wrapped to p1
+
+    def test_returns_none_for_missing_game(self):
+        tm = TurnManager()
+        assert tm.next_turn("NOPE") is None
+
+
+# ---------------------------------------------------------------------------
+# Tests: tick_turn_timer
+# ---------------------------------------------------------------------------
+
+class TestTickTurnTimer:
+    def test_decrements_timer(self):
+        game = make_test_game()
+        tm = start(game)
+        initial = tm.get_turn_state("TEST01").time_remaining
+        turn, _ = tm.tick_turn_timer("TEST01")
+        assert turn.time_remaining == initial - 1
+
+    def test_skips_during_buy_phase(self):
+        game = make_test_game()
+        tm = start(game)
+        turn = tm.get_turn_state("TEST01")
+        turn.phase = TurnPhase.BUY
+        turn.time_remaining = 30
+        result_turn, _ = tm.tick_turn_timer("TEST01")
+        assert result_turn.time_remaining == 30  # Unchanged
+
+    def test_skips_during_auction_phase(self):
+        game = make_test_game()
+        tm = start(game)
+        turn = tm.get_turn_state("TEST01")
+        turn.phase = TurnPhase.AUCTION
+        turn.time_remaining = 15
+        result_turn, _ = tm.tick_turn_timer("TEST01")
+        assert result_turn.time_remaining == 15
+
+    def test_skips_during_debt_phase(self):
+        game = make_test_game()
+        tm = start(game)
+        turn = tm.get_turn_state("TEST01")
+        turn.phase = TurnPhase.DEBT
+        turn.time_remaining = 10
+        result_turn, _ = tm.tick_turn_timer("TEST01")
+        assert result_turn.time_remaining == 10
+
+    def test_returns_none_for_missing_room(self):
+        tm = TurnManager()
+        turn, dice = tm.tick_turn_timer("NOPE")
+        assert turn is None
+        assert dice is None
+
+
+# ---------------------------------------------------------------------------
+# Tests: process_roll
+# ---------------------------------------------------------------------------
+
+class TestProcessRoll:
+    def _make_dice(self, d1=3, d2=4):
+        return DiceState(die1=d1, die2=d2, total=d1 + d2, is_double=(d1 == d2), doubles_count=0)
+
+    @patch("engine.turn_manager.roll_dice")
+    def test_basic_roll(self, mock_roll):
+        mock_roll.return_value = self._make_dice(3, 4)
+        game = make_test_game()
+        tm = start(game)
+        result = tm.process_roll("TEST01", "p1")
+        assert result is not None
+        dice = result["dice"]
+        assert dice["die1"] == 3
+        assert dice["die2"] == 4
+        assert dice["total"] == 7
+        # Verify turn advanced (can_roll should be False after non-double roll)
+        turn = result["turn"]
+        assert turn.can_roll is False
+
+    @patch("engine.turn_manager.roll_dice")
+    def test_landing_on_property_sets_buy_phase(self, mock_roll):
+        # Roll to land on an unowned property (tile 1 = Guwahati, roll total 1 is impossible)
+        # Use tile 6 (Ahmedabad) = roll 6 with doubles to keep can_roll
+        mock_roll.return_value = DiceState(die1=3, die2=3, total=6, is_double=True, doubles_count=0)
+        game = make_test_game()
+        tm = start(game)
+        result = tm.process_roll("TEST01", "p1")
+        turn = result["turn"]
+        # After rolling doubles on an unowned property, phase should be BUY
+        assert turn.phase == TurnPhase.BUY
+
+    @patch("engine.turn_manager.roll_dice")
+    def test_landing_on_tax_sets_pending_tax(self, mock_roll):
+        # Tile 4 is Income Tax. Roll 4.
+        mock_roll.return_value = DiceState(die1=2, die2=2, total=4, is_double=True, doubles_count=0)
+        game = make_test_game()
+        tm = start(game)
+        result = tm.process_roll("TEST01", "p1")
+        turn = result["turn"]
+        assert turn.pending_tax is not None
+        assert turn.pending_tax["amount"] == 200000
+
+    @patch("engine.turn_manager.roll_dice")
+    def test_returns_none_for_wrong_player(self, mock_roll):
+        game = make_test_game()
+        tm = start(game)
+        result = tm.process_roll("TEST01", "p2")  # Not p1's turn
+        assert result is None
+
+    @patch("engine.turn_manager.roll_dice")
+    def test_third_double_sends_to_jail(self, mock_roll):
+        mock_roll.return_value = DiceState(die1=3, die2=3, total=6, is_double=True, doubles_count=0)
+        game = make_test_game()
+        tm = start(game)
+        # Roll doubles twice, third should send to jail
+        tm.process_roll("TEST01", "p1")  # 1st double
+        # Need to reset can_roll for next roll (normally turn_manager handles this)
+        turn = tm.get_turn_state("TEST01")
+        turn.can_roll = True
+        turn.phase = TurnPhase.ROLL
+        tm.process_roll("TEST01", "p1")  # 2nd double
+        turn = tm.get_turn_state("TEST01")
+        turn.can_roll = True
+        turn.phase = TurnPhase.ROLL
+        result = tm.process_roll("TEST01", "p1")  # 3rd double -> jail
+        assert game.room.players["p1"].is_in_jail is True
+
+
+# ---------------------------------------------------------------------------
+# Tests: pay_tax
+# ---------------------------------------------------------------------------
+
+class TestPayTax:
+    def test_deducts_money(self):
+        game = make_test_game()
+        tm = start(game)
+        turn = tm.get_turn_state("TEST01")
+        turn.pending_tax = {"amount": 200000, "name": "Income Tax", "tile_id": 4}
+        p1_money = game.room.players["p1"].money
+        result = tm.pay_tax("TEST01", "p1")
+        assert result is not None
+        assert game.room.players["p1"].money == p1_money - 200000
+        assert turn.pending_tax is None
+
+    def test_detects_negative_balance_debt(self):
+        game = make_test_game()
+        tm = start(game)
+        game.room.players["p1"].money = 50000  # Not enough for 200k tax
+        turn = tm.get_turn_state("TEST01")
+        turn.pending_tax = {"amount": 200000, "name": "Income Tax", "tile_id": 4}
+        result = tm.pay_tax("TEST01", "p1")
+        assert result is not None
+        assert game.room.players["p1"].money < 0
+        assert turn.in_debt is True
+        assert turn.phase == TurnPhase.DEBT
+
+    def test_returns_none_when_no_pending_tax(self):
+        game = make_test_game()
+        tm = start(game)
+        assert tm.pay_tax("TEST01", "p1") is None
+
+
+# ---------------------------------------------------------------------------
+# Tests: declare_voluntary_bankruptcy
+# ---------------------------------------------------------------------------
+
+class TestDeclareVoluntaryBankruptcy:
+    def test_declares_bankruptcy_when_in_debt(self):
+        game = make_test_game()
+        tm = start(game)
+        turn = tm.get_turn_state("TEST01")
+        turn.in_debt = True
+        turn.debt_creditor_id = "p2"
+        game.room.players["p1"].money = -50000
+        result = tm.declare_voluntary_bankruptcy("TEST01", "p1")
+        assert result is not None
+        assert game.room.players["p1"].is_bankrupt is True
+
+    def test_returns_none_when_not_in_debt(self):
+        game = make_test_game()
+        tm = start(game)
+        # turn.in_debt is False by default
+        assert tm.declare_voluntary_bankruptcy("TEST01", "p1") is None
+
+    def test_returns_none_for_wrong_player(self):
+        game = make_test_game()
+        tm = start(game)
+        turn = tm.get_turn_state("TEST01")
+        turn.in_debt = True
+        assert tm.declare_voluntary_bankruptcy("TEST01", "p2") is None  # Not active player

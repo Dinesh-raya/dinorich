@@ -137,6 +137,7 @@ export const Board = () => {
   const [isMoving, setIsMoving] = useState(false);
   const [selectedTile, setSelectedTile] = useState<number | null>(null);
   const [landingTile, setLandingTile] = useState<number | null>(null);
+  const [boardZoom, setBoardZoom] = useState(1);
 
   // Update dice values when backend sends result
   useEffect(() => {
@@ -161,28 +162,15 @@ export const Board = () => {
     }
   }, [diceResult]);
 
-  // Handle dice roll
+  // Handle dice roll (animation handled by DiceAnim component)
   const handleRollDice = () => {
     if (!turn?.can_roll || isRolling) return;
 
     setIsRolling(true);
     soundManager.playButtonClick();
 
-    // Simulate dice rolling animation
-    const rollInterval = setInterval(() => {
-      setDiceValues({
-        die1: Math.floor(Math.random() * 6) + 1,
-        die2: Math.floor(Math.random() * 6) + 1
-      });
-    }, 100);
-
-    // Send roll to backend (animation continues until response)
+    // Send roll to backend — DiceAnim handles all randomization
     useGameStore.getState().rollDice();
-
-    // Safety timeout: stop animation after 5s even if no response
-    setTimeout(() => {
-      clearInterval(rollInterval);
-    }, 5000);
   };
 
   // Handle move complete
@@ -194,9 +182,298 @@ export const Board = () => {
 
   // Use dice values (from backend result or local animation)
   const currentDice = diceValues;
+  const viewportRef = useRef<HTMLDivElement>(null);
+
+  const renderTurnPanel = (isMobile: boolean) => {
+    return (
+      <div 
+        className={
+          isMobile 
+            ? "lg:hidden absolute bottom-[76px] left-1/2 transform -translate-x-1/2 w-[92%] max-w-sm z-30" 
+            : "absolute bottom-4 left-1/2 transform -translate-x-1/2 w-4/5 max-w-md hidden lg:block"
+        }
+      >
+        {turn?.active_player_id === myId ? (
+          <motion.div
+            key={`${isMobile ? 'mobile-' : ''}turn-${turn?.active_player_id}`}
+            className={`glass-panel-primary rounded-2xl border border-primary-500/30 shadow-xl ${isMobile ? 'p-4' : 'p-5'}`}
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+          >
+            <div className={`flex flex-col items-center ${isMobile ? 'gap-2' : 'gap-3'}`}>
+              <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-3'}`}>
+                <motion.div
+                  className="w-3 h-3 bg-primary-500 rounded-full"
+                  animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                />
+                <h3 className={`text-primary-300 font-bold ${isMobile ? 'text-xs md:text-sm' : 'text-xs md:text-base'}`}>YOUR TURN!</h3>
+              </div>
+
+              {/* Turn timer bar */}
+              {turn?.time_remaining != null && game?.room?.settings?.turn_timer_seconds && (
+                <div className="w-full max-w-xs">
+                  <div className="flex justify-between items-center text-xs mb-1">
+                    <span className="text-text-muted">Time</span>
+                    <span className={`font-mono font-bold ${
+                      turn.time_remaining <= 10 ? 'text-danger-400' :
+                      turn.time_remaining <= 20 ? 'text-warning-400' :
+                      'text-primary-400'
+                    }`}>
+                      {Math.floor(turn.time_remaining / 60)}:{(turn.time_remaining % 60).toString().padStart(2, '0')}
+                    </span>
+                  </div>
+                  <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <motion.div
+                      className="h-full rounded-full"
+                      style={{
+                        background: turn.time_remaining <= 10
+                          ? 'linear-gradient(90deg, #ef4444, #f87171)'
+                          : turn.time_remaining <= 20
+                          ? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
+                          : 'linear-gradient(90deg, #22d3ee, #a855f7)'
+                      }}
+                      initial={{ width: '100%' }}
+                      animate={{ width: `${(turn.time_remaining / game.room.settings.turn_timer_seconds) * 100}%` }}
+                      transition={{ duration: 0.5 }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Enhanced Dice Display */}
+              <div className="my-1">
+                <DiceAnim
+                  die1={currentDice.die1}
+                  die2={currentDice.die2}
+                  isRolling={isRolling}
+                  onRollComplete={() => setIsRolling(false)}
+                  size={isMobile ? "sm" : "md"}
+                  showTotal={!isRolling}
+                />
+              </div>
+
+              {/* Debt warning — player must resolve or bankrupt */}
+              {turn.in_debt && (
+                <motion.div
+                  className="flex flex-col items-center gap-2 w-full"
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                >
+                  <div className="px-4 py-2 rounded-xl border border-red-500/40 bg-red-500/10 text-center w-full">
+                    <p className="text-red-400 text-sm font-bold">IN DEBT — ₹{Math.abs(game.room.players[myId!]?.money || 0)} owed</p>
+                    <p className="text-red-300/70 text-xs mt-1">Trade, mortgage, or sell to resolve. Or declare bankruptcy.</p>
+                  </div>
+                  <motion.button
+                    className="btn-primary py-2.5 px-5 text-xs md:text-sm font-bold rounded-full bg-red-600 hover:bg-red-500 border-red-500 w-full"
+                    onClick={() => {
+                      soundManager.playButtonClick();
+                      useGameStore.getState().declareBankruptcy();
+                    }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    DECLARE BANKRUPTCY
+                  </motion.button>
+                </motion.div>
+              )}
+
+              {/* Jail actions */}
+              {myId && game.room.players[myId]?.is_in_jail && turn.can_roll && !turn.in_debt && (
+                <motion.div
+                  className="flex flex-col items-center gap-2"
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                >
+                  <div className="px-4 py-1.5 rounded-xl border border-warning-500/40 bg-warning-500/10 text-center">
+                    <p className="text-warning-400 text-xs md:text-sm font-bold">IN JAIL</p>
+                    <p className="text-warning-300/70 text-[10px] md:text-xs mt-0.5">Pay fine, use card, or roll for doubles</p>
+                  </div>
+                  <div className="flex gap-2 flex-wrap justify-center">
+                    <motion.button
+                      className="btn-ghost py-2 px-4 text-[10px] md:text-xs border-warning-500/30 text-warning-400"
+                      onClick={() => {
+                        soundManager.playButtonClick();
+                        useGameStore.getState().payJailFine();
+                      }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      PAY FINE (₹5,000)
+                    </motion.button>
+                    {(game.room.players[myId]?.get_out_of_jail_cards ?? 0) > 0 && (
+                      <motion.button
+                        className="btn-ghost py-2 px-4 text-[10px] md:text-xs border-accent-500/30 text-accent-400"
+                        onClick={() => {
+                          soundManager.playButtonClick();
+                          useGameStore.getState().useJailCard();
+                        }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        USE CARD ({game.room.players[myId]?.get_out_of_jail_cards})
+                      </motion.button>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {turn.can_roll && !isRolling && !turn.in_debt && (
+                <motion.button
+                  className="btn-primary py-2.5 px-6 text-xs md:text-base font-bold rounded-full flex items-center gap-2"
+                  onClick={handleRollDice}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  disabled={isRolling}
+                >
+                  <span className="text-sm md:text-lg">🎲</span>
+                  {myId && game.room.players[myId]?.is_in_jail ? 'ROLL FOR DOUBLES' : 'ROLL DICE'}
+                </motion.button>
+              )}
+
+              {turn.can_end_turn && !turn.in_debt && (
+                <motion.button
+                  className="btn-ghost py-2 px-4 text-[10px] md:text-xs"
+                  onClick={() => {
+                    soundManager.playButtonClick();
+                    useGameStore.getState().endTurn();
+                  }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  END TURN
+                </motion.button>
+              )}
+
+              {/* Tax choice */}
+              {turn.pending_tax && myId && (
+                <motion.div
+                  className="flex flex-col items-center gap-2"
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                >
+                  <div className="px-4 py-1.5 rounded-xl border border-danger-500/40 bg-danger-500/10 text-center">
+                    <p className="text-danger-400 text-xs md:text-sm font-bold">{turn.pending_tax.name}</p>
+                    <p className="text-danger-300/70 text-[10px] md:text-xs mt-0.5">Choose payment method</p>
+                  </div>
+                  <div className="flex gap-2 flex-wrap justify-center">
+                    <motion.button
+                      className="btn-ghost py-2 px-4 text-[10px] md:text-xs border-danger-500/30 text-danger-400"
+                      onClick={() => {
+                        soundManager.playButtonClick();
+                        useGameStore.getState().payTax(false);
+                      }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      PAY ₹{turn.pending_tax.amount?.toLocaleString()}
+                    </motion.button>
+                    <motion.button
+                      className="btn-ghost py-2 px-4 text-[10px] md:text-xs border-warning-500/30 text-warning-400"
+                      onClick={() => {
+                        soundManager.playButtonClick();
+                        useGameStore.getState().payTax(true);
+                      }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      PAY 10% OF WORTH
+                    </motion.button>
+                  </div>
+                </motion.div>
+              )}
+
+              {turn.phase === 'buy' && (
+                <motion.div
+                  className="mt-1 text-center"
+                  variants={animations.fadeIn}
+                >
+                  <p className="text-text-muted text-[10px] md:text-xs mb-2">Buy this property?</p>
+                  <div className="flex gap-2">
+                    <motion.button
+                      className="bg-success-500 text-white font-bold py-2.5 px-5 rounded-lg hover:bg-success-600 transition-colors text-xs md:text-sm"
+                      onClick={() => {
+                        const me = game.room.players[myId!];
+                        soundManager.playBuyProperty();
+                        useGameStore.getState().buyProperty(me.position);
+                      }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      Buy
+                    </motion.button>
+                    {game.room.settings?.auction_enabled !== false && (
+                      <motion.button
+                        className="bg-warning-500 text-white font-bold py-2.5 px-5 rounded-lg hover:bg-warning-600 transition-colors text-xs md:text-sm"
+                        onClick={() => {
+                          const me = game.room.players[myId!];
+                          soundManager.playAuctionBid();
+                          useGameStore.getState().startAuction(me.position);
+                        }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        Auction
+                      </motion.button>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key={`${isMobile ? 'mobile-' : ''}waiting-${turn?.active_player_id}`}
+            className={`glass-panel rounded-xl text-center border border-white/10 ${isMobile ? 'p-3' : 'p-4'}`}
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="flex items-center justify-center gap-3">
+              <motion.div
+                className="w-2 h-2 bg-accent-400 rounded-full"
+                animate={{ scale: [1, 1.4, 1], opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1.2, repeat: Infinity }}
+              />
+              <span className="text-text-muted text-xs md:text-sm">
+                Waiting for <span className="text-accent-300 font-bold">{game.room.players[turn?.active_player_id || '']?.name}</span>'s move...
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </div>
+    );
+  };
 
   return (
-    <div className="flex-1 flex items-center justify-center overflow-hidden p-1 lg:p-4">
+    <div ref={viewportRef} className="flex-1 flex items-center justify-center overflow-hidden p-1 lg:p-4 relative board-container">
+      {/* Mobile Zoom Toggle */}
+      <motion.button
+        className="lg:hidden absolute top-2 right-2 z-30 w-10 h-10 rounded-xl bg-surface/80 border border-primary-500/30 text-primary-300 flex items-center justify-center backdrop-blur-sm shadow-lg"
+        onClick={() => setBoardZoom(prev => prev === 1 ? 1.5 : 1)}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        title={boardZoom === 1 ? 'Zoom In' : 'Zoom Out'}
+      >
+        <span className="text-lg">{boardZoom === 1 ? '🔍' : '🔎'}</span>
+      </motion.button>
+
+      <motion.div
+        drag={boardZoom > 1}
+        dragConstraints={viewportRef}
+        dragElastic={0.1}
+        animate={{
+          scale: boardZoom,
+          x: boardZoom === 1 ? 0 : undefined,
+          y: boardZoom === 1 ? 0 : undefined,
+        }}
+        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+        style={{
+          transformOrigin: 'center center',
+        }}
+        className="flex items-center justify-center touch-none w-full h-full"
+      >
       <motion.div
         className="relative grid border-2 border-primary-500/30 shadow-2xl rounded-2xl overflow-hidden"
         style={{
@@ -299,284 +576,8 @@ export const Board = () => {
           {/* Center game log — all events visible for transparency */}
           {game && <CenterGameLog historyLog={game.history_log} />}
 
-          {/* Turn indicator with enhanced dice */}
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 w-4/5 max-w-md">
-            {turn?.active_player_id === myId ? (
-              <motion.div
-                key={`turn-${turn?.active_player_id}`}
-                className="glass-panel-primary p-5 rounded-2xl border border-primary-500/30 shadow-xl"
-                initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-              >
-                <div className="flex flex-col items-center gap-3">
-                  <div className="flex items-center gap-3">
-                    <motion.div
-                      className="w-3 h-3 bg-primary-500 rounded-full"
-                      animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                    />
-                    <h3 className="text-primary-300 font-bold text-xs md:text-base">YOUR TURN!</h3>
-                  </div>
-
-                  {/* Turn timer bar */}
-                  {turn?.time_remaining != null && game?.room?.settings?.turn_timer_seconds && (
-                    <div className="w-full max-w-xs">
-                      <div className="flex justify-between items-center text-xs mb-1">
-                        <span className="text-text-muted">Time</span>
-                        <span className={`font-mono font-bold ${
-                          turn.time_remaining <= 10 ? 'text-danger-400' :
-                          turn.time_remaining <= 20 ? 'text-warning-400' :
-                          'text-primary-400'
-                        }`}>
-                          {Math.floor(turn.time_remaining / 60)}:{(turn.time_remaining % 60).toString().padStart(2, '0')}
-                        </span>
-                      </div>
-                      <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                        <motion.div
-                          className="h-full rounded-full"
-                          style={{
-                            background: turn.time_remaining <= 10
-                              ? 'linear-gradient(90deg, #ef4444, #f87171)'
-                              : turn.time_remaining <= 20
-                              ? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
-                              : 'linear-gradient(90deg, #22d3ee, #a855f7)'
-                          }}
-                          initial={{ width: '100%' }}
-                          animate={{ width: `${(turn.time_remaining / game.room.settings.turn_timer_seconds) * 100}%` }}
-                          transition={{ duration: 0.5 }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Enhanced Dice Display */}
-                  <div className="my-1">
-                    <DiceAnim
-                      die1={currentDice.die1}
-                      die2={currentDice.die2}
-                      isRolling={isRolling}
-                      onRollComplete={() => setIsRolling(false)}
-                      size="md"
-                      showTotal={!isRolling}
-                    />
-                  </div>
-
-                  {/* Debt warning — player must resolve or bankrupt */}
-                  {turn.in_debt && (
-                    <motion.div
-                      className="flex flex-col items-center gap-2"
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                    >
-                      <div className="px-4 py-2 rounded-xl border border-red-500/40 bg-red-500/10 text-center">
-                        <p className="text-red-400 text-sm font-bold">IN DEBT — ₹{Math.abs(game.room.players[myId!]?.money || 0)} owed</p>
-                        <p className="text-red-300/70 text-xs mt-1">Trade, mortgage, or sell to resolve. Or declare bankruptcy.</p>
-                      </div>
-                      <motion.button
-                        className="btn-primary py-2 px-6 text-sm font-bold rounded-full bg-red-600 hover:bg-red-500 border-red-500"
-                        onClick={() => {
-                          soundManager.playButtonClick();
-                          useGameStore.getState().declareBankruptcy();
-                        }}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        DECLARE BANKRUPTCY
-                      </motion.button>
-                    </motion.div>
-                  )}
-
-                  {/* Jail actions */}
-                  {myId && game.room.players[myId]?.is_in_jail && turn.can_roll && !turn.in_debt && (
-                    <motion.div
-                      className="flex flex-col items-center gap-2"
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                    >
-                      <div className="px-4 py-2 rounded-xl border border-warning-500/40 bg-warning-500/10 text-center">
-                        <p className="text-warning-400 text-sm font-bold">IN JAIL</p>
-                        <p className="text-warning-300/70 text-xs mt-1">Pay fine, use card, or roll for doubles</p>
-                      </div>
-                      <div className="flex gap-2 flex-wrap justify-center">
-                        <motion.button
-                          className="btn-ghost py-1.5 px-4 text-xs border-warning-500/30 text-warning-400"
-                          onClick={() => {
-                            soundManager.playButtonClick();
-                            useGameStore.getState().payJailFine();
-                          }}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          PAY FINE (₹5,000)
-                        </motion.button>
-                        {(game.room.players[myId]?.get_out_of_jail_cards ?? 0) > 0 && (
-                          <motion.button
-                            className="btn-ghost py-1.5 px-4 text-xs border-accent-500/30 text-accent-400"
-                            onClick={() => {
-                              soundManager.playButtonClick();
-                              useGameStore.getState().useJailCard();
-                            }}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                          >
-                            USE CARD ({game.room.players[myId]?.get_out_of_jail_cards})
-                          </motion.button>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {turn.can_roll && !isRolling && !turn.in_debt && (
-                    <motion.button
-                      className="btn-primary py-2.5 px-8 text-base font-bold rounded-full flex items-center gap-2"
-                      onClick={handleRollDice}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      disabled={isRolling}
-                    >
-                      <span className="text-lg">🎲</span>
-                      {myId && game.room.players[myId]?.is_in_jail ? 'ROLL FOR DOUBLES' : 'ROLL DICE'}
-                    </motion.button>
-                  )}
-
-                  {turn.can_end_turn && !turn.in_debt && (
-                    <motion.button
-                      className="btn-ghost py-1.5 px-5 text-xs"
-                      onClick={() => {
-                        soundManager.playButtonClick();
-                        useGameStore.getState().endTurn();
-                      }}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      END TURN
-                    </motion.button>
-                  )}
-
-                  {/* Tax choice */}
-                  {turn.pending_tax && myId && (
-                    <motion.div
-                      className="flex flex-col items-center gap-2"
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                    >
-                      <div className="px-4 py-2 rounded-xl border border-danger-500/40 bg-danger-500/10 text-center">
-                        <p className="text-danger-400 text-sm font-bold">{turn.pending_tax.name}</p>
-                        <p className="text-danger-300/70 text-xs mt-1">Choose payment method</p>
-                      </div>
-                      <div className="flex gap-2 flex-wrap justify-center">
-                        <motion.button
-                          className="btn-ghost py-1.5 px-4 text-xs border-danger-500/30 text-danger-400"
-                          onClick={() => {
-                            soundManager.playButtonClick();
-                            useGameStore.getState().payTax(false);
-                          }}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          PAY ₹{turn.pending_tax.amount?.toLocaleString()}
-                        </motion.button>
-                        <motion.button
-                          className="btn-ghost py-1.5 px-4 text-xs border-warning-500/30 text-warning-400"
-                          onClick={() => {
-                            soundManager.playButtonClick();
-                            useGameStore.getState().payTax(true);
-                          }}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          PAY 10% OF WORTH
-                        </motion.button>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Rent collection - show to property owner */}
-                  {turn.pending_rent && myId && turn.pending_rent.owner_id === myId && (
-                    <motion.div
-                      className="flex flex-col items-center gap-2"
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                    >
-                      <div className="px-4 py-2 rounded-xl border border-success-500/40 bg-success-500/10 text-center">
-                        <p className="text-success-400 text-sm font-bold">RENT DUE</p>
-                        <p className="text-success-300/70 text-xs mt-1">
-                          {game.room.players[turn.pending_rent.payer_id]?.name} owes you ₹{turn.pending_rent.amount?.toLocaleString()} for {turn.pending_rent.property_name}
-                        </p>
-                      </div>
-                      <motion.button
-                        className="btn-primary py-1.5 px-5 text-xs"
-                        onClick={() => {
-                          soundManager.playButtonClick();
-                          useGameStore.getState().collectRent();
-                        }}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        COLLECT RENT (₹{turn.pending_rent.amount?.toLocaleString()})
-                      </motion.button>
-                      <p className="text-text-muted/50 text-[10px]">Collect before next player rolls!</p>
-                    </motion.div>
-                  )}
-
-                  {turn.phase === 'buy' && (
-                    <motion.div
-                      className="mt-1 text-center"
-                      variants={animations.fadeIn}
-                    >
-                      <p className="text-text-muted text-xs mb-2">Buy this property?</p>
-                      <div className="flex gap-2">
-                        <motion.button
-                          className="bg-success-500 text-white font-bold py-1.5 px-5 rounded-lg hover:bg-success-600 transition-colors text-sm"
-                          onClick={() => {
-                            const me = game.room.players[myId!];
-                            soundManager.playBuyProperty();
-                            useGameStore.getState().buyProperty(me.position);
-                          }}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          Buy
-                        </motion.button>
-                        <motion.button
-                          className="bg-warning-500 text-white font-bold py-1.5 px-5 rounded-lg hover:bg-warning-600 transition-colors text-sm"
-                          onClick={() => {
-                            const me = game.room.players[myId!];
-                            soundManager.playAuctionBid();
-                            useGameStore.getState().startAuction(me.position);
-                          }}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          Auction
-                        </motion.button>
-                      </div>
-                    </motion.div>
-                  )}
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                key={`waiting-${turn?.active_player_id}`}
-                className="glass-panel p-4 rounded-xl text-center border border-white/10"
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="flex items-center justify-center gap-3">
-                  <motion.div
-                    className="w-2 h-2 bg-accent-400 rounded-full"
-                    animate={{ scale: [1, 1.4, 1], opacity: [0.5, 1, 0.5] }}
-                    transition={{ duration: 1.2, repeat: Infinity }}
-                  />
-                  <span className="text-text-muted text-sm">
-                    Waiting for <span className="text-accent-300 font-bold">{game.room.players[turn?.active_player_id || '']?.name}</span>'s move...
-                  </span>
-                </div>
-              </motion.div>
-            )}
-          </div>
+          {/* Center cell turn panel (desktop only) */}
+          {renderTurnPanel(false)}
         </div>
 
         {/* Tiles */}
@@ -795,12 +796,17 @@ export const Board = () => {
           );
         })}
 
-        {/* Property Detail Modal */}
-        <PropertyDetailModal
-          tileId={selectedTile}
-          onClose={() => setSelectedTile(null)}
-        />
       </motion.div>
+      </motion.div>
+
+      {/* Mobile-only viewport turn panel */}
+      {renderTurnPanel(true)}
+
+      {/* Property Detail Modal (moved to viewport level to avoid transformed ancestor bug) */}
+      <PropertyDetailModal
+        tileId={selectedTile}
+        onClose={() => setSelectedTile(null)}
+      />
     </div>
   );
 };

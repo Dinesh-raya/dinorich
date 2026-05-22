@@ -68,6 +68,8 @@ async def background_save_loop():
                         await sio.emit("auction:end", {"message": "Auction ended by timer"}, room=room_code)
                         if turn:
                             turn.phase = TurnPhase.ACTION
+                            turn.can_end_turn = True
+                            turn.time_remaining = game.room.settings.turn_timer_seconds
                         game.bump_version()
                         cached_game_dump[room_code] = game.model_dump()
                         last_emitted_version[room_code] = game.state_version
@@ -84,7 +86,7 @@ async def background_save_loop():
         except asyncio.CancelledError:
             break
         except Exception as e:
-            logger.error(f"Background save error: {e}")
+            logger.error(f"Background save error: {e}", exc_info=True)
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):

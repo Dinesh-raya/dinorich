@@ -31,14 +31,17 @@ class AuctionManager:
     def get_auction(self, room_code: str) -> Optional[AuctionState]:
         return self.auctions.get(room_code)
         
-    def place_bid(self, room_code: str, player_id: str, bid_amount: int, player_money: int) -> tuple[bool, str]:
+    def place_bid(self, room_code: str, player_id: str, bid_amount: int, player_money: int, is_bankrupt: bool = False) -> tuple[bool, str]:
         auction = self.auctions.get(room_code)
         if not auction or not auction.active:
             return False, "No active auction"
-            
+
+        if is_bankrupt:
+            return False, "Bankrupt players cannot bid"
+
         if player_id not in auction.participants:
             return False, "You are not participating in this auction"
-            
+
         if player_money < bid_amount:
             return False, "Not enough money to bid"
             
@@ -64,11 +67,25 @@ class AuctionManager:
         
         if auction.highest_bidder_id:
             player = game_state.room.players[auction.highest_bidder_id]
+
+            # Re-check bidder still valid
+            if player.is_bankrupt:
+                config = get_board_config().get(auction.property_id)
+                name = config['name'] if config else f"Property {auction.property_id}"
+                game_state.add_log(f"{player.name} went bankrupt during auction for {name} - no sale")
+                return True, "Auction ended - winner went bankrupt"
+
+            if player.money < auction.current_bid:
+                config = get_board_config().get(auction.property_id)
+                name = config['name'] if config else f"Property {auction.property_id}"
+                game_state.add_log(f"{player.name} cannot afford auction bid of ₹{auction.current_bid} for {name} - no sale")
+                return True, "Auction ended - bidder cannot afford"
+
             player.money -= auction.current_bid
             prop_state = game_state.properties[auction.property_id]
             prop_state.owner_id = auction.highest_bidder_id
             player.properties_owned.append(auction.property_id)
-            
+
             config = get_board_config().get(auction.property_id)
             game_state.add_log(
                 f"{player.name} won the auction for {config['name']} for ₹{auction.current_bid}"
@@ -76,7 +93,8 @@ class AuctionManager:
             return True, f"Auction won by {player.name}"
         else:
             config = get_board_config().get(auction.property_id)
-            game_state.add_log(f"No one bid on {config['name']}")
+            name = config['name'] if config else f"Property {auction.property_id}"
+            game_state.add_log(f"No one bid on {name}")
             return True, "Auction ended with no bids"
 
     def tick(self, room_code: str) -> Optional[AuctionState]:

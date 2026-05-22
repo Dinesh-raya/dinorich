@@ -40,21 +40,17 @@ const RENT_LABELS = ['Base', '1 House', '2 Houses', '3 Houses', '4 Houses', 'Hot
 export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProps) => {
   const { game, myId } = useGameStore();
 
-  if (tileId === null || !game) return null;
-
-  const tileConfig = boardData.tiles.find((t: any) => t.id === tileId);
-  if (!tileConfig) return null;
-
-  const propState = game.properties?.[tileId];
-  const owner = propState?.owner_id ? game.room.players[propState.owner_id] : null;
-  const isProperty = tileConfig.type === 'property';
-  const isAirport = tileConfig.type === 'airport';
-  const isUtility = tileConfig.type === 'utility';
-
-  const colorHex = tileConfig.color ? COLOR_MAP[tileConfig.color] : null;
+  const tileConfig = tileId !== null && game ? boardData.tiles.find((t: any) => t.id === tileId) : null;
+  const propState = tileId !== null && game ? game.properties?.[tileId] : null;
+  const owner = propState?.owner_id && game ? game.room.players[propState.owner_id] : null;
+  const isProperty = tileConfig?.type === 'property';
+  const isAirport = tileConfig?.type === 'airport';
+  const isUtility = tileConfig?.type === 'utility';
+  const colorHex = tileConfig?.color ? COLOR_MAP[tileConfig.color] : null;
 
   return (
     <AnimatePresence>
+      {tileId !== null && game && tileConfig && (
       <motion.div
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
         initial={{ opacity: 0 }}
@@ -70,7 +66,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
           exit="hidden"
         />
         <motion.div
-          className="relative bg-surface border-2 border-primary-500/30 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+          className="relative bg-surface border-2 border-primary-500/30 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto overflow-hidden"
           variants={animations.modalContent}
           initial="hidden"
           animate="visible"
@@ -350,6 +346,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
           </div>
         </motion.div>
       </motion.div>
+      )}
     </AnimatePresence>
   );
 };

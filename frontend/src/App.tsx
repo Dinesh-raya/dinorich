@@ -281,14 +281,14 @@ function App() {
             {/* Network Share Link */}
             <div className="mt-6 glass-panel p-4 rounded-xl border border-primary-500/20 max-w-sm mx-auto">
               <p className="text-primary-300 text-sm font-bold mb-2">LAN Play</p>
-              <p className="text-text-muted text-xs mb-3">Friends on same WiFi can join at:</p>
+              <p className="text-text-muted text-xs mb-3">Friends on same WiFi open this link, then enter room code:</p>
               <div className="flex items-center gap-2 bg-surface/50 rounded-lg p-2">
                 <code className="text-primary-400 text-sm flex-1 font-mono">
-                  {window.location.origin}
+                  {`http://${window.location.hostname}:8000`}
                 </code>
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(window.location.origin);
+                    navigator.clipboard.writeText(`http://${window.location.hostname}:8000`);
                     showToast('Link copied!', 'success');
                   }}
                   className="glass-button px-3 py-1.5 rounded-lg text-xs"
@@ -580,7 +580,8 @@ function App() {
                     isHost: p.id === room.host_id,
                     isCurrentTurn: p.id === activePlayerId,
                     is_in_jail: p.is_in_jail,
-                    jail_turns: p.jail_turns
+                    jail_turns: p.jail_turns,
+                    properties: game?.properties ? Object.values(game.properties).filter((prop: any) => prop.owner_id === p.id) : []
                   }))}
                   currentPlayerId={myId || undefined}
                   activePlayerId={activePlayerId}
@@ -615,7 +616,8 @@ function App() {
                 isHost: p.id === room.host_id,
                 isCurrentTurn: p.id === activePlayerId,
                 is_in_jail: p.is_in_jail,
-                jail_turns: p.jail_turns
+                jail_turns: p.jail_turns,
+                properties: game?.properties ? Object.values(game.properties).filter((prop: any) => prop.owner_id === p.id) : []
               }))}
               currentPlayerId={myId || undefined}
               activePlayerId={activePlayerId}
@@ -626,7 +628,7 @@ function App() {
 
 
         {/* Mobile Bottom Bar */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface/90 backdrop-blur-xl border-t border-white/10 p-3 z-30">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface/90 backdrop-blur-xl border-t border-white/10 p-3 safe-bottom z-30">
           <div className="flex justify-between items-center">
             <div className="text-center">
               <p className="text-[10px] text-text-muted font-cyber">My Money</p>

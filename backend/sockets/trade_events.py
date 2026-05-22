@@ -86,6 +86,14 @@ async def trade_accept(sid, data):
         return {"status": "error", "message": f"Invalid payload: {e}"}
 
     trade_id = payload.trade_id
+    # Save trade data BEFORE accepting (accept_trade deletes it via _cleanup_trade)
+    trade = trade_manager.get_trade(trade_id)
+    if not trade:
+        return {"status": "error", "message": "Trade not found"}
+
+    from_player_id = trade.from_player_id
+    to_player_id = trade.to_player_id
+
     if not trade_manager.accept_trade(game, trade_id, sid):
         return {"status": "error", "message": "Cannot accept trade"}
 
@@ -94,20 +102,16 @@ async def trade_accept(sid, data):
     active_id = turn_state.active_player_id if turn_state else ''
     turn_manager.check_debt_resolved(room_code, active_id)
     # Also check for both trade participants
-    trade = trade_manager.get_trade(trade_id)
-    if trade:
-        turn_manager.check_debt_resolved(room_code, trade.from_player_id)
-        turn_manager.check_debt_resolved(room_code, trade.to_player_id)
+    turn_manager.check_debt_resolved(room_code, from_player_id)
+    turn_manager.check_debt_resolved(room_code, to_player_id)
 
     # Emit updated game state
     turn_state = turn_manager.get_turn_state(room_code)
     await emit_game_state(room_code, game, turn_state)
 
-    # Notify both players
-    trade = trade_manager.get_trade(trade_id)
-    if trade:
-        await sio.emit("trade:completed", {"trade_id": trade_id}, room=trade.from_player_id)
-        await sio.emit("trade:completed", {"trade_id": trade_id}, room=trade.to_player_id)
+    # Notify both players (use saved IDs since trade was deleted)
+    await sio.emit("trade:completed", {"trade_id": trade_id}, room=from_player_id)
+    await sio.emit("trade:completed", {"trade_id": trade_id}, room=to_player_id)
 
     return {"status": "success"}
 
@@ -127,12 +131,16 @@ async def trade_reject(sid, data):
         return {"status": "error", "message": f"Invalid payload: {e}"}
 
     trade_id = payload.trade_id
+    # Save sender ID BEFORE rejecting (reject_trade deletes via _cleanup_trade)
+    trade = trade_manager.get_trade(trade_id)
+    if not trade:
+        return {"status": "error", "message": "Trade not found"}
+    from_player_id = trade.from_player_id
+
     if not trade_manager.reject_trade(trade_id, sid):
         return {"status": "error", "message": "Cannot reject trade"}
 
-    trade = trade_manager.get_trade(trade_id)
-    if trade:
-        await sio.emit("trade:rejected", {"trade_id": trade_id}, room=trade.from_player_id)
+    await sio.emit("trade:rejected", {"trade_id": trade_id}, room=from_player_id)
 
     return {"status": "success"}
 
@@ -152,11 +160,15 @@ async def trade_cancel(sid, data):
         return {"status": "error", "message": f"Invalid payload: {e}"}
 
     trade_id = payload.trade_id
+    # Save recipient ID BEFORE canceling (cancel_trade deletes via _cleanup_trade)
+    trade = trade_manager.get_trade(trade_id)
+    if not trade:
+        return {"status": "error", "message": "Trade not found"}
+    to_player_id = trade.to_player_id
+
     if not trade_manager.cancel_trade(trade_id, sid):
         return {"status": "error", "message": "Cannot cancel trade"}
 
-    trade = trade_manager.get_trade(trade_id)
-    if trade:
-        await sio.emit("trade:cancelled", {"trade_id": trade_id}, room=trade.to_player_id)
+    await sio.emit("trade:cancelled", {"trade_id": trade_id}, room=to_player_id)
 
     return {"status": "success"}

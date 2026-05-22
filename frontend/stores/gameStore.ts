@@ -108,6 +108,8 @@ interface GameStore {
   diceResult: DiceResult | null;
   lastCardDraw: CardDraw | null;
   incomingTrade: TradeOffer | null;
+  outgoingTradeId: string | null;
+  gameOver: { winner_id: string | null, winner_name: string } | null;
   error: string | null;
 
   connect: () => void;
@@ -131,9 +133,10 @@ interface GameStore {
   payJailFine: () => void;
   useJailCard: () => void;
   payTax: (usePercentage: boolean) => void;
-  collectRent: () => void;
   acceptTrade: (tradeId: string) => void;
   rejectTrade: (tradeId: string) => void;
+  cancelTrade: (tradeId: string) => void;
+  kickPlayer: (targetPlayerId: string) => void;
   clearCardDraw: () => void;
   clearIncomingTrade: () => void;
 }
@@ -157,7 +160,7 @@ export const useGameStore = create<GameStore>((set) => {
   });
 
   socket.on('game:start', (data: { game: GameState, turn: TurnState }) => {
-    set({ game: data.game, turn: data.turn, room: data.game.room });
+    set({ game: data.game, turn: data.turn, room: data.game.room, gameOver: null });
     showToast('Game started! Roll the dice to begin.', 'success');
   });
 
@@ -183,9 +186,8 @@ export const useGameStore = create<GameStore>((set) => {
     set({ diceResult: data });
   });
 
-  socket.on('game:over', (_data: { winner_id: string | null, winner_name: string }) => {
-    // Game over is handled by App.tsx via room status check
-    // This listener ensures the event is received
+  socket.on('game:over', (data: { winner_id: string | null, winner_name: string }) => {
+    set({ gameOver: data });
   });
 
   socket.on('card:result', (data: CardDraw) => {
@@ -199,23 +201,30 @@ export const useGameStore = create<GameStore>((set) => {
     if (data.to_player_id === socket.id) {
       set({ incomingTrade: data });
       showToast('Incoming trade offer!', 'info');
+    } else if (data.from_player_id === socket.id) {
+      set({ outgoingTradeId: data.trade_id });
     }
   });
 
   socket.on('trade:completed', () => {
-    set({ incomingTrade: null });
+    set({ incomingTrade: null, outgoingTradeId: null });
     showToast('Trade completed!', 'success');
     soundManager.playTradeComplete();
   });
 
   socket.on('trade:rejected', () => {
-    set({ incomingTrade: null });
+    set({ incomingTrade: null, outgoingTradeId: null });
     showToast('Trade was rejected.', 'warning');
   });
 
   socket.on('trade:cancelled', () => {
-    set({ incomingTrade: null });
+    set({ incomingTrade: null, outgoingTradeId: null });
     showToast('Trade was cancelled.', 'info');
+  });
+
+  socket.on('room:kicked', (data: { message: string }) => {
+    set({ room: null, game: null, turn: null });
+    showToast(data.message || 'You have been kicked from the room.', 'error');
   });
 
   return {
@@ -228,6 +237,8 @@ export const useGameStore = create<GameStore>((set) => {
     diceResult: null,
     lastCardDraw: null,
     incomingTrade: null,
+    outgoingTradeId: null,
+    gameOver: null,
     error: null,
 
     connect: () => {
@@ -274,19 +285,28 @@ export const useGameStore = create<GameStore>((set) => {
 
     rollDice: () => {
       socket.emit('game:dice_roll', {}, (response: any) => {
-         if (response.status === 'error') set({ error: response.message });
+         if (response.status === 'error') {
+           set({ error: response.message });
+           showToast(response.message, 'error');
+         }
       });
     },
 
     endTurn: () => {
       socket.emit('game:end_turn', {}, (response: any) => {
-        if (response.status === 'error') set({ error: response.message });
+        if (response.status === 'error') {
+          set({ error: response.message });
+          showToast(response.message, 'error');
+        }
       });
     },
 
     declareBankruptcy: () => {
       socket.emit('game:declare_bankruptcy', {}, (response: any) => {
-        if (response.status === 'error') set({ error: response.message });
+        if (response.status === 'error') {
+          set({ error: response.message });
+          showToast(response.message, 'error');
+        }
       });
     },
 
@@ -446,17 +466,6 @@ export const useGameStore = create<GameStore>((set) => {
       });
     },
 
-    collectRent: () => {
-      socket.emit('game:collect_rent', {}, (response: any) => {
-        if (response.status === 'error') {
-          set({ error: response.message });
-          showToast(response.message, 'error');
-        } else {
-          showToast('Rent collected!', 'success');
-        }
-      });
-    },
-
     acceptTrade: (tradeId: string) => {
       socket.emit('trade:accept', { trade_id: tradeId }, (response: any) => {
         if (response.status === 'error') {
@@ -477,6 +486,29 @@ export const useGameStore = create<GameStore>((set) => {
         } else {
           showToast('Trade rejected.', 'info');
           set({ incomingTrade: null });
+        }
+      });
+    },
+
+    cancelTrade: (tradeId: string) => {
+      socket.emit('trade:cancel', { trade_id: tradeId }, (response: any) => {
+        if (response.status === 'error') {
+          set({ error: response.message });
+          showToast(response.message, 'error');
+        } else {
+          showToast('Trade cancelled.', 'info');
+          set({ outgoingTradeId: null });
+        }
+      });
+    },
+
+    kickPlayer: (targetPlayerId: string) => {
+      socket.emit('room:kick_player', { target_player_id: targetPlayerId }, (response: any) => {
+        if (response.status === 'error') {
+          set({ error: response.message });
+          showToast(response.message, 'error');
+        } else {
+          showToast('Player kicked.', 'info');
         }
       });
     },

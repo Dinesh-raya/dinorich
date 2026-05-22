@@ -11,6 +11,8 @@ from utils.name_generator import get_random_name
 
 # Track disconnect timeout tasks so they can be cancelled on reconnect
 _disconnect_tasks: Dict[str, asyncio.Task] = {}
+# Track session_id → room_code for reconnection lookups
+session_rooms: Dict[str, str] = {}
 
 @sio.event
 async def connect(sid, environ, auth):
@@ -30,28 +32,34 @@ async def connect(sid, environ, auth):
 
     # Cancel any disconnect timeout for reconnecting players
     # Check if this session was previously in a room
-    room_code = room_manager.get_player_room_code(session.session_id)
+    # NOTE: Do NOT set player.connected = True here — let room:join handle the full reconnect
+    # (sid remap, socket room join, connected flag). Premature setting breaks the reconnect gate.
+    session_id = session.session_id
+    room_code = session_rooms.get(session_id)
     if room_code:
         room = room_manager.get_room(room_code)
-        if room and session.session_id in room.players:
-            player = room.players[session.session_id]
-            if not player.connected:
-                player.connected = True
-                # Cancel disconnect task if exists
-                old_sid = session.session_id
-                if old_sid in _disconnect_tasks:
-                    _disconnect_tasks[old_sid].cancel()
-                    del _disconnect_tasks[old_sid]
-                print(f"Player {player.name} reconnected to room {room_code}")
+        if room:
+            # Cancel disconnect task if exists (by session_id)
+            if session_id in _disconnect_tasks:
+                _disconnect_tasks[session_id].cancel()
+                del _disconnect_tasks[session_id]
+                print(f"Disconnect timeout cancelled for session {session_id} in room {room_code}")
 
 @sio.event
 async def disconnect(sid):
     print(f"Client disconnected: {sid}")
 
-    # Cancel any existing disconnect task for this player
-    if sid in _disconnect_tasks:
-        _disconnect_tasks[sid].cancel()
-        del _disconnect_tasks[sid]
+    # Get session_id for consistent task keying
+    try:
+        client_session = await sio.get_session(sid)
+        session_id = client_session.get("session_id", sid)
+    except Exception:
+        session_id = sid
+
+    # Cancel any existing disconnect task for this session
+    if session_id in _disconnect_tasks:
+        _disconnect_tasks[session_id].cancel()
+        del _disconnect_tasks[session_id]
 
     # Check if player is in a room and remove them
     room_code = room_manager.get_player_room_code(sid)
@@ -61,6 +69,8 @@ async def disconnect(sid):
             if room.status == RoomStatus.WAITING:
                 # If waiting, just remove them
                 updated_room = room_manager.leave_room(sid)
+                # Clean up session room mapping
+                session_rooms.pop(session_id, None)
                 if updated_room:
                     # Notify remaining players
                     await sio.emit(
@@ -72,6 +82,8 @@ async def disconnect(sid):
                 # If playing, mark as disconnected and skip turn if active
                 if sid in room.players:
                     room.players[sid].connected = False
+                    # Track session → room for reconnection
+                    session_rooms[session_id] = room_code
                     await sio.emit(
                         ROOM_EVENTS["STATE_UPDATE"],
                         room.model_dump(),
@@ -89,28 +101,31 @@ async def disconnect(sid):
                                 game.add_log(f"{room.players[sid].name} disconnected, turn skipped")
                                 await emit_game_state(room_code, game, new_turn)
 
-                    # Start disconnect timeout task (stores reference for cancellation)
-                    task = asyncio.create_task(handle_disconnect_timeout(sid, room_code))
-                    _disconnect_tasks[sid] = task
+                    # Start disconnect timeout task keyed by session_id
+                    task = asyncio.create_task(handle_disconnect_timeout(sid, session_id, room_code))
+                    _disconnect_tasks[session_id] = task
 
-async def handle_disconnect_timeout(sid: str, room_code: str):
+async def handle_disconnect_timeout(sid: str, session_id: str, room_code: str):
     """Handle prolonged disconnect: skip turns, then declare bankruptcy after grace period."""
     await asyncio.sleep(GameRules.DISCONNECT_TIMEOUT)
 
     # Clean up task reference
-    _disconnect_tasks.pop(sid, None)
+    _disconnect_tasks.pop(session_id, None)
 
     # Check if room still exists (may have been cleaned up)
     room = room_manager.get_room(room_code)
     if not room:
+        session_rooms.pop(session_id, None)
         return
 
     # Check if player still in room
     if sid not in room.players:
+        session_rooms.pop(session_id, None)
         return
 
-    # Check if still disconnected
-    if room.players[sid].connected:
+    # Check if still disconnected or already bankrupt
+    if room.players[sid].connected or room.players[sid].is_bankrupt:
+        session_rooms.pop(session_id, None)
         return
 
     from engine.turn_manager import turn_manager
@@ -128,7 +143,24 @@ async def handle_disconnect_timeout(sid: str, room_code: str):
             game.add_log(f"{room.players[sid].name} disconnected too long, turn skipped")
             await emit_game_state(room_code, game, new_turn)
 
-    # Only declare bankruptcy if player has been disconnected for extended period
-    # and it's been at least one full round since disconnect
-    # For now, just keep skipping turns - bankruptcy only on explicit leave or game end
-    # Players can reconnect and resume
+    # Declare bankruptcy for the disconnected player (use direct API, not voluntary — player isn't active or in debt)
+    player_name = room.players[sid].name
+    declare_bankruptcy(game, sid, None)
+    game.add_log(f"{player_name} declared bankrupt (disconnected too long)")
+
+    # Check if game is over (only 1 player remaining)
+    if game.room.status == RoomStatus.FINISHED:
+        active_players = [p for p in game.room.players.values() if not p.is_bankrupt]
+        winner = active_players[0] if active_players else None
+        await sio.emit(
+            "game:over",
+            {"winner_id": winner.id if winner else None, "winner_name": winner.name if winner else "Unknown"},
+            room=room_code
+        )
+
+    new_turn = turn_manager.next_turn(room_code)
+    if game and new_turn:
+        await emit_game_state(room_code, game, new_turn)
+
+    # Clean up session mapping
+    session_rooms.pop(session_id, None)

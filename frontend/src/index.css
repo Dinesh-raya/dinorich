@@ -41,6 +41,18 @@
     background-size: 256px 256px;
   }
 
+  /* Safe area insets for devices with notches */
+  @supports (padding: env(safe-area-inset-bottom)) {
+    .safe-bottom {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+  }
+
+  /* Prevent accidental zoom during gameplay */
+  .board-container {
+    touch-action: manipulation;
+  }
+
   /* Custom scrollbar */
   ::-webkit-scrollbar {
     @apply w-2;

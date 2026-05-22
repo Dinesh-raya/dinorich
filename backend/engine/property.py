@@ -38,25 +38,24 @@ def buy_property(game_state: GameState, player_id: str, property_id: int) -> tup
     game_state.add_log(f"{player.name} bought {config['name']} for ₹{price}")
     return True, "Property bought successfully"
 
-def calculate_rent(game_state: GameState, property_id: int) -> int:
+def calculate_rent(game_state: GameState, property_id: int, dice_total: int = 0) -> int:
+    """Calculate rent for a property. dice_total is required for utility rent."""
     prop_state = game_state.properties.get(property_id)
     if not prop_state or prop_state.owner_id is None or prop_state.is_mortgaged:
         return 0
-        
+
     config = get_board_config().get(property_id)
     if not config:
         return 0
-        
+
     owner_id = prop_state.owner_id
     owner = game_state.room.players[owner_id]
-    
-    # Calculate rent based on type
+
     if config["type"] == "property":
-        # Check monopoly
         color = config["color"]
         color_group_ids = [k for k, v in get_board_config().items() if v.get("color") == color]
         has_monopoly = all(game_state.properties[k].owner_id == owner_id for k in color_group_ids)
-        
+
         if prop_state.houses == 0 and prop_state.hotels == 0:
             base_rent = config["rent"][0]
             if has_monopoly and game_state.room.settings.double_rent_enabled:
@@ -67,46 +66,17 @@ def calculate_rent(game_state: GameState, property_id: int) -> int:
             if prop_state.hotels > 0:
                 rent_index = 5
             return config["rent"][rent_index]
-            
+
     elif config["type"] == "airport":
         owned_airports = sum(1 for p in owner.properties_owned if get_board_config()[p]["type"] == "airport")
-        # Standard: 25k, 50k, 100k, 200k
         return 25000 * (2 ** (owned_airports - 1))
-        
-    elif config["type"] == "utility":
-        # Utility rent depends on dice roll. Handled slightly differently, we'll return a multiplier here.
-        # Or just standard calculation if we track last dice roll.
-        # For simplicity, returning 0 here and handling it specifically in turn_manager if needed.
-        owned_utilities = sum(1 for p in owner.properties_owned if get_board_config()[p]["type"] == "utility")
-        # Assuming last dice roll is tracked in turn state or we pass it in.
-        return 0 # We'll handle this in pay_rent directly
-        
-    return 0
 
-def pay_rent(game_state: GameState, payer_id: str, property_id: int, dice_roll: int = 0) -> int:
-    """Pays rent from payer to owner. Returns amount paid."""
-    prop_state = game_state.properties.get(property_id)
-    if not prop_state or prop_state.owner_id is None or prop_state.owner_id == payer_id or prop_state.is_mortgaged:
-        return 0
-        
-    config = get_board_config().get(property_id)
-    owner = game_state.room.players[prop_state.owner_id]
-    payer = game_state.room.players[payer_id]
-    
-    rent = 0
-    if config["type"] == "utility":
+    elif config["type"] == "utility":
         owned_utilities = sum(1 for p in owner.properties_owned if get_board_config()[p]["type"] == "utility")
-        multiplier = 10000 if owned_utilities > 1 else 4000
-        rent = dice_roll * multiplier
-    else:
-        rent = calculate_rent(game_state, property_id)
-        
-    if rent > 0:
-        payer.money -= rent
-        owner.money += rent
-        game_state.add_log(f"{payer.name} paid ₹{rent} rent to {owner.name} for {config['name']}")
-        
-    return rent
+        multiplier = 10000 if owned_utilities >= 2 else 4000
+        return dice_total * multiplier
+
+    return 0
 
 def mortgage_property(game_state: GameState, player_id: str, property_id: int) -> tuple[bool, str]:
     if not game_state.room.settings.mortgage_enabled:
@@ -180,7 +150,7 @@ def can_build_house(game_state: GameState, player_id: str, property_id: int) -> 
     other_props_in_group = [game_state.properties[p_id] for p_id in color_group_ids if p_id != property_id]
     current_houses = prop_state.houses
     for other_prop in other_props_in_group:
-        if other_prop.houses < current_houses - GameRules.MAX_HOUSE_DIFFERENCE:
+        if current_houses - other_prop.houses > GameRules.MAX_HOUSE_DIFFERENCE:
             return False, "Must build evenly across properties in color group"
     
     # Check if player has enough money
@@ -297,11 +267,11 @@ def sell_house(game_state: GameState, player_id: str, property_id: int) -> tuple
     if not prop_state or prop_state.owner_id != player_id:
         return False, "You do not own this property"
     
-    if prop_state.houses == 0:
-        return False, "No houses to sell"
-    
     if prop_state.hotels > 0:
         return False, "Must sell hotel first"
+
+    if prop_state.houses == 0:
+        return False, "No houses to sell"
     
     config = get_board_config().get(property_id)
     color = config["color"]
@@ -313,7 +283,7 @@ def sell_house(game_state: GameState, player_id: str, property_id: int) -> tuple
     other_props_in_group = [game_state.properties[p_id] for p_id in color_group_ids if p_id != property_id]
     current_houses = prop_state.houses
     for other_prop in other_props_in_group:
-        if other_prop.houses > current_houses + GameRules.MAX_HOUSE_DIFFERENCE:
+        if (current_houses - 1) < other_prop.houses - GameRules.MAX_HOUSE_DIFFERENCE:
             return False, "Cannot sell house - would create uneven development"
     
     player = game_state.room.players[player_id]
@@ -339,6 +309,14 @@ def sell_hotel(game_state: GameState, player_id: str, property_id: int) -> tuple
 
     config = get_board_config().get(property_id)
     color = config["color"]
+
+    # Check even-building rule: 4 houses would be placed, other props need at least 3
+    color_group_ids = [k for k, v in get_board_config().items() if v.get("color") == color]
+    other_props_in_group = [game_state.properties[p_id] for p_id in color_group_ids if p_id != property_id]
+    for other_prop in other_props_in_group:
+        if other_prop.hotels == 0 and other_prop.houses < (4 - GameRules.MAX_HOUSE_DIFFERENCE):
+            return False, "Cannot sell hotel - would create uneven development (other properties need at least 3 houses)"
+
     house_price = GameRules.HOUSE_PRICES.get(color, 0)
     hotel_price = house_price * GameRules.HOTEL_PRICE_MULTIPLIER
     sell_price = hotel_price // 2  # Half price when selling back
