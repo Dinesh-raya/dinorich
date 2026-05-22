@@ -26,10 +26,12 @@ def _make_property_handler(action_fn: Callable, event_name: str, require_buy_pha
             if not turn or turn.active_player_id != sid or turn.phase != TurnPhase.BUY:
                 return {"status": "error", "message": "Not the time to buy"}
         else:
-            # Non-buy actions (mortgage, build, sell) require it to be your turn and in ACTION or DEBT phase
+            # Non-buy actions (mortgage, build, sell) require it to be your turn
             if turn and turn.active_player_id != sid:
                 return {"status": "error", "message": "Not your turn"}
-            if turn and turn.phase not in (TurnPhase.ACTION, TurnPhase.DEBT):
+            # Official rules: players CAN do property actions while in jail (ROLL phase)
+            # Only block during BUY, AUCTION phases
+            if turn and turn.phase not in (TurnPhase.ACTION, TurnPhase.DEBT, TurnPhase.ROLL):
                 return {"status": "error", "message": "Cannot do property actions in this phase"}
 
         try:

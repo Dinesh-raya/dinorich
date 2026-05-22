@@ -149,11 +149,17 @@ class TradeManager:
             from_player.properties_owned.append(prop_id)
             game.properties[prop_id].owner_id = trade.from_player_id
 
-        # Transfer get out of jail cards
-        from_player.get_out_of_jail_cards -= trade.offering_get_out_of_jail_cards
-        to_player.get_out_of_jail_cards += trade.offering_get_out_of_jail_cards
-        to_player.get_out_of_jail_cards -= trade.requesting_get_out_of_jail_cards
-        from_player.get_out_of_jail_cards += trade.requesting_get_out_of_jail_cards
+        # Transfer get out of jail cards (with source tracking)
+        for _ in range(trade.offering_get_out_of_jail_cards):
+            from_player.get_out_of_jail_cards -= 1
+            to_player.get_out_of_jail_cards += 1
+            source = from_player.goojf_sources.pop() if from_player.goojf_sources else "treasury"
+            to_player.goojf_sources.append(source)
+        for _ in range(trade.requesting_get_out_of_jail_cards):
+            to_player.get_out_of_jail_cards -= 1
+            from_player.get_out_of_jail_cards += 1
+            source = to_player.goojf_sources.pop() if to_player.goojf_sources else "treasury"
+            from_player.goojf_sources.append(source)
 
         trade.status = "accepted"
         game.add_log(f"{from_player.name} and {to_player.name} completed a trade")

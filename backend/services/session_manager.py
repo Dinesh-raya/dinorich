@@ -70,6 +70,8 @@ class SessionManager:
             return None
         if record.reconnect_expires_at < int(time.time()):
             return None
+        # Invalidate token immediately to prevent reuse
+        del self.reconnect_index[reconnect_token]
         return record
 
 

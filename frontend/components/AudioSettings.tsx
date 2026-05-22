@@ -63,20 +63,20 @@ export const AudioSettings = ({ isOpen, onClose }: AudioSettingsProps) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl p-4"
     >
       <motion.div
         initial={{ scale: 0.8, y: 50, opacity: 0 }}
         animate={{ scale: 1, y: 0, opacity: 1 }}
         exit={{ scale: 0.8, y: 50, opacity: 0 }}
         transition={{ type: 'spring', damping: 25 }}
-        className="glass-panel-dark p-8 rounded-3xl w-full max-w-md border-2 border-accent-500/30 shadow-2xl"
+        className="glass-panel-dark p-6 sm:p-8 rounded-3xl w-full max-w-md border-2 border-accent-500/30 shadow-2xl"
       >
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="heading-cyber text-2xl font-bold text-primary-300">Audio Settings</h2>
+        <div className="flex items-center justify-between mb-6 sm:mb-8">
+          <h2 className="heading-cyber text-xl sm:text-2xl font-bold text-primary-300">Audio Settings</h2>
           <button
             onClick={onClose}
-            className="glass-button p-2 rounded-xl text-text-muted hover:text-white transition-colors"
+            className="glass-button p-3 rounded-xl text-text-muted hover:text-white transition-colors"
           >
             ✕
           </button>

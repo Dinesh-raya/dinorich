@@ -11,6 +11,7 @@ class PlayerState(BaseModel):
     is_in_jail: bool = Field(False, description="Whether the player is currently in jail")
     jail_turns: int = Field(0, ge=0, le=100, description="Number of turns spent in jail")
     get_out_of_jail_cards: int = Field(0, description="Number of Get Out of Jail Free cards owned")
+    goojf_sources: List[str] = Field(default_factory=list, description="Source deck for each GOOJF card ('treasury' or 'surprise')")
     is_bankrupt: bool = Field(False, description="Whether the player is bankrupt and eliminated")
     properties_owned: List[int] = Field(default_factory=list, description="List of tile IDs owned by the player")
     connected: bool = Field(True, description="Whether the player is currently connected")

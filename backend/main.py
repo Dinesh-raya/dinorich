@@ -78,6 +78,7 @@ async def background_save_loop():
                             {"game": cached_game_dump[room_code], "turn": turn.model_dump() if turn else None},
                             room=room_code,
                         )
+                        save_snapshot(room_manager.rooms, turn_manager.games, turn_manager.turn_states)
                 else:
                     await sio.emit("auction:state_update", {"auction": auction.model_dump()}, room=room_code)
 

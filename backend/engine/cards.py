@@ -42,6 +42,8 @@ class CardEngine:
         # GOOJF cards are removed from deck when drawn (returned when used)
         if card["action"] != "get_out_of_jail_free":
             deck.append(card)
+        else:
+            card["_source"] = "treasury"
         self.execute_card(game_state, player_id, card)
         return card
 
@@ -51,6 +53,8 @@ class CardEngine:
         # GOOJF cards are removed from deck when drawn (returned when used)
         if card["action"] != "get_out_of_jail_free":
             deck.append(card)
+        else:
+            card["_source"] = "surprise"
         self.execute_card(game_state, player_id, card)
         return card
 
@@ -89,5 +93,7 @@ class CardEngine:
             send_to_jail(game_state, player_id)
         elif action == "get_out_of_jail_free":
             player.get_out_of_jail_cards += 1
+            source = card.get("_source", "treasury")
+            player.goojf_sources.append(source)
 
 card_engine = CardEngine()

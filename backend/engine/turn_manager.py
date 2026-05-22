@@ -307,8 +307,9 @@ class TurnManager:
         player.is_in_jail = False
         player.jail_turns = 0
 
-        # Return GOOJF card to the deck (standard Monopoly rule)
-        card_engine.return_goojf_card(game, "treasury")
+        # Return GOOJF card to the correct deck (standard Monopoly rule)
+        source = player.goojf_sources.pop() if player.goojf_sources else "treasury"
+        card_engine.return_goojf_card(game, source)
 
         game.add_log(f"{player.name} used a Get Out of Jail Free card")
 

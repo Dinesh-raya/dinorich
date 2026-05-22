@@ -533,7 +533,7 @@ export const Board = () => {
                   </div>
                   <div className="flex gap-2 flex-wrap justify-center">
                     <motion.button
-                      className="btn-ghost py-2 px-4 text-[10px] md:text-xs border-warning-500/30 text-warning-400"
+                      className="btn-ghost py-2 px-4 text-xs md:text-sm border-warning-500/30 text-warning-400"
                       onClick={() => {
                         soundManager.playButtonClick();
                         useGameStore.getState().payJailFine();
@@ -545,7 +545,7 @@ export const Board = () => {
                     </motion.button>
                     {(game.room.players[myId]?.get_out_of_jail_cards ?? 0) > 0 && (
                       <motion.button
-                        className="btn-ghost py-2 px-4 text-[10px] md:text-xs border-accent-500/30 text-accent-400"
+                        className="btn-ghost py-2 px-4 text-xs md:text-sm border-accent-500/30 text-accent-400"
                         onClick={() => {
                           soundManager.playButtonClick();
                           useGameStore.getState().useJailCard();
@@ -575,7 +575,7 @@ export const Board = () => {
 
               {turn.can_end_turn && !turn.in_debt && (
                 <motion.button
-                  className="btn-ghost py-2 px-4 text-[10px] md:text-xs"
+                  className="btn-ghost py-2 px-4 text-xs md:text-sm"
                   onClick={() => {
                     soundManager.playButtonClick();
                     useGameStore.getState().endTurn();
@@ -596,11 +596,11 @@ export const Board = () => {
                 >
                   <div className="px-4 py-1.5 rounded-xl border border-danger-500/40 bg-danger-500/10 text-center">
                     <p className="text-danger-400 text-xs md:text-sm font-bold">{turn.pending_tax.name}</p>
-                    <p className="text-danger-300/70 text-[10px] md:text-xs mt-0.5">Choose payment method</p>
+                    <p className="text-danger-300/70 text-xs md:text-sm mt-0.5">Choose payment method</p>
                   </div>
                   <div className="flex gap-2 flex-wrap justify-center">
                     <motion.button
-                      className="btn-ghost py-2 px-4 text-[10px] md:text-xs border-danger-500/30 text-danger-400"
+                      className="btn-ghost py-2 px-4 text-xs md:text-sm border-danger-500/30 text-danger-400"
                       onClick={() => {
                         soundManager.playButtonClick();
                         useGameStore.getState().payTax(false);
@@ -611,7 +611,7 @@ export const Board = () => {
                       PAY ₹{turn.pending_tax.amount?.toLocaleString()}
                     </motion.button>
                     <motion.button
-                      className="btn-ghost py-2 px-4 text-[10px] md:text-xs border-warning-500/30 text-warning-400"
+                      className="btn-ghost py-2 px-4 text-xs md:text-sm border-warning-500/30 text-warning-400"
                       onClick={() => {
                         soundManager.playButtonClick();
                         useGameStore.getState().payTax(true);

@@ -179,6 +179,7 @@ async def room_leave(sid):
                         game.add_log(f"{room.players[sid].name} left the game, turn skipped")
                         from sockets.helpers import emit_game_state
                         await emit_game_state(room_code, game, new_turn)
+                        persist_game(room_code)
 
             # Start disconnect timeout (player can rejoin)
             import asyncio

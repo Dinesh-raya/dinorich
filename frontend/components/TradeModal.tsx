@@ -132,7 +132,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
               </div>
               <motion.button
                 onClick={onClose}
-                className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-danger-400 hover:border-danger-500/30 transition-all flex items-center justify-center text-sm"
+                className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-danger-400 hover:border-danger-500/30 transition-all flex items-center justify-center text-sm"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
               >
@@ -160,7 +160,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                       >
                         <div className="flex items-center gap-3">
                           <div
-                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2"
+                            className="w-10 h-10 sm:w-11 sm:h-11 rounded-full border-2"
                             style={{
                               backgroundColor: player.color,
                               borderColor: player.color,
@@ -186,7 +186,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                     <div className="flex items-center gap-3">
                       <div className="text-center">
                         <div
-                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 mx-auto mb-1"
+                          className="w-10 h-10 sm:w-11 sm:h-11 rounded-full border-2 mx-auto mb-1"
                           style={{
                             backgroundColor: myPlayer.color,
                             borderColor: myPlayer.color
@@ -197,7 +197,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                       <span className="text-xl sm:text-2xl text-accent-400">⇄</span>
                       <div className="text-center">
                         <div
-                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 mx-auto mb-1"
+                          className="w-10 h-10 sm:w-11 sm:h-11 rounded-full border-2 mx-auto mb-1"
                           style={{
                             backgroundColor: selectedPlayerData.color,
                             borderColor: selectedPlayerData.color
@@ -227,7 +227,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => setOfferingMoney(Math.max(0, offeringMoney - 1000))}
-                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
+                            className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
                           >
                             -
                           </button>
@@ -236,7 +236,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                           </span>
                           <button
                             onClick={() => setOfferingMoney(Math.min(myPlayer.money, offeringMoney + 1000))}
-                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
+                            className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
                           >
                             +
                           </button>
@@ -287,7 +287,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => setOfferingJailCards(Math.max(0, offeringJailCards - 1))}
-                              className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
+                              className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
                             >
                               -
                             </button>
@@ -296,7 +296,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                             </span>
                             <button
                               onClick={() => setOfferingJailCards(Math.min(myPlayer.get_out_of_jail_cards, offeringJailCards + 1))}
-                              className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
+                              className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
                             >
                               +
                             </button>
@@ -315,7 +315,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => setRequestingMoney(Math.max(0, requestingMoney - 1000))}
-                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
+                            className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
                           >
                             -
                           </button>
@@ -324,7 +324,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                           </span>
                           <button
                             onClick={() => setRequestingMoney(Math.min(selectedPlayerData.money, requestingMoney + 1000))}
-                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
+                            className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
                           >
                             +
                           </button>
@@ -375,7 +375,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => setRequestingJailCards(Math.max(0, requestingJailCards - 1))}
-                              className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
+                              className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
                             >
                               -
                             </button>
@@ -384,7 +384,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                             </span>
                             <button
                               onClick={() => setRequestingJailCards(Math.min(selectedPlayerData.get_out_of_jail_cards, requestingJailCards + 1))}
-                              className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
+                              className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
                             >
                               +
                             </button>
@@ -453,7 +453,7 @@ export const TradeNotification = ({ trade, onAccept, onReject }: TradeNotificati
 
   return (
     <motion.div
-      className="fixed bottom-24 right-4 z-40 w-80"
+      className="fixed bottom-24 right-4 z-40 w-72 sm:w-80 max-w-[calc(100vw-2rem)]"
       initial={{ x: 320, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: 320, opacity: 0 }}

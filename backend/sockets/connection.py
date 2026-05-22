@@ -86,6 +86,8 @@ async def disconnect(sid):
                 # If playing, mark as disconnected and skip turn if active
                 if sid in room.players:
                     room.players[sid].connected = False
+                    # Remove disconnected socket from room to stop broadcasts
+                    sio.leave_room(sid, room_code)
                     # Track session → room for reconnection
                     session_rooms[session_id] = room_code
                     await sio.emit(

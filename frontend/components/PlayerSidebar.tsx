@@ -290,13 +290,13 @@ export const PlayerSidebar = ({
       <div className="p-3 border-t border-white/10 bg-surface/20">
         <div className="flex gap-2">
           <button
-            className="flex-1 bg-primary-500/20 hover:bg-primary-500/30 text-primary-300 text-sm py-2 rounded-lg transition-colors flex items-center justify-center gap-1"
+            className="flex-1 bg-primary-500/20 hover:bg-primary-500/30 text-primary-300 text-sm py-3 rounded-lg transition-colors flex items-center justify-center gap-1 min-h-[44px]"
             onClick={() => setExpandedPlayer(null)}
           >
             <span>Collapse All</span>
           </button>
           <button
-            className="flex-1 bg-accent-500/20 hover:bg-accent-500/30 text-accent-300 text-sm py-2 rounded-lg transition-colors flex items-center justify-center gap-1"
+            className="flex-1 bg-accent-500/20 hover:bg-accent-500/30 text-accent-300 text-sm py-3 rounded-lg transition-colors flex items-center justify-center gap-1 min-h-[44px]"
             onClick={() => setSortBy('money')}
           >
             <span>Sort by $</span>

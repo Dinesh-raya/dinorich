@@ -642,7 +642,7 @@ function App() {
                   soundManager.playButtonClick();
                   navigator.clipboard.writeText(room?.room_id || '');
                 }}
-                className="glass-button p-2 rounded-lg text-xs"
+                className="glass-button p-3 rounded-lg text-xs"
                 title="Copy Room Code"
               >
                 📋
@@ -657,7 +657,7 @@ function App() {
                     });
                   }
                 }}
-                className="glass-button p-2 rounded-lg text-xs"
+                className="glass-button p-3 rounded-lg text-xs"
                 title="Share Room"
               >
                 📤
@@ -667,7 +667,7 @@ function App() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowMobileMenu(true)}
-                className="glass-button p-2.5 rounded-xl"
+                className="glass-button p-3 rounded-xl"
               >
                 <span className="text-lg">👥</span>
               </button>
@@ -677,7 +677,7 @@ function App() {
                   soundManager.playButtonClick();
                   setShowTradeModal(true);
                 }}
-                className="glass-button p-2.5 rounded-xl"
+                className="glass-button p-3 rounded-xl"
                 title="Trade"
               >
                 <span className="text-lg">🤝</span>
@@ -688,7 +688,7 @@ function App() {
                   soundManager.playButtonClick();
                   setShowAudioSettings(true);
                 }}
-                className="glass-button p-2.5 rounded-xl"
+                className="glass-button p-3 rounded-xl"
               >
                 <span className="text-lg">🔊</span>
               </button>
@@ -698,7 +698,7 @@ function App() {
                   soundManager.playButtonClick();
                   setShowRoomSettings(true);
                 }}
-                className="glass-button p-2.5 rounded-xl"
+                className="glass-button p-3 rounded-xl"
               >
                 <span className="text-lg">⚙️</span>
               </button>
