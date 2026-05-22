@@ -408,7 +408,10 @@ class TurnManager:
                 if result:
                     auto_roll_dice = result.get("dice")
                 turn = self.turn_states.get(room_code)
-            if turn and not turn.can_roll:
+            # Only advance if player can't act (no pending buy/auction/debt)
+            if turn and not turn.can_roll and turn.phase not in (
+                TurnPhase.BUY, TurnPhase.AUCTION, TurnPhase.DEBT
+            ) and not turn.pending_tax:
                 self.next_turn(room_code)
                 turn = self.turn_states.get(room_code)
         return turn, auto_roll_dice

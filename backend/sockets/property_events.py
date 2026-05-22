@@ -54,6 +54,7 @@ def _make_property_handler(action_fn: Callable, event_name: str, require_buy_pha
             if require_buy_phase:
                 turn.phase = TurnPhase.ACTION
                 turn.can_end_turn = True
+                turn.time_remaining = game.room.settings.turn_timer_seconds
             await emit_game_state(room_code, game, turn)
             persist_game(room_code)
         return {"status": "success"}
