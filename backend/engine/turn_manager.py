@@ -140,7 +140,11 @@ class TurnManager:
         result = None
 
         # Helper to evaluate tile effects at current position
-        def evaluate_tile(tile_pos):
+        def evaluate_tile(tile_pos, _depth=0):
+            if _depth > 3:
+                game.add_log(f"[WARN] Tile evaluation depth exceeded at position {tile_pos}")
+                turn.phase = TurnPhase.ACTION
+                return
             nonlocal creditor_id, result
             config = get_board_config().get(tile_pos)
             if config and config["type"] in ["property", "airport", "utility"]:
@@ -177,7 +181,7 @@ class TurnManager:
                     turn.phase = TurnPhase.END
                 # Re-evaluate if card moved player (e.g. "Advance to" cards)
                 elif player.position != tile_pos:
-                    evaluate_tile(player.position)
+                    evaluate_tile(player.position, _depth + 1)
             elif config and config["type"] == "surprise":
                 card = card_engine.draw_surprise(game, player_id)
                 turn.phase = TurnPhase.ACTION
@@ -189,7 +193,7 @@ class TurnManager:
                     turn.phase = TurnPhase.END
                 # Re-evaluate if card moved player (e.g. "Go back 3 spaces")
                 elif player.position != tile_pos:
-                    evaluate_tile(player.position)
+                    evaluate_tile(player.position, _depth + 1)
             elif config and config["type"] == "corner" and tile_pos == 20:
                 if game.room.settings.free_parking_jackpot and game.free_parking_pool > 0:
                     player.money += game.free_parking_pool
