@@ -167,5 +167,18 @@ async def handle_disconnect_timeout(sid: str, session_id: str, room_code: str):
     persist_room(room_code)
     persist_game(room_code)
 
+    # Clean up abandoned games: if all players are disconnected or bankrupt, remove from memory
+    all_gone = all(
+        p.is_bankrupt or not p.connected
+        for p in room.players.values()
+    )
+    if all_gone:
+        room_manager.leave_room(sid)
+        turn_manager.cleanup_room(room_code)
+        from persistence import repository
+        repository.delete_room(room_code)
+        repository.delete_game(room_code)
+        logger.info(f"Cleaned up abandoned room {room_code}")
+
     # Clean up session mapping
     session_rooms.pop(session_id, None)

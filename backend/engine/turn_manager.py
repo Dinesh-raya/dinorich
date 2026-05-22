@@ -14,6 +14,12 @@ class TurnManager:
         self.turn_states: Dict[str, TurnState] = {}
         self.active_doubles_count: Dict[str, int] = {}
 
+    def cleanup_room(self, room_code: str):
+        """Remove all game state for a room from memory."""
+        self.games.pop(room_code, None)
+        self.turn_states.pop(room_code, None)
+        self.active_doubles_count.pop(room_code, None)
+
     def start_game(self, room_code: str, game_state: GameState):
         self.games[room_code] = game_state
         first_player_id = game_state.turn_order[0]
