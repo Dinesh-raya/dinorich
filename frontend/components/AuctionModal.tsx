@@ -75,15 +75,13 @@ export const AuctionModal = () => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl"
-          variants={animations.modalBackdrop}
         >
-        <motion.div 
+        <motion.div
           initial={{ scale: 0.8, y: 50, opacity: 0 }}
           animate={{ scale: 1, y: 0, opacity: 1 }}
           exit={{ scale: 0.8, y: 50, opacity: 0 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
           className="glass-panel-dark p-4 sm:p-8 rounded-2xl sm:rounded-3xl w-[96%] sm:w-full max-w-2xl max-h-[90vh] overflow-y-auto border-2 border-primary-500/30 shadow-2xl neon-glow-strong"
-          variants={animations.modalContent}
         >
           {/* Header */}
           <div className="text-center mb-6 sm:mb-8">

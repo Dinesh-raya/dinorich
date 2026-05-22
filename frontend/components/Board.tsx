@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { useGameStore } from '../stores/gameStore';
 import { animations } from '../animations';
 // THEME import removed - using direct color values
@@ -77,11 +77,217 @@ const getTileIcon = (tile: any) => {
   return null;
 };
 
-// Country flag for Indian cities
-const getCountryFlag = (tile: any) => {
-  if (tile.type === 'property') return '🇮🇳';
-  return null;
-};
+// Memoized tile component to prevent re-rendering all 40 tiles
+interface BoardTileProps {
+  tile: any;
+  pos: { gridRow: number; gridColumn: number };
+  isCorner: boolean;
+  isSide: boolean;
+  ownerId: string | undefined;
+  houses: number;
+  hotels: number;
+  isMortgaged: boolean;
+  hasMonopolyOnTile: boolean;
+  tileColor: string;
+  tileIcon: string | null;
+  playerColor: string | undefined;
+  playerName: string | undefined;
+  ownerIcon: string;
+  isLandingTile: boolean;
+  isMyTile: boolean;
+  onTileClick: (id: number) => void;
+}
+
+const BoardTile = memo(({
+  tile, pos, isCorner, isSide, ownerId, houses, hotels,
+  isMortgaged, hasMonopolyOnTile, tileColor, tileIcon,
+  playerColor, playerName, ownerIcon, isLandingTile, isMyTile, onTileClick
+}: BoardTileProps) => {
+  return (
+    <motion.div
+      className={`flex flex-col relative overflow-hidden cursor-pointer ${
+        isCorner ? 'p-1.5 justify-center items-center' : ''
+      }`}
+      style={{
+        ...pos,
+        border: isCorner
+          ? '2px solid rgba(34, 211, 238, 0.4)'
+          : ownerId
+          ? `2px solid ${playerColor || 'rgba(255, 255, 255, 0.15)'}80`
+          : isSide
+          ? '1px solid rgba(255, 255, 255, 0.15)'
+          : '1px solid rgba(255, 255, 255, 0.08)',
+        background: isCorner
+          ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.9) 100%)'
+          : 'rgba(15, 23, 42, 0.85)',
+        transition: 'all 0.2s ease'
+      }}
+      variants={animations.fadeIn}
+      whileHover={{
+        scale: 1.08,
+        zIndex: 20,
+        boxShadow: '0 0 20px rgba(34, 211, 238, 0.2)',
+        borderColor: 'rgba(34, 211, 238, 0.5)'
+      }}
+      transition={{ duration: 0.15 }}
+      onClick={() => onTileClick(tile.id)}
+    >
+      {/* Landing glow effect */}
+      {isLandingTile && (
+        <motion.div
+          className="absolute inset-0 z-10 pointer-events-none rounded-2xl"
+          initial={{ boxShadow: '0 0 0px rgba(34, 211, 238, 0)' }}
+          animate={{
+            boxShadow: [
+              '0 0 0px rgba(34, 211, 238, 0)',
+              '0 0 30px rgba(34, 211, 238, 0.6), inset 0 0 20px rgba(34, 211, 238, 0.15)',
+              '0 0 0px rgba(34, 211, 238, 0)'
+            ]
+          }}
+          transition={{ duration: 1.2, ease: 'easeOut' }}
+        />
+      )}
+
+      {/* Owned by me pulse */}
+      {isMyTile && !isLandingTile && (
+        <motion.div
+          className="absolute inset-0 z-10 pointer-events-none rounded-2xl"
+          animate={{
+            boxShadow: [
+              '0 0 0px rgba(34, 211, 238, 0)',
+              '0 0 8px rgba(34, 211, 238, 0.2)',
+              '0 0 0px rgba(34, 211, 238, 0)'
+            ]
+          }}
+          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      )}
+
+      {/* Color bar for properties */}
+      {!isCorner && tile.color && (
+        <div
+          className={`h-5 w-full relative ${hasMonopolyOnTile ? 'border-b-2 border-yellow-400' : 'border-b border-white/10'}`}
+          style={{
+            background: hasMonopolyOnTile
+              ? `linear-gradient(90deg, ${tileColor} 0%, ${tileColor}cc 50%, ${tileColor} 100%)`
+              : tileColor,
+            boxShadow: hasMonopolyOnTile
+              ? `inset 0 0 15px rgba(255, 255, 0, 0.4), 0 0 10px ${tileColor}40`
+              : `0 2px 4px ${tileColor}20`
+          }}
+        >
+          {hasMonopolyOnTile && (
+            <motion.div
+              className="absolute inset-0"
+              style={{
+                background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 0, 0.3) 50%, transparent 100%)'
+              }}
+              animate={{ x: ['-100%', '100%'] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Special type indicator */}
+      {!isCorner && !tile.color && (
+        <div
+          className="h-4 w-full border-b border-white/10 flex items-center justify-center"
+          style={{ backgroundColor: tileColor }}
+        >
+          {tileIcon && <span className="text-[8px]">{tileIcon}</span>}
+        </div>
+      )}
+
+      <div className={`flex-1 flex flex-col items-center text-center px-0.5 ${isCorner ? '' : 'justify-between py-0.5'}`}>
+        {isCorner && tileIcon && (
+          <span className="text-lg md:text-2xl mb-0.5">{tileIcon}</span>
+        )}
+
+        {!isCorner && tile.type === 'property' && (
+          <span className="text-[10px] md:text-xs mb-0.5">🇮🇳</span>
+        )}
+
+        <span className={`font-bold leading-tight ${
+          isCorner
+            ? 'text-xs md:text-sm text-primary-300'
+            : 'text-[10px] md:text-[12px] text-text-main'
+        }`}>
+          {tile.name}
+        </span>
+
+        {tile.price && (
+          <span className="text-[9px] md:text-[10px] font-semibold text-primary-400/80 mt-0.5">
+            {formatMoneyShort(tile.price)}
+          </span>
+        )}
+
+        {/* House/Hotel indicators */}
+        {(houses > 0 || hotels > 0) && (
+          <motion.div
+            className="flex flex-wrap justify-center gap-0.5 mt-0.5"
+            variants={animations.scaleIn}
+          >
+            {hotels > 0 ? (
+              <div className="relative">
+                <div className="w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-sm shadow-lg"
+                  style={{ boxShadow: '0 0 6px rgba(239, 68, 68, 0.6)' }}
+                ></div>
+              </div>
+            ) : (
+              Array.from({ length: Math.min(houses, 4) }).map((_, i) => (
+                <div
+                  key={i}
+                  className="w-2 h-2 md:w-2.5 md:h-2.5 bg-green-500 rounded-sm shadow"
+                  style={{ boxShadow: '0 0 4px rgba(34, 197, 94, 0.5)' }}
+                ></div>
+              ))
+            )}
+          </motion.div>
+        )}
+
+        {/* Owner indicator */}
+        {ownerId && (
+          <motion.div
+            className="absolute top-0.5 right-0.5 w-5 h-5 md:w-6 md:h-6 rounded-full border-2 border-white/80 shadow-lg z-20 flex items-center justify-center text-xs md:text-sm"
+            style={{
+              backgroundColor: (playerColor || '#888') + '60',
+              boxShadow: `0 0 12px ${playerColor || '#888'}80`
+            }}
+            title={`Owned by ${playerName}`}
+            variants={animations.scaleIn}
+            whileHover={{ scale: 1.3 }}
+          >
+            {ownerIcon}
+          </motion.div>
+        )}
+
+        {/* Mortgaged indicator */}
+        {isMortgaged && (
+          <motion.div
+            className="absolute top-0.5 left-0.5 w-3 h-3 md:w-4 md:h-4 bg-gray-700 rounded-full border border-white/50 shadow-lg z-20 flex items-center justify-center"
+            title="Mortgaged"
+            variants={animations.scaleIn}
+          >
+            <span className="text-white text-[6px] font-bold">M</span>
+          </motion.div>
+        )}
+
+        {/* Monopoly crown indicator */}
+        {hasMonopolyOnTile && (
+          <motion.div
+            className="absolute -top-1 left-1/2 transform -translate-x-1/2 z-30"
+            variants={animations.float}
+            animate="visible"
+          >
+            <span className="text-yellow-400 text-xs drop-shadow-lg">👑</span>
+          </motion.div>
+        )}
+      </div>
+    </motion.div>
+  );
+});
+BoardTile.displayName = 'BoardTile';
 
 // Center game log — shows all events for transparency
 const CenterGameLog = ({ historyLog }: { historyLog: string[] }) => {
@@ -582,217 +788,40 @@ export const Board = () => {
 
         {/* Tiles */}
         {boardData.tiles.map((tile: any) => {
-          const pos = getGridPosition(tile.id);
           const isCorner = [0, 10, 20, 30].includes(tile.id);
           const isSide = !isCorner && tile.type !== 'tax' && tile.type !== 'treasury' && tile.type !== 'surprise';
           const propState = getPropertyState(game, tile.id);
           const ownerId = propState?.owner_id;
-          const houses = propState?.houses || 0;
-          const hotels = propState?.hotels || 0;
-          const isMortgaged = propState?.is_mortgaged || false;
-          const hasMonopolyOnTile = ownerId ? hasMonopoly(game, tile, ownerId) : false;
-          const tileColor = getTileColor(tile);
-          const tileIcon = getTileIcon(tile);
+          const ownerIcons: Record<string, string> = {
+            '#ef4444': '🔴', '#3b82f6': '🔵', '#22c55e': '🟢',
+            '#eab308': '🟡', '#a855f7': '🟣', '#f97316': '🟠'
+          };
+          const playerColor = ownerId ? game.room.players[ownerId]?.color : undefined;
 
           return (
-            <motion.div
+            <BoardTile
               key={tile.id}
-              className={`flex flex-col relative overflow-hidden cursor-pointer ${
-                isCorner
-                  ? 'p-1.5 justify-center items-center'
-                  : isSide
-                  ? ''
-                  : ''
-              }`}
-              style={{
-                ...pos,
-                border: isCorner
-                  ? '2px solid rgba(34, 211, 238, 0.4)'
-                  : ownerId
-                  ? `2px solid ${game.room.players[ownerId]?.color || 'rgba(255, 255, 255, 0.15)'}80`
-                  : isSide
-                  ? '1px solid rgba(255, 255, 255, 0.15)'
-                  : '1px solid rgba(255, 255, 255, 0.08)',
-                background: isCorner
-                  ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.9) 100%)'
-                  : 'rgba(15, 23, 42, 0.85)',
-                transition: 'all 0.2s ease'
-              }}
-              variants={animations.fadeIn}
-              whileHover={{
-                scale: 1.08,
-                zIndex: 20,
-                boxShadow: '0 0 20px rgba(34, 211, 238, 0.2)',
-                borderColor: 'rgba(34, 211, 238, 0.5)'
-              }}
-              transition={{ duration: 0.15 }}
-              onClick={() => {
+              tile={tile}
+              pos={getGridPosition(tile.id)}
+              isCorner={isCorner}
+              isSide={isSide}
+              ownerId={ownerId}
+              houses={propState?.houses || 0}
+              hotels={propState?.hotels || 0}
+              isMortgaged={propState?.is_mortgaged || false}
+              hasMonopolyOnTile={ownerId ? hasMonopoly(game, tile, ownerId) : false}
+              tileColor={getTileColor(tile)}
+              tileIcon={getTileIcon(tile)}
+              playerColor={playerColor}
+              playerName={ownerId ? game.room.players[ownerId]?.name : undefined}
+              ownerIcon={ownerId ? (ownerIcons[playerColor || ''] || '⚪') : ''}
+              isLandingTile={landingTile === tile.id}
+              isMyTile={ownerId === myId}
+              onTileClick={(id) => {
                 soundManager.playButtonClick();
-                setSelectedTile(tile.id);
+                setSelectedTile(id);
               }}
-            >
-              {/* Landing glow effect */}
-              {landingTile === tile.id && (
-                <motion.div
-                  className="absolute inset-0 z-10 pointer-events-none rounded-2xl"
-                  initial={{ boxShadow: '0 0 0px rgba(34, 211, 238, 0)' }}
-                  animate={{
-                    boxShadow: [
-                      '0 0 0px rgba(34, 211, 238, 0)',
-                      '0 0 30px rgba(34, 211, 238, 0.6), inset 0 0 20px rgba(34, 211, 238, 0.15)',
-                      '0 0 0px rgba(34, 211, 238, 0)'
-                    ]
-                  }}
-                  transition={{ duration: 1.2, ease: 'easeOut' }}
-                />
-              )}
-
-              {/* Owned by me pulse */}
-              {ownerId && ownerId === myId && landingTile !== tile.id && (
-                <motion.div
-                  className="absolute inset-0 z-10 pointer-events-none rounded-2xl"
-                  animate={{
-                    boxShadow: [
-                      '0 0 0px rgba(34, 211, 238, 0)',
-                      '0 0 8px rgba(34, 211, 238, 0.2)',
-                      '0 0 0px rgba(34, 211, 238, 0)'
-                    ]
-                  }}
-                  transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                />
-              )}
-
-              {/* Color bar for properties */}
-              {!isCorner && tile.color && (
-                <div
-                  className={`h-5 w-full relative ${hasMonopolyOnTile ? 'border-b-2 border-yellow-400' : 'border-b border-white/10'}`}
-                  style={{
-                    background: hasMonopolyOnTile
-                      ? `linear-gradient(90deg, ${tileColor} 0%, ${tileColor}cc 50%, ${tileColor} 100%)`
-                      : tileColor,
-                    boxShadow: hasMonopolyOnTile
-                      ? `inset 0 0 15px rgba(255, 255, 0, 0.4), 0 0 10px ${tileColor}40`
-                      : `0 2px 4px ${tileColor}20`
-                  }}
-                >
-                  {hasMonopolyOnTile && (
-                    <motion.div
-                      className="absolute inset-0"
-                      style={{
-                        background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 0, 0.3) 50%, transparent 100%)'
-                      }}
-                      animate={{ x: ['-100%', '100%'] }}
-                      transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                    />
-                  )}
-                </div>
-              )}
-
-              {/* Special type indicator */}
-              {!isCorner && !tile.color && (
-                <div
-                  className="h-4 w-full border-b border-white/10 flex items-center justify-center"
-                  style={{ backgroundColor: tileColor }}
-                >
-                  {tileIcon && <span className="text-[8px]">{tileIcon}</span>}
-                </div>
-              )}
-
-              <div className={`flex-1 flex flex-col items-center text-center px-0.5 ${isCorner ? '' : 'justify-between py-0.5'}`}>
-                {/* Corner tile icon */}
-                {isCorner && tileIcon && (
-                  <span className="text-lg md:text-2xl mb-0.5">{tileIcon}</span>
-                )}
-
-                {/* Country flag for properties */}
-                {!isCorner && getCountryFlag(tile) && (
-                  <span className="text-[10px] md:text-xs mb-0.5">{getCountryFlag(tile)}</span>
-                )}
-
-                <span className={`font-bold leading-tight ${
-                  isCorner
-                    ? 'text-xs md:text-sm text-primary-300'
-                    : 'text-[10px] md:text-[12px] text-text-main'
-                }`}>
-                  {tile.name}
-                </span>
-
-                {tile.price && (
-                  <span className="text-[9px] md:text-[10px] font-semibold text-primary-400/80 mt-0.5">
-                    {formatMoneyShort(tile.price)}
-                  </span>
-                )}
-
-                {/* House/Hotel indicators */}
-                {(houses > 0 || hotels > 0) && (
-                  <motion.div
-                    className="flex flex-wrap justify-center gap-0.5 mt-0.5"
-                    variants={animations.scaleIn}
-                  >
-                    {hotels > 0 ? (
-                      <div className="relative">
-                        <div className="w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-sm shadow-lg"
-                          style={{ boxShadow: '0 0 6px rgba(239, 68, 68, 0.6)' }}
-                        ></div>
-                      </div>
-                    ) : (
-                      Array.from({ length: Math.min(houses, 4) }).map((_, i) => (
-                        <div
-                          key={i}
-                          className="w-2 h-2 md:w-2.5 md:h-2.5 bg-green-500 rounded-sm shadow"
-                          style={{ boxShadow: '0 0 4px rgba(34, 197, 94, 0.5)' }}
-                        ></div>
-                      ))
-                    )}
-                  </motion.div>
-                )}
-
-                {/* Owner indicator - larger with icon */}
-                {ownerId && (() => {
-                  const ownerColor = game.room.players[ownerId]?.color || '#888';
-                  const ownerIcons: Record<string, string> = {
-                    '#ef4444': '🔴', '#3b82f6': '🔵', '#22c55e': '🟢',
-                    '#eab308': '🟡', '#a855f7': '🟣', '#f97316': '🟠'
-                  };
-                  return (
-                    <motion.div
-                      className="absolute top-0.5 right-0.5 w-5 h-5 md:w-6 md:h-6 rounded-full border-2 border-white/80 shadow-lg z-20 flex items-center justify-center text-xs md:text-sm"
-                      style={{
-                        backgroundColor: ownerColor + '60',
-                        boxShadow: `0 0 12px ${ownerColor}80`
-                      }}
-                      title={`Owned by ${game.room.players[ownerId]?.name}`}
-                      variants={animations.scaleIn}
-                      whileHover={{ scale: 1.3 }}
-                    >
-                      {ownerIcons[ownerColor] || '⚪'}
-                    </motion.div>
-                  );
-                })()}
-
-                {/* Mortgaged indicator */}
-                {isMortgaged && (
-                  <motion.div
-                    className="absolute top-0.5 left-0.5 w-3 h-3 md:w-4 md:h-4 bg-gray-700 rounded-full border border-white/50 shadow-lg z-20 flex items-center justify-center"
-                    title="Mortgaged"
-                    variants={animations.scaleIn}
-                  >
-                    <span className="text-white text-[6px] font-bold">M</span>
-                  </motion.div>
-                )}
-
-                {/* Monopoly crown indicator */}
-                {hasMonopolyOnTile && (
-                  <motion.div
-                    className="absolute -top-1 left-1/2 transform -translate-x-1/2 z-30"
-                    variants={animations.float}
-                    animate="visible"
-                  >
-                    <span className="text-yellow-400 text-xs drop-shadow-lg">👑</span>
-                  </motion.div>
-                )}
-              </div>
-            </motion.div>
+            />
           );
         })}
 

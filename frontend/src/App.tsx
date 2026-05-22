@@ -32,6 +32,7 @@ function App() {
   const error = useGameStore(s => s.error);
   const myId = useGameStore(s => s.myId);
   const incomingTrade = useGameStore(s => s.incomingTrade);
+  const leaveGame = useGameStore(s => s.leaveGame);
   const [name, setName] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [showRoomSettings, setShowRoomSettings] = useState(false);
@@ -730,8 +731,7 @@ function App() {
         standings={gameStandings}
         onClose={() => {
           setShowGameOverModal(false);
-          // Return to lobby by reloading
-          window.location.reload();
+          leaveGame();
         }}
       />
       <TradeModal

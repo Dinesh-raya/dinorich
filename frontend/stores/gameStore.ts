@@ -139,6 +139,7 @@ interface GameStore {
   kickPlayer: (targetPlayerId: string) => void;
   clearCardDraw: () => void;
   clearIncomingTrade: () => void;
+  leaveGame: () => void;
 }
 
 export const useGameStore = create<GameStore>((set) => {
@@ -519,6 +520,22 @@ export const useGameStore = create<GameStore>((set) => {
 
     clearIncomingTrade: () => {
       set({ incomingTrade: null });
+    },
+
+    leaveGame: () => {
+      socket.emit('room:leave');
+      set({
+        room: null,
+        game: null,
+        turn: null,
+        auction: null,
+        diceResult: null,
+        lastCardDraw: null,
+        incomingTrade: null,
+        outgoingTradeId: null,
+        gameOver: null,
+        error: null,
+      });
     }
   };
 });
