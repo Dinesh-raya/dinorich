@@ -9,6 +9,7 @@ import { ToastContainer, showToast } from '../components/Toast';
 import { BankruptModal, GameOverModal } from '../components/BankruptModal';
 import { TradeModal, TradeNotification } from '../components/TradeModal';
 import { CardDrawModal } from '../components/CardDrawModal';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { motion } from 'framer-motion';
 import { soundManager } from '../utils/audio';
 import boardData from '../../shared/configs/board_config.json';
@@ -595,7 +596,9 @@ function App() {
 
         {/* Board - Centered Fullscreen */}
         <div className="absolute inset-0 flex items-center justify-center p-2 lg:p-4">
-          <Board />
+          <ErrorBoundary>
+            <Board />
+          </ErrorBoundary>
         </div>
 
         {/* Floating Player Panel - Left (Desktop) */}
@@ -606,6 +609,7 @@ function App() {
           transition={{ delay: 0.3, type: "spring", damping: 25 }}
         >
           <div className="h-full overflow-y-auto scrollbar-hide">
+            <ErrorBoundary>
             <PlayerSidebar
               players={Object.values(room.players).map((p: any) => ({
                 id: p.id,
@@ -624,6 +628,7 @@ function App() {
               activePlayerId={activePlayerId}
               compact
             />
+            </ErrorBoundary>
           </div>
         </motion.div>
 
@@ -709,15 +714,9 @@ function App() {
 
       {/* Modals & Notifications */}
       <ToastContainer />
-      <AuctionModal />
-      <RoomSettings
-        isOpen={showRoomSettings}
-        onClose={() => setShowRoomSettings(false)}
-      />
-      <AudioSettings
-        isOpen={showAudioSettings}
-        onClose={() => setShowAudioSettings(false)}
-      />
+      <ErrorBoundary><AuctionModal /></ErrorBoundary>
+      <AudioSettings isOpen={showAudioSettings} onClose={() => setShowAudioSettings(false)} />
+
       <BankruptModal
         isOpen={showBankruptModal}
         playerName={bankruptPlayer?.name || ''}
@@ -734,10 +733,10 @@ function App() {
           leaveGame();
         }}
       />
-      <TradeModal
+      <ErrorBoundary><TradeModal
         isOpen={showTradeModal}
         onClose={() => setShowTradeModal(false)}
-      />
+      /></ErrorBoundary>
 
       {/* Incoming Trade Notification */}
       {incomingTrade && incomingTrade.to_player_id === myId && (

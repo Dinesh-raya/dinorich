@@ -44,3 +44,6 @@ class GameRules:
     # Building must be even across properties in color group
     # (cannot have more than 1 house difference between properties)
     MAX_HOUSE_DIFFERENCE = 1
+
+    # BUY phase timeout (seconds) — if player doesn't buy, auto-forfeit to auction
+    BUY_TIMEOUT = 15

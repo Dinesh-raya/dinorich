@@ -7,10 +7,12 @@ class TradeOffer:
     def __init__(self, trade_id: str, from_player_id: str, to_player_id: str,
                  offering_money: int = 0, requesting_money: int = 0,
                  offering_properties: List[int] = None, requesting_properties: List[int] = None,
-                 offering_get_out_of_jail_cards: int = 0, requesting_get_out_of_jail_cards: int = 0):
+                 offering_get_out_of_jail_cards: int = 0, requesting_get_out_of_jail_cards: int = 0,
+                 room_code: str = ""):
         self.trade_id = trade_id
         self.from_player_id = from_player_id
         self.to_player_id = to_player_id
+        self.room_code = room_code
         self.offering_money = offering_money
         self.requesting_money = requesting_money
         self.offering_properties = offering_properties or []
@@ -23,6 +25,7 @@ class TradeManager:
     def __init__(self):
         self.active_trades: Dict[str, TradeOffer] = {}  # trade_id -> TradeOffer
         self.player_trades: Dict[str, List[str]] = {}  # player_id -> [trade_ids]
+        self.room_trades: Dict[str, List[str]] = {}  # room_code -> [trade_ids]
 
     def create_trade(self, game: GameState, from_player_id: str, to_player_id: str,
                      offering_money: int = 0, requesting_money: int = 0,
@@ -54,15 +57,23 @@ class TradeManager:
             if prop_id not in from_player.properties_owned:
                 return None
             prop_state = game.properties.get(prop_id)
-            if prop_state and (prop_state.houses > 0 or prop_state.hotels > 0):
+            if not prop_state:
+                return None
+            if prop_state.houses > 0 or prop_state.hotels > 0:
                 return None  # Cannot trade properties with buildings
+            if prop_state.is_mortgaged:
+                return None  # Cannot trade mortgaged properties (must unmortgage first)
 
         for prop_id in requesting_properties or []:
             if prop_id not in to_player.properties_owned:
                 return None
             prop_state = game.properties.get(prop_id)
-            if prop_state and (prop_state.houses > 0 or prop_state.hotels > 0):
+            if not prop_state:
+                return None
+            if prop_state.houses > 0 or prop_state.hotels > 0:
                 return None  # Cannot trade properties with buildings
+            if prop_state.is_mortgaged:
+                return None  # Cannot trade mortgaged properties (must unmortgage first)
 
         # Validate Get Out of Jail Free cards
         if offering_get_out_of_jail_cards > 0 and from_player.get_out_of_jail_cards < offering_get_out_of_jail_cards:
@@ -72,10 +83,12 @@ class TradeManager:
 
         # Create trade
         trade_id = str(uuid.uuid4())[:8]
+        room_code = game.room.room_id
         trade = TradeOffer(
             trade_id=trade_id,
             from_player_id=from_player_id,
             to_player_id=to_player_id,
+            room_code=room_code,
             offering_money=offering_money,
             requesting_money=requesting_money,
             offering_properties=offering_properties or [],
@@ -94,6 +107,11 @@ class TradeManager:
 
         self.player_trades[from_player_id].append(trade_id)
         self.player_trades[to_player_id].append(trade_id)
+
+        # Track trades per room
+        if room_code not in self.room_trades:
+            self.room_trades[room_code] = []
+        self.room_trades[room_code].append(trade_id)
 
         return trade
 
@@ -116,13 +134,19 @@ class TradeManager:
         if to_player.money < trade.requesting_money:
             return False
 
-        # Check properties still owned
+        # Check properties still owned and not mortgaged
         for prop_id in trade.offering_properties:
             if prop_id not in from_player.properties_owned:
+                return False
+            ps = game.properties.get(prop_id)
+            if ps and ps.is_mortgaged:
                 return False
 
         for prop_id in trade.requesting_properties:
             if prop_id not in to_player.properties_owned:
+                return False
+            ps = game.properties.get(prop_id)
+            if ps and ps.is_mortgaged:
                 return False
 
         # Validate Get Out of Jail Free cards still available
@@ -223,9 +247,10 @@ class TradeManager:
         return self.active_trades.get(trade_id)
 
     def cleanup_room(self, room_code: str):
-        """Remove all active trades (trade state is global, not per-room)."""
-        for tid in list(self.active_trades.keys()):
+        """Remove all active trades for a specific room."""
+        for tid in list(self.room_trades.get(room_code, [])):
             self._cleanup_trade(tid)
+        self.room_trades.pop(room_code, None)
 
 # Global trade manager instance
 trade_manager = TradeManager()

@@ -13,12 +13,14 @@ class TurnManager:
         self.games: Dict[str, GameState] = {}
         self.turn_states: Dict[str, TurnState] = {}
         self.active_doubles_count: Dict[str, int] = {}
+        self._buy_timers: Dict[str, tuple[int, int]] = {}  # room_code -> (time_remaining, property_id)
 
     def cleanup_room(self, room_code: str):
         """Remove all game state for a room from memory."""
         self.games.pop(room_code, None)
         self.turn_states.pop(room_code, None)
         self.active_doubles_count.pop(room_code, None)
+        self._buy_timers.pop(room_code, None)
 
     def start_game(self, room_code: str, game_state: GameState):
         self.games[room_code] = game_state
@@ -161,6 +163,7 @@ class TurnManager:
                     turn.phase = TurnPhase.ACTION
                 elif prop_state.owner_id is None:
                     turn.phase = TurnPhase.BUY
+                    self._buy_timers[room_code] = (GameRules.BUY_TIMEOUT, tile_pos)
                 elif prop_state.owner_id != player_id and not prop_state.is_mortgaged:
                     creditor_id = prop_state.owner_id
                     creditor = game.room.players[creditor_id]
@@ -346,10 +349,12 @@ class TurnManager:
                     config = get_board_config().get(prop_id)
                     if config:
                         total_worth += config.get("price", 0)
-                        # Add building values
-                        house_price = config.get("house_price", 0)
-                        total_worth += prop_state.houses * house_price
-                        total_worth += prop_state.hotels * house_price * 5
+                        # Add building values using GameRules.HOUSE_PRICES by color group
+                        color = config.get("color")
+                        if color:
+                            house_price = GameRules.HOUSE_PRICES.get(color, 0)
+                            total_worth += prop_state.houses * house_price
+                            total_worth += prop_state.hotels * house_price * 5
             tax_amount = int(total_worth * 0.1)
             game.add_log(f"{player.name} chose to pay 10% of worth (₹{tax_amount})")
         else:
@@ -391,16 +396,34 @@ class TurnManager:
 
         return {"game": game, "turn": turn}
 
-    def tick_turn_timer(self, room_code: str) -> tuple[Optional[TurnState], Optional[dict]]:
-        """Returns (turn_state, auto_roll_dice) tuple. auto_roll_dice is None if no auto-roll happened."""
+    def tick_turn_timer(self, room_code: str) -> tuple[Optional[TurnState], Optional[dict], Optional[int]]:
+        """Returns (turn_state, auto_roll_dice, buy_timeout_property_id). 
+        buy_timeout_property_id is the property to auto-auction if BUY phase timed out."""
         turn = self.turn_states.get(room_code)
         game = self.games.get(room_code)
         if not turn or not game:
-            return None, None
+            return None, None, None
 
-        # Don't tick turn timer during BUY, AUCTION, DEBT phase, or when there's pending tax
-        if turn.phase in (TurnPhase.BUY, TurnPhase.AUCTION, TurnPhase.DEBT) or turn.pending_tax:
-            return turn, None
+        # Handle BUY phase with its own timeout to prevent deadlock
+        if turn.phase == TurnPhase.BUY:
+            timer, prop_id = self._buy_timers.get(room_code, (GameRules.BUY_TIMEOUT, None))
+            timer -= 1
+            if timer <= 0:
+                # Auto-forfeit the buy — trigger forced auction
+                self._buy_timers.pop(room_code, None)
+                if prop_id is not None:
+                    config = get_board_config().get(prop_id)
+                    name = config["name"] if config else f"Property {prop_id}"
+                    game.add_log(f"Buy timer expired — {name} goes to auction")
+                turn.phase = TurnPhase.AUCTION
+                return turn, None, prop_id
+            else:
+                self._buy_timers[room_code] = (timer, prop_id)
+            return turn, None, None
+
+        # Don't tick turn timer during AUCTION, DEBT phase, or pending tax
+        if turn.phase in (TurnPhase.AUCTION, TurnPhase.DEBT) or turn.pending_tax:
+            return turn, None, None
 
         turn.time_remaining = max(0, turn.time_remaining - 1)
         auto_roll_dice = None
@@ -411,12 +434,11 @@ class TurnManager:
                 if result:
                     auto_roll_dice = result.get("dice")
                 turn = self.turn_states.get(room_code)
-            # Only advance if player can't act (no pending buy/auction/debt)
             if turn and not turn.can_roll and turn.phase not in (
                 TurnPhase.BUY, TurnPhase.AUCTION, TurnPhase.DEBT
             ) and not turn.pending_tax:
                 self.next_turn(room_code)
                 turn = self.turn_states.get(room_code)
-        return turn, auto_roll_dice
+        return turn, auto_roll_dice, None
 
 turn_manager = TurnManager()

@@ -21,7 +21,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
   const [requestingProperties, setRequestingProperties] = useState<number[]>([]);
   const [offeringJailCards, setOfferingJailCards] = useState(0);
   const [requestingJailCards, setRequestingJailCards] = useState(0);
-  const [step, setStep] = useState<'select-player' | 'configure-trade' | 'review'>('select-player');
+  const [step, setStep] = useState<'select-player' | 'configure-trade'>('select-player');
 
   const myPlayer = myId ? game?.room.players[myId] : null;
   const otherPlayers = game ? Object.values(game.room.players).filter(p => p.id !== myId && !p.is_bankrupt) : [];

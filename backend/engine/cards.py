@@ -22,7 +22,7 @@ TREASURY_CARDS_TEMPLATE = [
     {"text": "You have won second prize in a beauty contest. Collect ₹10,000", "action": "add_money", "amount": 10000},
     {"text": "Pay electricity bill of ₹7,500", "action": "pay_money", "amount": 7500},
     {"text": "Consultancy fee. Collect ₹5,000", "action": "add_money", "amount": 5000},
-    {"text": "It's your birthday. Collect ₹2,000 from each player", "action": "add_money", "amount": 2000},
+    {"text": "It's your birthday. Collect ₹2,000 from each player", "action": "collect_from_each_player", "per_player": 2000},
     {"text": "Property tax due. Pay ₹15,000", "action": "pay_money", "amount": 15000},
     {"text": "Advance to Jaipur. If you pass GO, collect ₹20,000", "action": "move_to", "target": 11},
     {"text": "Toothpaste advertisement royalty. Collect ₹3,000", "action": "add_money", "amount": 3000},
@@ -40,8 +40,8 @@ SURPRISE_CARDS_TEMPLATE = [
     {"text": "Bank gives you a loan repayment. Collect ₹12,000", "action": "add_money", "amount": 12000},
     {"text": "Go to Kolkata. If you pass GO, collect ₹20,000", "action": "move_to", "target": 26},
     {"text": "Pay road tax of ₹4,000", "action": "pay_money", "amount": 4000},
-    {"text": "Advance to the nearest Utility. If unowned, you may buy it", "action": "move_to", "target": 12},
-    {"text": "You are assessed for street repairs. ₹4,000 per house, ₹20,000 per hotel", "action": "pay_money", "amount": 4000},
+    {"text": "Advance to the nearest Utility. If unowned, you may buy it", "action": "move_to_nearest_utility"},
+    {"text": "You are assessed for street repairs. ₹4,000 per house, ₹20,000 per hotel", "action": "pay_per_building", "per_house": 4000, "per_hotel": 20000},
     {"text": "Your building loan matures. Collect ₹15,000", "action": "add_money", "amount": 15000},
     {"text": "Go back to Goa", "action": "move_to", "target": 3},
     {"text": "Pay lawyer fees of ₹3,000", "action": "pay_money", "amount": 3000},
@@ -107,7 +107,6 @@ class CardEngine:
         elif action == "move_to":
             target = card["target"]
             current = player.position
-            # Determine if passes GO
             if target < current and target != GameRules.JAIL_TILE:
                 player.money += GameRules.GO_REWARD
                 game_state.add_log(f"{player.name} passed GO and collected ₹{GameRules.GO_REWARD}")
@@ -115,6 +114,46 @@ class CardEngine:
         elif action == "move_relative":
             new_pos = (player.position + card["spaces"]) % GameRules.BOARD_SIZE
             player.position = new_pos
+        elif action == "move_to_nearest_utility":
+            from engine.property import get_board_config
+            # Find the nearest utility (tiles 12 or 28)
+            utilities = [12, 28]
+            current = player.position
+            forward_distances = [(u, (u - current) % GameRules.BOARD_SIZE) for u in utilities]
+            nearest = min(forward_distances, key=lambda x: x[1])
+            if nearest[0] < current and nearest[0] != GameRules.JAIL_TILE:
+                player.money += GameRules.GO_REWARD
+                game_state.add_log(f"{player.name} passed GO and collected ₹{GameRules.GO_REWARD}")
+            player.position = nearest[0]
+            config = get_board_config().get(nearest[0])
+            if config:
+                game_state.add_log(f"{player.name} moved to {config['name']}")
+        elif action == "pay_per_building":
+            # Pay per house and per hotel owned
+            house_cost = card.get("per_house", 0)
+            hotel_cost = card.get("per_hotel", 0)
+            houses = 0
+            hotels = 0
+            for pid in player.properties_owned:
+                ps = game_state.properties.get(pid)
+                if ps:
+                    houses += ps.houses
+                    hotels += ps.hotels
+            total = (houses * house_cost) + (hotels * hotel_cost)
+            player.money -= total
+            if game_state.room.settings.free_parking_jackpot:
+                game_state.free_parking_pool += total
+            game_state.add_log(f"{player.name} paid ₹{total} (₹{house_cost} per house x {houses}, ₹{hotel_cost} per hotel x {hotels})")
+        elif action == "collect_from_each_player":
+            # Collect from each other player
+            amount = card.get("per_player", 0)
+            collected = 0
+            for pid, other in game_state.room.players.items():
+                if pid != player_id and not other.is_bankrupt:
+                    other.money -= amount
+                    player.money += amount
+                    collected += amount
+            game_state.add_log(f"{player.name} collected ₹{collected} from other players")
         elif action == "go_to_jail":
             send_to_jail(game_state, player_id)
         elif action == "get_out_of_jail_free":

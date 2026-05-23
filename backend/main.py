@@ -41,7 +41,7 @@ async def background_save_loop():
             await asyncio.sleep(1)
             tick_count += 1
             for room_code in list(turn_manager.games.keys()):
-                turn, auto_roll_dice = turn_manager.tick_turn_timer(room_code)
+                turn, auto_roll_dice, buy_timeout_property = turn_manager.tick_turn_timer(room_code)
                 game = turn_manager.get_game(room_code)
                 if turn and game:
                     game_changed = game.state_version != last_emitted_version.get(room_code)
@@ -60,6 +60,24 @@ async def background_save_loop():
                     # Emit dice result if auto-roll happened
                     if auto_roll_dice:
                         await sio.emit("game:dice_result", auto_roll_dice, room=room_code)
+
+                # Auto-start auction if BUY phase timed out
+                if buy_timeout_property is not None and game and turn:
+                    participants = [pid for pid in game.turn_order
+                                    if not game.room.players[pid].is_bankrupt]
+                    auction_manager.start_auction(room_code, buy_timeout_property, participants)
+                    turn.phase = TurnPhase.AUCTION
+                    turn.can_roll = False
+                    turn.can_end_turn = False
+                    game.bump_version()
+                    cached_game_dump[room_code] = game.model_dump()
+                    last_emitted_version[room_code] = game.state_version
+                    await sio.emit(
+                        "auction:start",
+                        {"auction": auction_manager.get_auction(room_code).model_dump()},
+                        room=room_code,
+                    )
+                    continue
 
                 auction = auction_manager.tick(room_code)
                 if not auction:

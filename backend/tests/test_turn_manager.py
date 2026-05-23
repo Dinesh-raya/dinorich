@@ -97,7 +97,7 @@ class TestTickTurnTimer:
         game = make_test_game()
         tm = start(game)
         initial = tm.get_turn_state("TEST01").time_remaining
-        turn, _ = tm.tick_turn_timer("TEST01")
+        turn, _, _ = tm.tick_turn_timer("TEST01")
         assert turn.time_remaining == initial - 1
 
     def test_skips_during_buy_phase(self):
@@ -106,8 +106,25 @@ class TestTickTurnTimer:
         turn = tm.get_turn_state("TEST01")
         turn.phase = TurnPhase.BUY
         turn.time_remaining = 30
-        result_turn, _ = tm.tick_turn_timer("TEST01")
-        assert result_turn.time_remaining == 30  # Unchanged
+        result_turn, _, buy_prop = tm.tick_turn_timer("TEST01")
+        assert result_turn.time_remaining == 30  # Main timer unchanged
+        assert buy_prop is None  # Timer didn't expire
+
+    def test_buy_phase_timeout_triggers_auction(self):
+        game = make_test_game()
+        tm = start(game)
+        turn = tm.get_turn_state("TEST01")
+        turn.phase = TurnPhase.BUY
+        turn.time_remaining = 30
+        # Initialize the buy timer with a known property ID (tile 1)
+        tm._buy_timers["TEST01"] = (GameRules.BUY_TIMEOUT, 1)
+        buy_prop = None
+        for _ in range(GameRules.BUY_TIMEOUT + 2):
+            turn, _, buy_prop = tm.tick_turn_timer("TEST01")
+            if buy_prop is not None:
+                break
+        assert buy_prop == 1
+        assert turn.phase == TurnPhase.AUCTION
 
     def test_skips_during_auction_phase(self):
         game = make_test_game()
@@ -115,7 +132,7 @@ class TestTickTurnTimer:
         turn = tm.get_turn_state("TEST01")
         turn.phase = TurnPhase.AUCTION
         turn.time_remaining = 15
-        result_turn, _ = tm.tick_turn_timer("TEST01")
+        result_turn, _, _ = tm.tick_turn_timer("TEST01")
         assert result_turn.time_remaining == 15
 
     def test_skips_during_debt_phase(self):
@@ -124,12 +141,12 @@ class TestTickTurnTimer:
         turn = tm.get_turn_state("TEST01")
         turn.phase = TurnPhase.DEBT
         turn.time_remaining = 10
-        result_turn, _ = tm.tick_turn_timer("TEST01")
+        result_turn, _, _ = tm.tick_turn_timer("TEST01")
         assert result_turn.time_remaining == 10
 
     def test_returns_none_for_missing_room(self):
         tm = TurnManager()
-        turn, dice = tm.tick_turn_timer("NOPE")
+        turn, dice, _ = tm.tick_turn_timer("NOPE")
         assert turn is None
         assert dice is None
 

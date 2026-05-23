@@ -2,13 +2,13 @@
  * Format a number as Indian Rupees (₹)
  */
 export const formatMoney = (amount: number): string => {
-  return `₹${amount.toLocaleString()}`;
+  return `₹${amount.toLocaleString('en-IN')}`;
 };
 
-/**
- * Format money in abbreviated form (e.g., 150k, 1.5L)
- */
 export const formatMoneyShort = (amount: number): string => {
+  if (amount >= 10000000) {
+    return `₹${(amount / 10000000).toFixed(amount % 10000000 === 0 ? 0 : 1)}Cr`;
+  }
   if (amount >= 100000) {
     return `₹${(amount / 100000).toFixed(amount % 100000 === 0 ? 0 : 1)}L`;
   }

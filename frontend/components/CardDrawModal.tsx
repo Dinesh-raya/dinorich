@@ -34,18 +34,23 @@ export const CardDrawModal = () => {
   const isMe = player_id === myId;
   const cardStyle = CARD_COLORS[card_type || ''] || CARD_COLORS.treasury;
 
-  // Determine card effect description
   let effectText = '';
   if (card?.action === 'add_money') {
-    effectText = `+₹${card.amount?.toLocaleString()}`;
+    effectText = `+₹${card.amount?.toLocaleString('en-IN')}`;
   } else if (card?.action === 'pay_money') {
-    effectText = `-₹${card.amount?.toLocaleString()}`;
+    effectText = `-₹${card.amount?.toLocaleString('en-IN')}`;
   } else if (card?.action === 'move_to') {
     const destTile = boardData.tiles.find((t: any) => t.id === card.target);
     effectText = `Move to ${destTile?.name || 'GO'}`;
   } else if (card?.action === 'move_relative') {
     const spaces = card.spaces ?? card.amount ?? 0;
     effectText = spaces < 0 ? `Go back ${Math.abs(spaces)} spaces` : `Move forward ${spaces} spaces`;
+  } else if (card?.action === 'move_to_nearest_utility') {
+    effectText = 'Move to nearest Utility';
+  } else if (card?.action === 'pay_per_building') {
+    effectText = `Pay ₹${card.per_house?.toLocaleString('en-IN')}/house + ₹${card.per_hotel?.toLocaleString('en-IN')}/hotel`;
+  } else if (card?.action === 'collect_from_each_player') {
+    effectText = `Collect ₹${card.per_player?.toLocaleString('en-IN')} from each`;
   } else if (card?.action === 'go_to_jail') {
     effectText = 'Go to Jail!';
   } else if (card?.action === 'get_out_of_jail_free') {
@@ -62,7 +67,7 @@ export const CardDrawModal = () => {
         exit={{ opacity: 0 }}
       >
         <motion.div
-          className={`relative w-72 rounded-2xl border-2 ${cardStyle.border} overflow-hidden pointer-events-auto`}
+          className={`relative w-72 rounded-2xl border-2 ${cardStyle.border} overflow-hidden pointer-events-auto perspective-1000`}
           style={{
             background: `linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 20, 60, 0.95) 100%)`,
             boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(168, 85, 247, 0.2)'
