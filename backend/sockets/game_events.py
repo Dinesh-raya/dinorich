@@ -84,21 +84,20 @@ async def game_dice_roll(sid, data):
 
         await sio.emit(GAME_EVENTS["DICE_RESULT"], result["dice"], room=room_code)
 
-    # Emit card draw event if a card was drawn
-    if result.get("card_drawn"):
-        await sio.emit(
-            "card:result",
-            {
-                "card": result["card_drawn"],
-                "card_type": result.get("card_type", "unknown"),
-                "player_id": sid
-            },
-            room=room_code
-        )
+        if result.get("card_drawn"):
+            await sio.emit(
+                "card:result",
+                {
+                    "card": result["card_drawn"],
+                    "card_type": result.get("card_type", "unknown"),
+                    "player_id": sid
+                },
+                room=room_code
+            )
 
-    await emit_game_state(room_code, result["game"], result["turn"])
-    persist_game(room_code)
-    return {"status": "success"}
+        await emit_game_state(room_code, result["game"], result["turn"])
+        persist_game(room_code)
+        return {"status": "success"}
     except Exception as exc:
         return {"status": "error", "message": f"Dice roll failed: {exc}"}
 
