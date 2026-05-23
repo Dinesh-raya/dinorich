@@ -39,15 +39,21 @@ if not exist .env (
 )
 echo.
 
-:: Install backend dependencies
+:: Install backend dependencies (inside virtual environment)
 echo [4/5] Installing backend dependencies...
 cd backend
+if not exist .venv (
+    echo Creating virtual environment...
+    python -m venv .venv
+)
+call .venv\Scripts\activate
 pip install -r requirements.txt
 if %errorlevel% neq 0 (
     echo ERROR: Failed to install Python dependencies
     pause
     exit /b 1
 )
+call .venv\Scripts\deactivate
 cd ..
 echo Backend dependencies installed!
 echo.
