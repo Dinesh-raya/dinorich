@@ -44,7 +44,11 @@ def _make_property_handler(action_fn: Callable, event_name: str, require_buy_pha
         if not game:
             return {"status": "error", "message": "No active game"}
 
-        success, msg = action_fn(game, sid, property_id)
+        try:
+            success, msg = action_fn(game, sid, property_id)
+        except Exception as exc:
+            return {"status": "error", "message": f"Action failed: {exc}"}
+
         if not success:
             return {"status": "error", "message": msg}
 

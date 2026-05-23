@@ -1,6 +1,7 @@
-export interface PlayerState {
+export interface Player {
   id: string;
-  session_id: string;
+  session_id?: string;
+  reconnect_token?: string;
   name: string;
   position: number;
   money: number;
@@ -30,31 +31,20 @@ export interface RoomSettings {
 export interface RoomState {
   room_id: string;
   host_id: string;
-  is_private: boolean;
-  settings: RoomSettings;
-  players: Record<string, PlayerState>;
+  players: Record<string, Player>;
   status: string;
-}
-
-export interface PropertyState {
-  tile_id: number;
-  owner_id: string | null;
-  is_mortgaged: boolean;
-  houses: number;
-  hotels: number;
+  settings: RoomSettings;
 }
 
 export interface GameState {
   room: RoomState;
-  properties: Record<number, PropertyState>;
+  properties: Record<number, any>;
   turn_order: string[];
   current_turn_index: number;
-  free_parking_pool: number;
   history_log: string[];
-  treasury_deck: any[];
-  surprise_deck: any[];
-  houses_remaining: number;
-  hotels_remaining: number;
+  board_config?: Record<number, any>;
+  houses_remaining?: number;
+  hotels_remaining?: number;
 }
 
 export interface TurnState {
@@ -62,19 +52,11 @@ export interface TurnState {
   phase: string;
   can_roll: boolean;
   can_end_turn: boolean;
-  time_remaining: number;
   in_debt: boolean;
   debt_creditor_id: string | null;
-  pending_tax: any;
-  pending_rent: any;
-}
-
-export interface DiceState {
-  die1: number;
-  die2: number;
-  total: number;
-  is_double: boolean;
-  doubles_count: number;
+  time_remaining: number;
+  pending_tax: { amount: number; name: string; tile_id: number } | null;
+  pending_rent: { payer_id: string; owner_id: string; amount: number; property_id: number; property_name: string } | null;
 }
 
 export interface AuctionState {
@@ -84,6 +66,19 @@ export interface AuctionState {
   time_remaining: number;
   active: boolean;
   participants: string[];
+}
+
+export interface DiceResult {
+  die1: number;
+  die2: number;
+  total: number;
+  is_double: boolean;
+}
+
+export interface CardDraw {
+  card: any;
+  card_type: string;
+  player_id: string;
 }
 
 export interface TradeOffer {
@@ -96,16 +91,10 @@ export interface TradeOffer {
   requesting_properties: number[];
   offering_get_out_of_jail_cards: number;
   requesting_get_out_of_jail_cards: number;
-  status: string;
 }
 
-export interface BoardTile {
-  id: number;
-  name: string;
-  type: string;
-  color?: string;
-  price?: number;
-  rent?: number[];
-  mortgage?: number;
-  icon?: string;
+export interface MoneyChange {
+  amount: number;
+  playerId: string;
+  timestamp: number;
 }

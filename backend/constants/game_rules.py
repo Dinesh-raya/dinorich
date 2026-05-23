@@ -1,7 +1,7 @@
 class GameRules:
     MIN_PLAYERS = 1
     MAX_PLAYERS = 6
-    INITIAL_BALANCE = 150000
+    INITIAL_BALANCE = 500000
     BOARD_SIZE = 40
     
     # Jail rules
@@ -11,7 +11,7 @@ class GameRules:
     JAIL_TILE = 10
     
     # Passing GO
-    GO_REWARD = 20000
+    GO_REWARD = 50000
     
     # Timing (seconds)
     DEFAULT_TURN_TIMER = 60
@@ -47,3 +47,6 @@ class GameRules:
 
     # BUY phase timeout (seconds) — if player doesn't buy, auto-forfeit to auction
     BUY_TIMEOUT = 15
+
+    # Trade timeout (seconds) — stale pending offers auto-cancel
+    TRADE_TIMEOUT = 120

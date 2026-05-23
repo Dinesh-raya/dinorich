@@ -1,6 +1,8 @@
+import time
 from typing import Dict, Optional, List
 from schemas.game import GameState
 from schemas.player import PlayerState
+from constants.game_rules import GameRules
 import uuid
 
 class TradeOffer:
@@ -20,6 +22,7 @@ class TradeOffer:
         self.offering_get_out_of_jail_cards = offering_get_out_of_jail_cards
         self.requesting_get_out_of_jail_cards = requesting_get_out_of_jail_cards
         self.status = "pending"  # pending, accepted, rejected, cancelled
+        self.created_at = time.time()  # For timeout tracking
 
 class TradeManager:
     def __init__(self):
@@ -251,6 +254,15 @@ class TradeManager:
         for tid in list(self.room_trades.get(room_code, [])):
             self._cleanup_trade(tid)
         self.room_trades.pop(room_code, None)
+
+    def cleanup_expired_trades(self):
+        """Cancel trades that have been pending longer than TRADE_TIMEOUT."""
+        now = time.time()
+        timeout = getattr(GameRules, 'TRADE_TIMEOUT', 120)
+        for tid, trade in list(self.active_trades.items()):
+            if trade.status == "pending" and (now - trade.created_at) > timeout:
+                trade.status = "expired"
+                self._cleanup_trade(tid)
 
 # Global trade manager instance
 trade_manager = TradeManager()

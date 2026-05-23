@@ -13,6 +13,9 @@ const mockSocket = {
     if (cb) cb({ status: 'ok' });
   }),
   auth: {} as Record<string, string>,
+  io: {
+    on: vi.fn(),
+  },
 };
 
 vi.mock('../../../services/socket', () => ({
@@ -145,7 +148,7 @@ describe('gameStore', () => {
     const h = handler('connect_error');
     expect(h).toBeDefined();
     h!(new Error('boom'));
-    expect(useGameStore.getState().error).toBe('boom');
+    expect(useGameStore.getState().error).toBe('Connection failed: boom');
   });
 
   it('handles room:state_update event', () => {

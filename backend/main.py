@@ -29,6 +29,8 @@ from services.session_manager import session_manager
 from engine.turn_manager import turn_manager
 from engine.auction import auction_manager
 from engine.trade_manager import trade_manager, TradeOffer
+from engine.bot import BotBrain, is_bot
+from engine.property import buy_property, get_board_config
 from schemas.action import TurnPhase, AuctionState
 
 async def background_save_loop():
@@ -36,6 +38,7 @@ async def background_save_loop():
     last_emitted_version: dict[str, int] = {}
     cached_game_dump: dict[str, dict] = {}
     last_turn_time: dict[str, int] = {}
+    bot_brains: dict[str, BotBrain] = {}
     while True:
         try:
             await asyncio.sleep(1)
@@ -43,6 +46,67 @@ async def background_save_loop():
             for room_code in list(turn_manager.games.keys()):
                 turn, auto_roll_dice, buy_timeout_property = turn_manager.tick_turn_timer(room_code)
                 game = turn_manager.get_game(room_code)
+                if turn and game and is_bot(turn.active_player_id):
+                    if turn.active_player_id not in bot_brains:
+                        bot_brains[turn.active_player_id] = BotBrain()
+                    brain = bot_brains[turn.active_player_id]
+
+                    # Bot: pay taxes immediately
+                    if turn.pending_tax:
+                        brain.decide_tick(game, turn, turn.active_player_id)
+                        game.bump_version()
+
+                    # Bot: buy property decision (BUY phase, before timer expires)
+                    if turn.phase == TurnPhase.BUY:
+                        pid = turn.active_player_id
+                        player = game.room.players.get(pid)
+                        if player and player.position in game.properties:
+                            prop_id = player.position
+                            if is_bot(pid) and not game.properties[prop_id].owner_id:
+                                if brain.decide_buy(game, pid, prop_id):
+                                    buy_property(game, pid, prop_id)
+                                    turn.phase = TurnPhase.ACTION
+                                    turn.can_end_turn = True
+                                    turn.time_remaining = min(turn.time_remaining, 5)
+                                    game.bump_version()
+                                else:
+                                    # Start auction instead
+                                    participants = [p for p in game.turn_order
+                                                    if not game.room.players[p].is_bankrupt]
+                                    auction_manager.start_auction(room_code, prop_id, participants)
+                                    turn.phase = TurnPhase.AUCTION
+                                    turn.can_roll = False
+                                    turn.can_end_turn = False
+                                    game.bump_version()
+
+                    # Bot: build houses in ACTION phase
+                    if turn.phase == TurnPhase.ACTION and turn.active_player_id == turn.active_player_id:
+                        brain.decide_build(game, turn.active_player_id)
+                        game.bump_version()
+
+                    # Bot: end turn when possible
+                    if turn.can_end_turn and not turn.in_debt:
+                        new_turn = turn_manager.next_turn(room_code)
+                        game = turn_manager.get_game(room_code)
+                        if game and new_turn:
+                            turn = new_turn
+                            game.bump_version()
+
+                # Process bot auction bids
+                auction = auction_manager.get_auction(room_code)
+                if auction and auction.active and tick_count % 2 == 0:
+                    for pid in auction.participants:
+                        if is_bot(pid) and pid != auction.highest_bidder_id:
+                            if pid not in bot_brains:
+                                bot_brains[pid] = BotBrain()
+                            brain = bot_brains[pid]
+                            player = game.room.players.get(pid) if game else None
+                            if player and not player.is_bankrupt:
+                                bid = brain.decide_bid(game, pid, auction.property_id, auction.current_bid)
+                                if bid is not None:
+                                    auction_manager.place_bid(room_code, pid, bid, player.money, player.is_bankrupt)
+                                    game.bump_version() if game else None
+
                 if turn and game:
                     game_changed = game.state_version != last_emitted_version.get(room_code)
                     timer_changed = turn.time_remaining != last_turn_time.get(room_code)
@@ -115,6 +179,8 @@ async def background_save_loop():
                     last_turn_time.pop(rc, None)
                 # Clean up expired sessions (older than 24h)
                 session_manager.cleanup_expired()
+                # Clean up expired trades
+                trade_manager.cleanup_expired_trades()
         except asyncio.CancelledError:
             break
         except Exception as e:
@@ -125,6 +191,7 @@ async def lifespan(app: FastAPI):
     # Startup
     init_db()
     loaded_rooms, loaded_games, loaded_turns, loaded_auctions, loaded_trades = load_snapshot()
+    loaded_sessions = session_manager.load_from_db()
     
     room_manager.rooms = loaded_rooms
     turn_manager.games = loaded_games
@@ -160,7 +227,8 @@ async def lifespan(app: FastAPI):
             trade_manager.player_trades[pid] = [tid for tid in tids if tid in trade_manager.active_trades]
             
     logger.info(f"Loaded {len(loaded_rooms)} rooms, {len(loaded_games)} games, "
-                f"{len(loaded_auctions)} auctions, {len(loaded_trades)} trade sets from DB.")
+                f"{len(loaded_auctions)} auctions, {len(loaded_trades)} trade sets, "
+                f"{loaded_sessions} sessions from DB.")
     
     task = asyncio.create_task(background_save_loop())
     

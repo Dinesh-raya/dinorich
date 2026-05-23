@@ -20,6 +20,7 @@ interface RoomSettingsType {
   turn_timer_seconds: number;
   random_turn_order: boolean;
   jail_strict_mode: boolean;
+  bot_enabled: boolean;
   board_theme: string;
 }
 
@@ -29,7 +30,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
   // Default settings
   const defaultSettings: RoomSettingsType = {
     max_players: 6,
-    starting_cash: 150000,
+    starting_cash: 500000,
     auction_enabled: true,
     double_rent_enabled: true,
     mortgage_enabled: true,
@@ -37,6 +38,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
     turn_timer_seconds: 60,
     random_turn_order: true,
     jail_strict_mode: true,
+    bot_enabled: false,
     board_theme: 'pan_india',
   };
 
@@ -277,6 +279,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                     { key: 'free_parking_jackpot' as const, label: 'Vacation Cash', description: 'Taxes go to free parking', icon: '🏖️' },
                     { key: 'random_turn_order' as const, label: 'Randomize Order', description: 'Shuffle player order at start', icon: '🎲' },
                     { key: 'jail_strict_mode' as const, label: 'Prison Rent Rule', description: 'Enforce strict jail handling', icon: '👮' },
+                    { key: 'bot_enabled' as const, label: 'AI Bots', description: 'Fill empty slots with bots for solo play', icon: '🤖' },
                   ].map(({ key, label, description, icon }) => (
                     <div key={key} className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
                       <div className="flex items-center gap-3">

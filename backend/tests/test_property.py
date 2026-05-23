@@ -8,11 +8,15 @@ from engine.property import (
     buy_property,
     calculate_rent,
     can_build_house,
+    build_house,
+    can_build_hotel,
+    build_hotel,
     sell_house,
     sell_hotel,
+    mortgage_property,
+    unmortgage_property,
 )
 from constants.game_rules import GameRules
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -253,3 +257,121 @@ class TestSellHotel:
         ok, msg = sell_hotel(game, "p1", 1)
         assert ok is False
         assert "not enough houses" in msg.lower()
+
+
+class TestMortgageProperty:
+    def test_mortgage_grants_money(self):
+        game = make_test_game()
+        add_property(game, 1, owner_id="p1")
+        initial_money = game.room.players["p1"].money
+        ok, msg = mortgage_property(game, "p1", 1)
+        assert ok is True
+        assert game.properties[1].is_mortgaged is True
+        # mortgage value for tile 1 is 30,000 (50% of 60k)
+        assert game.room.players["p1"].money == initial_money + 30000
+
+    def test_unmortgage_charges_interest(self):
+        game = make_test_game()
+        add_property(game, 1, owner_id="p1", mortgaged=True)
+        initial_money = game.room.players["p1"].money
+        ok, msg = unmortgage_property(game, "p1", 1)
+        assert ok is True
+        assert game.properties[1].is_mortgaged is False
+        # unmortgage cost = 30,000 * 1.1 = 33,000
+        assert game.room.players["p1"].money == initial_money - 33000
+
+    def test_cannot_mortgage_other_players_property(self):
+        game = make_test_game()
+        add_property(game, 1, owner_id="p2")
+        ok, msg = mortgage_property(game, "p1", 1)
+        assert ok is False
+
+    def test_cannot_mortgage_already_mortgaged(self):
+        game = make_test_game()
+        add_property(game, 1, owner_id="p1", mortgaged=True)
+        ok, msg = mortgage_property(game, "p1", 1)
+        assert ok is False
+
+    def test_requires_buildings_sold_before_mortgage(self):
+        game = make_test_game()
+        # Tile 1 (brown) has a house — must sell first
+        add_property(game, 1, owner_id="p1", houses=1)
+        add_property(game, 3, owner_id="p1", houses=1)
+        ok, msg = mortgage_property(game, "p1", 1)
+        assert ok is False
+        assert "must sell all buildings" in msg.lower()
+
+
+class TestBuildHouse:
+    def test_build_house_deducts_money(self):
+        game = make_test_game()
+        add_property(game, 1, owner_id="p1")
+        add_property(game, 3, owner_id="p1")
+        initial_money = game.room.players["p1"].money
+        ok, msg = build_house(game, "p1", 1)
+        assert ok is True
+        assert game.properties[1].houses == 1
+        assert game.room.players["p1"].money == initial_money - 50000  # brown house price
+
+    def test_fails_without_monopoly(self):
+        game = make_test_game()
+        add_property(game, 1, owner_id="p1")
+        # Do not own tile 3 (brown group), so no monopoly
+        ok, msg = can_build_house(game, "p1", 1)
+        assert ok is False
+        assert "monopoly" in msg.lower()
+
+    def test_fails_when_max_houses_reached(self):
+        game = make_test_game()
+        add_property(game, 1, owner_id="p1")
+        add_property(game, 3, owner_id="p1")
+        game.properties[1].houses = 4  # Already at max
+        ok, msg = can_build_house(game, "p1", 1)
+        assert ok is False
+        assert "maximum" in msg.lower()
+
+    def test_fails_when_no_houses_in_bank(self):
+        game = make_test_game()
+        add_property(game, 1, owner_id="p1")
+        add_property(game, 3, owner_id="p1")
+        game.houses_remaining = 0
+        ok, msg = can_build_house(game, "p1", 1)
+        assert ok is False
+        assert "no houses" in msg.lower()
+
+
+class TestBuildHotel:
+    def test_build_hotel_replaces_four_houses(self):
+        game = make_test_game()
+        add_property(game, 1, owner_id="p1")
+        add_property(game, 3, owner_id="p1")
+        game.properties[1].houses = 4  # Ready for hotel
+        game.properties[3].houses = 4  # Both brown properties need 4 houses
+        game.room.players["p1"].money = 500000  # Enough for hotel (250k)
+        initial_money = game.room.players["p1"].money
+        initial_houses_in_bank = game.houses_remaining
+        ok, msg = build_hotel(game, "p1", 1)
+        assert ok is True
+        assert game.properties[1].hotels == 1
+        assert game.properties[1].houses == 0
+        assert game.houses_remaining == initial_houses_in_bank + 4  # 4 houses returned
+        assert game.room.players["p1"].money == initial_money - 250000  # 50,000 * 5
+
+    def test_fails_without_four_houses(self):
+        game = make_test_game()
+        add_property(game, 1, owner_id="p1")
+        add_property(game, 3, owner_id="p1")
+        game.properties[1].houses = 3  # Not enough
+        ok, msg = can_build_hotel(game, "p1", 1)
+        assert ok is False
+        assert "4 houses" in msg.lower()
+
+    def test_fails_when_all_properties_not_at_four(self):
+        game = make_test_game()
+        add_property(game, 1, owner_id="p1")
+        add_property(game, 3, owner_id="p1")
+        game.properties[1].houses = 4
+        game.properties[3].houses = 3  # Other property not at 4
+        ok, msg = can_build_hotel(game, "p1", 1)
+        assert ok is False
+        assert "all properties" in msg.lower()

@@ -45,11 +45,22 @@ function App() {
   const [gameWinner, setGameWinner] = useState<{ name: string; isWinner: boolean } | null>(null);
   const [gameStandings, setGameStandings] = useState<any[]>([]);
   const [showTradeModal, setShowTradeModal] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
   const prevBankruptStatus = useRef<Record<string, boolean>>({});
 
   useEffect(() => {
     connect();
   }, [connect]);
+
+  // Loading game timeout
+  useEffect(() => {
+    if (!room || game) {
+      setLoadingTimeout(false);
+      return;
+    }
+    const timer = setTimeout(() => setLoadingTimeout(true), 30000);
+    return () => clearTimeout(timer);
+  }, [room, game]);
 
   // Detect bankruptcy and game over
   useEffect(() => {
@@ -132,7 +143,11 @@ function App() {
             🌐
           </motion.div>
           <h1 className="text-3xl font-bold text-primary-300 mb-3 font-cyber">Connecting to Server</h1>
-          <p className="text-text-muted font-cyber">Establishing secure connection...</p>
+          {error ? (
+            <p className="text-danger-400 font-cyber mb-2">{error}</p>
+          ) : (
+            <p className="text-text-muted font-cyber">Establishing secure connection...</p>
+          )}
           <div className="mt-6 flex justify-center">
             <div className="w-48 h-1 bg-surface rounded-full overflow-hidden">
               <motion.div
@@ -397,7 +412,13 @@ function App() {
             🎲
           </motion.div>
           <h1 className="text-3xl font-bold text-primary-300 mb-3 font-cyber">Loading Game</h1>
-          <p className="text-text-muted font-cyber">Initializing board and players...</p>
+          {loadingTimeout ? (
+            <p className="text-danger-400 font-cyber mb-2">
+              Game is taking longer than expected. The host may still be setting up, or there may be a connection issue.
+            </p>
+          ) : (
+            <p className="text-text-muted font-cyber">Initializing board and players...</p>
+          )}
           <div className="mt-6 flex justify-center gap-2">
             {[0, 1, 2].map(i => (
               <motion.div
@@ -426,6 +447,7 @@ function App() {
   const myMoney = myId ? game.room.players?.[myId]?.money : undefined;
 
   return (
+    <ErrorBoundary>
     <div className="min-h-screen flex flex-col bg-background">
       {/* Mobile Top Bar */}
       <div className="lg:hidden flex items-center justify-between p-3 border-b border-white/10 bg-surface/50 backdrop-blur-sm">
@@ -750,6 +772,7 @@ function App() {
       {/* Card Draw Modal */}
       <CardDrawModal />
     </div>
+    </ErrorBoundary>
   );
 }
 

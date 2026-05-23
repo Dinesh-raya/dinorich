@@ -337,7 +337,7 @@ const CenterGameLog = ({ historyLog }: { historyLog: string[] }) => {
 };
 
 export const Board = () => {
-  const { game, myId, turn, diceResult, moneyChange } = useGameStore();
+  const { game, myId, turn, diceResult, moneyChange, pendingAction } = useGameStore();
   const [isRolling, setIsRolling] = useState(false);
   const [diceValues, setDiceValues] = useState({ die1: 1, die2: 1 });
   const [isMoving, setIsMoving] = useState(false);
@@ -514,8 +514,9 @@ export const Board = () => {
                     }}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
+                    disabled={!!pendingAction}
                   >
-                    DECLARE BANKRUPTCY
+                    {pendingAction === 'declareBankruptcy' ? 'PROCESSING...' : 'DECLARE BANKRUPTCY'}
                   </motion.button>
                 </motion.div>
               )}
@@ -540,8 +541,9 @@ export const Board = () => {
                       }}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
+                      disabled={!!pendingAction}
                     >
-                      PAY FINE (₹5,000)
+                      {pendingAction === 'payJailFine' ? 'PAYING...' : 'PAY FINE (₹5,000)'}
                     </motion.button>
                     {(game.room.players[myId]?.get_out_of_jail_cards ?? 0) > 0 && (
                       <motion.button
@@ -552,8 +554,9 @@ export const Board = () => {
                         }}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
+                        disabled={!!pendingAction}
                       >
-                        USE CARD ({game.room.players[myId]?.get_out_of_jail_cards})
+                        {pendingAction === 'useJailCard' ? 'USING...' : `USE CARD (${game.room.players[myId]?.get_out_of_jail_cards})`}
                       </motion.button>
                     )}
                   </div>
@@ -566,7 +569,7 @@ export const Board = () => {
                   onClick={handleRollDice}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  disabled={isRolling}
+                  disabled={isRolling || !!pendingAction}
                 >
                   <span className="text-sm md:text-lg">🎲</span>
                   {myId && game.room.players[myId]?.is_in_jail ? 'ROLL FOR DOUBLES' : 'ROLL DICE'}
@@ -582,8 +585,9 @@ export const Board = () => {
                   }}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  disabled={!!pendingAction}
                 >
-                  END TURN
+                  {pendingAction === 'endTurn' ? 'ENDING...' : 'END TURN'}
                 </motion.button>
               )}
 
@@ -633,19 +637,20 @@ export const Board = () => {
                   <p className="text-text-muted text-xs md:text-sm mb-2">Buy this property?</p>
                   <div className="flex gap-2">
                     <motion.button
-                      className="bg-success-500 text-white font-bold py-2.5 px-5 rounded-lg hover:bg-success-600 transition-colors text-xs md:text-sm"
+                      className="bg-success-500 text-white font-bold py-2.5 px-5 rounded-lg hover:bg-success-600 transition-colors text-xs md:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={() => {
                         const me = game.room.players[myId!];
                         useGameStore.getState().buyProperty(me.position);
                       }}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
+                      disabled={!!pendingAction}
                     >
-                      Buy
+                      {pendingAction === 'buyProperty' ? 'BUYING...' : 'BUY'}
                     </motion.button>
                     {game.room.settings?.auction_enabled !== false && (
                       <motion.button
-                        className="bg-warning-500 text-white font-bold py-2.5 px-5 rounded-lg hover:bg-warning-600 transition-colors text-xs md:text-sm"
+                        className="bg-warning-500 text-white font-bold py-2.5 px-5 rounded-lg hover:bg-warning-600 transition-colors text-xs md:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={() => {
                           const me = game.room.players[myId!];
                           soundManager.playAuctionBid();
@@ -653,8 +658,9 @@ export const Board = () => {
                         }}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
+                        disabled={!!pendingAction}
                       >
-                        Auction
+                        {pendingAction === 'startAuction' ? 'STARTING...' : 'AUCTION'}
                       </motion.button>
                     )}
                   </div>

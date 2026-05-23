@@ -165,3 +165,60 @@ def load_snapshot() -> Tuple[Dict[str, RoomState], Dict[str, GameState], Dict[st
             
     conn.close()
     return rooms, games, turns, runtime_auctions, runtime_trades
+
+
+def save_session(session_id: str, player_name: str, reconnect_token: str,
+                 reconnect_expires_at: int, created_at: int, room_code: str = None):
+    def _do():
+        conn = get_connection()
+        try:
+            conn.execute(
+                'INSERT OR REPLACE INTO sessions (session_id, player_name, reconnect_token, reconnect_expires_at, created_at, room_code) VALUES (?, ?, ?, ?, ?, ?)',
+                (session_id, player_name, reconnect_token, reconnect_expires_at, created_at, room_code)
+            )
+            conn.commit()
+        except Exception as e:
+            logger.error(f"Failed to save session {session_id}: {e}", exc_info=True)
+        finally:
+            conn.close()
+    with_db_lock(_do)
+
+
+def delete_session(session_id: str):
+    def _do():
+        conn = get_connection()
+        try:
+            conn.execute('DELETE FROM sessions WHERE session_id = ?', (session_id,))
+            conn.commit()
+        except Exception as e:
+            logger.error(f"Failed to delete session {session_id}: {e}", exc_info=True)
+        finally:
+            conn.close()
+    with_db_lock(_do)
+
+
+def update_session_room(session_id: str, room_code: str):
+    def _do():
+        conn = get_connection()
+        try:
+            conn.execute('UPDATE sessions SET room_code = ? WHERE session_id = ?', (room_code, session_id))
+            conn.commit()
+        except Exception as e:
+            logger.error(f"Failed to update session room {session_id}: {e}", exc_info=True)
+        finally:
+            conn.close()
+    with_db_lock(_do)
+
+
+def load_sessions() -> list[dict]:
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute('SELECT session_id, player_name, reconnect_token, reconnect_expires_at, created_at, room_code FROM sessions')
+        rows = [dict(row) for row in cursor.fetchall()]
+        return rows
+    except Exception as e:
+        logger.error(f"Failed to load sessions: {e}", exc_info=True)
+        return []
+    finally:
+        conn.close()

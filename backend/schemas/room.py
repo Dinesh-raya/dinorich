@@ -11,7 +11,7 @@ class RoomStatus(str, Enum):
 
 class RoomSettings(BaseModel):
     max_players: int = Field(6, ge=1, le=6, description="Maximum players allowed (1-6)")
-    starting_cash: int = Field(150000, ge=50000, le=1000000, description="Initial money for each player")
+    starting_cash: int = Field(500000, ge=50000, le=1000000, description="Initial money for each player")
     auction_enabled: bool = Field(True, description="Whether auctions are enabled")
     double_rent_enabled: bool = Field(True, description="Whether double rent applies to monopolies")
     mortgage_enabled: bool = Field(True, description="Whether properties can be mortgaged")
@@ -19,7 +19,7 @@ class RoomSettings(BaseModel):
     turn_timer_seconds: int = Field(60, ge=15, le=180, description="Seconds per turn before timeout")
     random_turn_order: bool = Field(True, description="Whether turn order is shuffled")
     jail_strict_mode: bool = Field(True, description="Apply strict jail handling rules")
-    bot_support_placeholder: bool = Field(False, description="Reserved config for future bots")
+    bot_enabled: bool = Field(False, description="Auto-fill empty player slots with AI bots")
     board_theme: str = Field("pan_india", description="Board theme placeholder")
 
 class RoomState(BaseModel):

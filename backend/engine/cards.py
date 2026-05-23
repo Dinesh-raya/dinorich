@@ -64,6 +64,10 @@ class CardEngine:
 
     def draw_treasury(self, game_state: GameState, player_id: str) -> Dict[str, Any]:
         deck = game_state.treasury_deck
+        if not deck:
+            game_state.add_log("Treasury deck is empty, reshuffling...")
+            game_state.treasury_deck = create_shuffled_deck(TREASURY_CARDS_TEMPLATE)
+            deck = game_state.treasury_deck
         card = deck.pop(0)
         # GOOJF cards are removed from deck when drawn (returned when used)
         if card["action"] != "get_out_of_jail_free":
@@ -75,6 +79,10 @@ class CardEngine:
 
     def draw_surprise(self, game_state: GameState, player_id: str) -> Dict[str, Any]:
         deck = game_state.surprise_deck
+        if not deck:
+            game_state.add_log("Surprise deck is empty, reshuffling...")
+            game_state.surprise_deck = create_shuffled_deck(SURPRISE_CARDS_TEMPLATE)
+            deck = game_state.surprise_deck
         card = deck.pop(0)
         # GOOJF cards are removed from deck when drawn (returned when used)
         if card["action"] != "get_out_of_jail_free":

@@ -4,9 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "codegen": "python ../backend/scripts/codegen.py",
+    "dev": "npm run codegen && vite",
     "typecheck": "tsc --noEmit",
-    "build": "tsc && vite build",
+    "build": "npm run codegen && tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run"
   },

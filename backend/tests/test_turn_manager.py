@@ -285,3 +285,127 @@ class TestDeclareVoluntaryBankruptcy:
         turn = tm.get_turn_state("TEST01")
         turn.in_debt = True
         assert tm.declare_voluntary_bankruptcy("TEST01", "p2") is None  # Not active player
+
+
+class TestPayJailFine:
+    def test_pay_jail_fine_releases_player(self):
+        game = make_test_game()
+        tm = start(game)
+        player = game.room.players["p1"]
+        player.is_in_jail = True
+        player.jail_turns = 1
+        initial_money = player.money
+        result = tm.pay_jail_fine("TEST01", "p1")
+        assert result is not None
+        assert player.is_in_jail is False
+        assert player.jail_turns == 0
+        assert player.money == initial_money - GameRules.JAIL_FINE
+
+    def test_pay_jail_fine_fails_if_not_enough_money(self):
+        game = make_test_game()
+        tm = start(game)
+        player = game.room.players["p1"]
+        player.is_in_jail = True
+        player.money = 1000  # Less than JAIL_FINE (5000)
+        assert tm.pay_jail_fine("TEST01", "p1") is None
+
+    def test_pay_jail_fine_fails_if_not_in_jail(self):
+        game = make_test_game()
+        tm = start(game)
+        assert tm.pay_jail_fine("TEST01", "p1") is None
+
+    def test_pay_jail_fine_sets_can_roll(self):
+        game = make_test_game()
+        tm = start(game)
+        player = game.room.players["p1"]
+        player.is_in_jail = True
+        result = tm.pay_jail_fine("TEST01", "p1")
+        turn = result["turn"]
+        assert turn.can_roll is True
+        assert turn.phase == TurnPhase.ROLL
+
+
+class TestUseJailCard:
+    def test_use_jail_card_releases_and_returns_card(self):
+        game = make_test_game()
+        # Need a card in the deck
+        from engine.cards import card_engine
+        game.treasury_deck.append({"text": "Get Out of Jail Free card", "action": "get_out_of_jail_free", "_source": "treasury"})
+        tm = start(game)
+        player = game.room.players["p1"]
+        player.is_in_jail = True
+        # Give them a GOOJF card (simulate having drawn one)
+        player.get_out_of_jail_cards = 1
+        player.goojf_sources = ["treasury"]
+        initial_deck_size = len(game.treasury_deck)
+        result = tm.use_jail_card("TEST01", "p1")
+        assert result is not None
+        assert player.is_in_jail is False
+        assert player.get_out_of_jail_cards == 0
+        # Card was returned to deck
+        assert len(game.treasury_deck) == initial_deck_size + 1
+
+    def test_use_jail_card_fails_without_card(self):
+        game = make_test_game()
+        tm = start(game)
+        player = game.room.players["p1"]
+        player.is_in_jail = True
+        player.get_out_of_jail_cards = 0
+        assert tm.use_jail_card("TEST01", "p1") is None
+
+    def test_use_jail_card_sets_can_roll(self):
+        game = make_test_game()
+        tm = start(game)
+        player = game.room.players["p1"]
+        player.is_in_jail = True
+        player.get_out_of_jail_cards = 1
+        player.goojf_sources = ["treasury"]
+        result = tm.use_jail_card("TEST01", "p1")
+        turn = result["turn"]
+        assert turn.can_roll is True
+        assert turn.phase == TurnPhase.ROLL
+
+
+class TestCheckDebtResolved:
+    def test_debt_cleared_when_money_positive(self):
+        game = make_test_game()
+        tm = start(game)
+        turn = tm.get_turn_state("TEST01")
+        turn.in_debt = True
+        turn.debt_creditor_id = "p2"
+        game.room.players["p1"].money = 50000  # Was negative, now positive
+        result = tm.check_debt_resolved("TEST01", "p1")
+        assert result is not None
+        assert result.in_debt is False
+        assert result.debt_creditor_id is None
+
+    def test_still_in_debt_when_still_negative(self):
+        game = make_test_game()
+        tm = start(game)
+        turn = tm.get_turn_state("TEST01")
+        turn.in_debt = True
+        game.room.players["p1"].money = -10000
+        result = tm.check_debt_resolved("TEST01", "p1")
+        assert result.in_debt is True
+
+
+class TestPayTaxPercentage:
+    def test_pay_tax_10_percent_includes_building_values(self):
+        game = make_test_game()
+        # Add a property with a house to verify building value calculation
+        game.properties[1] = PropertyState(tile_id=1, owner_id="p1", houses=2)
+        game.room.players["p1"].properties_owned = [1]
+        # Also add tile 3 to complete brown group
+        game.properties[3] = PropertyState(tile_id=3, owner_id="p1")
+        game.room.players["p1"].properties_owned = [1, 3]
+        tm = start(game)
+        turn = tm.get_turn_state("TEST01")
+        turn.pending_tax = {"amount": 200000, "name": "Income Tax", "tile_id": 4}
+        p1 = game.room.players["p1"]
+        initial_money = p1.money
+        result = tm.pay_tax("TEST01", "p1", use_percentage=True)
+        assert result is not None
+        # 10% of (150k cash + 60k tile1 + 60k tile3 + 2*50k houses) = 10% of 370k = 37k
+        expected_tax = int((initial_money + 60000 + 60000 + 2 * 50000) * 0.1)
+        assert p1.money == initial_money - expected_tax
+        assert turn.pending_tax is None

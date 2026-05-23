@@ -35,6 +35,7 @@ async def room_create(sid, data):
 
     await sio.enter_room(sid, room_code)
     room = room_manager.get_room(room_code)
+    session_manager.set_room_code(session_id, room_code)
 
     persist_room(room_code)
     return {"status": "success", "room": room.model_dump(), "reconnectToken": reconnect_token}
@@ -123,6 +124,7 @@ async def room_join(sid, data):
         return {"status": "error", "message": "Failed to join room. Room may be full."}
         
     await sio.enter_room(sid, room_code)
+    session_manager.set_room_code(session_id, room_code)
     
     # Broadcast updated room state to all in room
     await sio.emit(

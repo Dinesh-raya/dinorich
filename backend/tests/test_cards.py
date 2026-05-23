@@ -274,3 +274,130 @@ class TestReturnGoojfAndDeckCycling:
             drawn_actions.append(card["action"])
         # All non-GOOJF actions should have been drawn
         assert len(drawn_actions) == len(non_goojf)
+
+
+# ---------------------------------------------------------------------------
+# Tests: execute_card - move_to_nearest_utility
+# ---------------------------------------------------------------------------
+
+class TestExecuteCardMoveToNearestUtility:
+    def test_moves_to_nearest_utility_forward(self):
+        game = make_test_game()
+        game.room.players["p1"].position = 8  # Before utility 12
+        initial_money = game.room.players["p1"].money
+        engine = CardEngine()
+        card = make_card("move_to_nearest_utility")
+        engine.execute_card(game, "p1", card)
+        assert game.room.players["p1"].position == 12  # Nearest utility
+        assert game.room.players["p1"].money == initial_money  # No GO reward
+
+    def test_moves_to_utility_after_passing_go(self):
+        game = make_test_game()
+        game.room.players["p1"].position = 30  # (12-30)%40=22, (28-30)%40=38 → nearest is 12
+        initial_money = game.room.players["p1"].money
+        engine = CardEngine()
+        card = make_card("move_to_nearest_utility")
+        engine.execute_card(game, "p1", card)
+        assert game.room.players["p1"].position == 12  # Wraps around, nearest forward
+        assert game.room.players["p1"].money == initial_money + GameRules.GO_REWARD
+
+    def test_passes_go_when_wrapping(self):
+        game = make_test_game()
+        game.room.players["p1"].position = 35  # Closest utility forward is 12 (wrap)
+        initial_money = game.room.players["p1"].money
+        engine = CardEngine()
+        card = make_card("move_to_nearest_utility")
+        engine.execute_card(game, "p1", card)
+        # (12 - 35) % 40 = 17 spaces forward, (28 - 35) % 40 = 33 forward
+        # Nearest is 12 (17 spaces vs 33)
+        assert game.room.players["p1"].position == 12
+        assert game.room.players["p1"].money == initial_money + GameRules.GO_REWARD
+
+
+# ---------------------------------------------------------------------------
+# Tests: execute_card - pay_per_building
+# ---------------------------------------------------------------------------
+
+class TestExecuteCardPayPerBuilding:
+    def test_charges_per_house_and_hotel(self):
+        game = make_test_game()
+        game.room.players["p1"].properties_owned = [1, 5]
+        game.properties[1] = PropertyState(tile_id=1, owner_id="p1", houses=2)
+        game.properties[5] = PropertyState(tile_id=5, owner_id="p1", hotels=1)
+        initial_money = game.room.players["p1"].money
+        engine = CardEngine()
+        card = make_card("pay_per_building", per_house=4000, per_hotel=20000)
+        engine.execute_card(game, "p1", card)
+        expected = 2 * 4000 + 1 * 20000  # 28000
+        assert game.room.players["p1"].money == initial_money - expected
+
+    def test_adds_to_free_parking_pool_if_enabled(self):
+        game = make_test_game()
+        game.room.settings.free_parking_jackpot = True
+        game.room.players["p1"].properties_owned = [1]
+        game.properties[1] = PropertyState(tile_id=1, owner_id="p1", houses=1)
+        initial_pool = game.free_parking_pool
+        engine = CardEngine()
+        card = make_card("pay_per_building", per_house=4000, per_hotel=20000)
+        engine.execute_card(game, "p1", card)
+        assert game.free_parking_pool == initial_pool + 4000
+
+    def test_no_charge_if_no_buildings(self):
+        game = make_test_game()
+        game.room.players["p1"].properties_owned = [1]
+        game.properties[1] = PropertyState(tile_id=1, owner_id="p1", houses=0, hotels=0)
+        initial_money = game.room.players["p1"].money
+        engine = CardEngine()
+        card = make_card("pay_per_building", per_house=4000, per_hotel=20000)
+        engine.execute_card(game, "p1", card)
+        assert game.room.players["p1"].money == initial_money  # No charge
+
+
+# ---------------------------------------------------------------------------
+# Tests: execute_card - collect_from_each_player
+# ---------------------------------------------------------------------------
+
+class TestExecuteCardCollectFromEachPlayer:
+    def test_collects_from_other_players(self):
+        game = make_test_game()
+        initial_p1_money = game.room.players["p1"].money
+        initial_p2_money = game.room.players["p2"].money
+        engine = CardEngine()
+        card = make_card("collect_from_each_player", per_player=2000)
+        engine.execute_card(game, "p1", card)
+        assert game.room.players["p1"].money == initial_p1_money + 2000
+        assert game.room.players["p2"].money == initial_p2_money - 2000
+
+    def test_skips_bankrupt_players(self):
+        game = make_test_game()
+        game.room.players["p2"].is_bankrupt = True
+        initial_p1_money = game.room.players["p1"].money
+        initial_p2_money = game.room.players["p2"].money
+        engine = CardEngine()
+        card = make_card("collect_from_each_player", per_player=2000)
+        engine.execute_card(game, "p1", card)
+        # p1 doesn't collect from bankrupt p2
+        assert game.room.players["p1"].money == initial_p1_money  # No collection
+        assert game.room.players["p2"].money == initial_p2_money  # No change
+
+
+# ---------------------------------------------------------------------------
+# Tests: draw from empty deck (reshuffle)
+# ---------------------------------------------------------------------------
+
+class TestDrawEmptyDeck:
+    def test_reshuffles_treasury_when_empty(self):
+        game = make_test_game()
+        game.treasury_deck.clear()
+        engine = CardEngine()
+        card = engine.draw_treasury(game, "p1")
+        assert card is not None
+        assert len(game.treasury_deck) >= 1  # Reshuffled from template
+
+    def test_reshuffles_surprise_when_empty(self):
+        game = make_test_game()
+        game.surprise_deck.clear()
+        engine = CardEngine()
+        card = engine.draw_surprise(game, "p1")
+        assert card is not None
+        assert len(game.surprise_deck) >= 1  # Reshuffled from template

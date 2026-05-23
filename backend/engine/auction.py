@@ -62,11 +62,18 @@ class AuctionManager:
         auction = self.auctions.get(room_code)
         if not auction or not auction.active:
             return False, "No active auction"
-            
+
         auction.active = False
-        
+
         if auction.highest_bidder_id:
             player = game_state.room.players[auction.highest_bidder_id]
+
+            # Re-check bidder still connected
+            if not player.connected:
+                config = get_board_config().get(auction.property_id)
+                name = config['name'] if config else f"Property {auction.property_id}"
+                game_state.add_log(f"{player.name} disconnected during auction for {name} - no sale")
+                return True, "Auction ended - winner disconnected"
 
             # Re-check bidder still valid
             if player.is_bankrupt:

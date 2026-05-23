@@ -29,6 +29,22 @@ def init_db():
     )
     ''')
 
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS sessions (
+        session_id TEXT PRIMARY KEY,
+        player_name TEXT NOT NULL,
+        reconnect_token TEXT NOT NULL,
+        reconnect_expires_at INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        room_code TEXT
+    )
+    ''')
+
+    cursor.execute('''
+    CREATE INDEX IF NOT EXISTS idx_sessions_reconnect
+    ON sessions(reconnect_token)
+    ''')
+
     # Handle existing databases that lack the runtime_json column
     try:
         cursor.execute('ALTER TABLE games ADD COLUMN runtime_json TEXT NOT NULL DEFAULT \'{}\'')
