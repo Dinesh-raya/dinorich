@@ -1,275 +1,555 @@
-# DINO-RICHUP: Pan-India Edition
+```
+ __________  ___   _   _ _____  ___  _   _ _____  _____  ___ 
+|_   _| ___ \/ _ \ | \ | |  __ \|  _|| | | |  __ \|  ___|| _ |
+  | | | |_/ / /_\ \|  \| | |  \/| |  | | | | |__/ | |__  | | |
+  | | |    /|  _  || . ` | | __ | |  | | | |  __/ |  __| | | |
+  | | | |\ \| | | || |\  | |_\ \| |__| |_| | |    | |___ | | |
+  \_/ \_| \_\_| |_/\_| \_/\____/\____|\___/ \_|    \____/ |___|
+                                                                
+     ██████╗ ██╗███╗   ██╗ ██████╗     ██████╗ ██╗ ██████╗██╗  ██╗██╗   ██╗██████╗
+     ██╔══██╗██║████╗  ██║██╔═══██╗    ██╔══██╗██║██╔════╝██║  ██║██║   ██║██╔══██╗
+     ██║  ██║██║██╔██╗ ██║██║   ██║    ██████╔╝██║██║     ███████║██║   ██║██████╔╝
+     ██║  ██║██║██║╚██╗██║██║   ██║    ██╔══██╗██║██║     ██╔══██║██║   ██║██╔═══╝
+     ██████╔╝██║██║ ╚████║╚██████╔╝    ██║  ██║██║╚██████╗██║  ██║╚██████╔╝██║
+     ╚═════╝ ╚═╝╚═╝  ╚═══╝ ╚═════╝     ╚═╝  ╚═╝╚═╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝
+```
 
-A real-time multiplayer Monopoly-inspired board game with a Pan-India theme. Features property trading, auctions, jail mechanics, dice rolling, and more — all in a dark neon cyberpunk aesthetic.
+# DINO-RICHUP: Pan-India Edition 🦕💰
 
-## Tech Stack
+> *"From the ghats of Varanasi to the towers of Delhi — buy, trade, and build your empire."*
 
-| Layer | Technology |
-|-------|------------|
-| **Backend** | Python 3.11+, FastAPI, Socket.IO, Pydantic |
-| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, Framer Motion, Zustand |
-| **Database** | SQLite (auto-created) |
-| **Real-time** | WebSockets via Socket.IO |
+A real-time multiplayer Monopoly-inspired board game set across the Indian subcontinent. 40 tiles, 8 color groups, 20 Treasury cards, 20 Surprise cards, auctions, trades, jail breaks, and full building economy — wrapped in a **dark neon cyberpunk** glassmorphism UI.
 
 ---
 
-## Quick Start (One Command)
+## 🌟 The Vision
 
-### Windows
-```bash
-# 1. Install everything
-setup.bat
+**DINO-RICHUP** reimagines the classic property trading formula for the modern web:
 
-# 2. Start the game
-start.bat
-```
-
-### Linux / macOS
-```bash
-# 1. Make scripts executable
-chmod +x setup.sh start.sh
-
-# 2. Install everything
-./setup.sh
-
-# 3. Start the game
-./start.sh
-```
-
-Then open **http://localhost:3000** in your browser.
+- **Real-time, not turn-by-turn email** — WebSockets push state to all players instantly
+- **40-city Indian board** — from Guwahati to Delhi, every tile is a real Indian metro or landmark
+- **Deep mechanics** — house/hotel building, mortgage banking, timed auctions, player trading, jail escapes, tax strategies
+- **Cyberpunk soul** — neon cyan on obsidian black, glass panels, glow pulses, Framer Motion fluidity
+- **Production-ready** — SQLite persistence, reconnect tokens, Docker, 158 backend tests
 
 ---
 
-## Manual Setup
+## ✨ Features
 
-### Prerequisites
+### Core Gameplay
+| Feature | Status | Details |
+|---------|--------|---------|
+| Property trading | ✅ | 28 properties across 8 color groups |
+| House & Hotel building | ✅ | 4 houses → 1 hotel, even-build rule enforced |
+| Auction system | ✅ | 9-second timed bidding rounds |
+| Player trading | ✅ | Money, properties, Get Out of Jail cards |
+| Jail mechanics | ✅ | Doubles escape, Rs 5K fine, max 3 turns |
+| Mortgage system | ✅ | 50% loan, 10% interest to unmortgage |
+| Tax system | ✅ | Income Tax (Rs 200K), Luxury Tax (Rs 100K) |
+| Card decks | ✅ | 20 Treasury + 20 Surprise cards |
+| Airport & Utility rent | ✅ | Scaling rent formulas |
+| Bankruptcy | ✅ | Asset transfer or return to bank |
 
-- **Python 3.11+** — [Download](https://www.python.org/downloads/)
-- **Node.js 18+** — [Download](https://nodejs.org/)
-- **npm** (comes with Node.js)
+### Multiplayer
+| Feature | Status | Details |
+|---------|--------|---------|
+| Real-time WebSockets | ✅ | Socket.IO bidirectional state sync |
+| Room system | ✅ | 5-char codes, create/join/leave/kick |
+| Reconnect support | ✅ | Session tokens persist across disconnect |
+| Turn timer | ✅ | Configurable 15-180 seconds |
+| Game persistence | ✅ | SQLite snapshots survive server restart |
+| Spectator support | ✅ | Read-only room join |
 
-### Step 1: Environment File
+### Frontend
+| Feature | Status | Details |
+|---------|--------|---------|
+| Dark neon cyberpunk UI | ✅ | Cyan/purple on obsidian, glassmorphism |
+| Dice animation | ✅ | 3D rolling with sound effects |
+| Token movement | ✅ | Smooth position interpolation |
+| Property details modal | ✅ | Rent schedule, buildings, mortgage info |
+| Auction modal | ✅ | Live timed bidding UI |
+| Trade modal | ✅ | Drag-free dropdown trade creation |
+| Bankrupt modal | ✅ | Full-screen bankruptcy overlay |
+| Card draw animation | ✅ | Slide-in reveal with sound |
+| Audio system | ✅ | Toggle, volume, per-action sound effects |
+| Toast notifications | ✅ | Success/error/warning/info |
+| Double-click guard | ✅ | Prevents duplicate socket emits |
+| Mobile responsive | 🟡 | Playable, board zoom/drag |
+| E2E tests | 🟡 | Unit tests done, Playwright pending |
+
+### Infrastructure
+| Feature | Status | Details |
+|---------|--------|---------|
+| Docker support | ✅ | Multi-stage build, healthcheck |
+| SQLite persistence | ✅ | WAL mode, threading-safe |
+| Rate limiter | ✅ | Per-socket request throttling |
+| HMAC security | ✅ | Signed session tokens |
+| CI-ready | ✅ | pytest, vitest, tsc all pass |
+
+---
+
+## 📦 Tech Stack
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    DINO-RICHUP                            │
+├────────────┬────────────┬──────────────┬─────────────────┤
+│  Backend   │  Frontend  │  Database    │  Infra          │
+├────────────┼────────────┼──────────────┼─────────────────┤
+│ Python 3.11│ React 18   │ SQLite (WAL) │ Docker          │
+│ FastAPI    │ TypeScript │              │ Docker Compose  │
+│ Socket.IO  │ Vite       │              │                 │
+│ Pydantic   │ Tailwind   │              │                 │
+│ uvicorn    │ Zustand    │              │                 │
+│            │ Framer Mt. │              │                 │
+│            │ lucide-re. │              │                 │
+└────────────┴────────────┴──────────────┴─────────────────┘
+```
+
+---
+
+## 🗺️ The Board — 40 Indian Cities
+
+### Color Groups & Pricing
+
+```
+╔════════════╦══════════════════════════╦═════════╦═════════╗
+║   Group    ║  Properties              ║ Price   ║ Rent    ║
+╠════════════╬══════════════════════════╬═════════╬═════════╣
+║ 🟤 Brown   ║ Guwahati, Goa            ║ 60K     ║ 2-4K    ║
+║ 🔵 Lt Blue ║ Ahmedabad, Pune, Hyderabad║ 100-120K║ 6-8K    ║
+║ 🩷 Pink    ║ Jaipur, Chandigarh, Luck. ║ 140-160K║ 10-12K  ║
+║ 🟠 Orange  ║ Kochi, Trivandrum, Chen.  ║ 180-200K║ 14-16K  ║
+║ 🔴 Red     ║ Surat, Indore, Bhopal     ║ 220-240K║ 18-20K  ║
+║ 🟡 Yellow  ║ Kolkata, Patna, Bengaluru ║ 260-280K║ 22-24K  ║
+║ 🟢 Green   ║ Noida, Gurugram, Agra     ║ 300-320K║ 26-28K  ║
+║ 🔵 Dk Blue ║ Mumbai, Delhi             ║ 350-400K║ 35-50K  ║
+╚════════════╩══════════════════════════╩═════════╩═════════╝
+```
+
+### Special Tiles
+
+| Tile | Pos | Effect |
+|------|:---:|--------|
+| 🏁 GO | 0 | Collect Rs 20,000 on passing |
+| 🚁 Delhi Airport | 5 | Airport — rent scales with airports owned |
+| ⚡ NTPC Power | 12 | Utility — rent = dice × 4K (or × 10K for both) |
+| 🚁 Mumbai Airport | 15 | Airport |
+| 🅿️ Free Parking | 20 | Tax pool accumulates here (optional) |
+| 🚁 Chennai Airport | 25 | Airport |
+| 💧 Jal Jeevan Water | 28 | Utility |
+| 🚔 Go To Jail | 30 | Direct to jail, do not pass GO |
+| 🚁 Kolkata Airport | 35 | Airport |
+| 💰 Luxury Tax | 38 | Pay Rs 100,000 |
+| 🏛️ Delhi | 39 | Most expensive property |
+
+### House Prices
+
+| Color | Per House |
+|-------|:---------:|
+| Brown / Light Blue | Rs 50,000 |
+| Pink / Orange | Rs 100,000 |
+| Red / Yellow | Rs 150,000 |
+| Green / Dark Blue | Rs 200,000 |
+
+---
+
+## 🃏 Card Decks
+
+### Treasury Cards (20)
+Includes classics reimagined: *"Bank error in your favor — Collect Rs 20,000"*, *"Advance to Bengaluru"*, *"Pay hospital fees of Rs 10,000"*, *"It's your birthday — Collect Rs 2,000 from each player"*, plus a **Get Out of Jail Free** card.
+
+### Surprise Cards (20)
+*"Go back 3 spaces"*, *"Advance to Delhi"*, *"Speeding fine — Pay Rs 1,500"*, *"Your building loan matures — Collect Rs 15,000"*, *"Go back to Goa"*, plus a **Get Out of Jail Free** card.
+
+Both decks use smart recycling: non-GOOJF cards return to the bottom of the deck; GOOJF cards are held by the player until used, then reshuffled back.
+
+---
+
+## 🧠 Game Mechanics Depth
+
+### Turn Phases
+```
+ROLL ──► ACTION ──► BUY ──► AUCTION ──► DEBT ──► END
+ │                                                    │
+ └────────────── (next player) ◄──────────────────────┘
+```
+
+### Building Rules
+- Must own **all properties in a color group** (monopoly) to build
+- **Even build rule**: no property can be more than 1 house ahead of any other in the same group
+- **4 houses → 1 hotel** (houses return to bank supply)
+- Max 32 houses / 12 hotels in the bank (global supply)
+- All buildings in a color group must be sold before mortgaging any property
+
+### Airport Rent Formula
+| Airports Owned | Rent |
+|:--------------:|:----:|
+| 1 | Rs 25,000 |
+| 2 | Rs 50,000 |
+| 3 | Rs 100,000 |
+| 4 | Rs 200,000 |
+
+### Utility Rent Formula
+| Utilities Owned | Rent |
+|:---------------:|:----:|
+| 1 | Dice total × Rs 4,000 |
+| 2 | Dice total × Rs 10,000 |
+
+### Mortgage Rules
+- Loan = **50%** of purchase price
+- Unmortgage cost = loan × **1.1** (10% interest)
+- Mortgaged properties earn **no rent**
+
+---
+
+## 🏗️ Architecture
+
+```
+┌──────────┐     WebSocket      ┌──────────┐
+│  Browser │ ◄─────────────────► │  Server  │
+│ (React)  │     Socket.IO       │ (Python) │
+│ :3000    │                     │ :8000    │
+└──────────┘                     └────┬─────┘
+                                      │
+                                      ▼
+                               ┌──────────┐
+                               │  SQLite   │
+                               │  (WAL)    │
+                               └──────────┘
+```
+
+### Backend Module Map
+
+```
+backend/
+├── main.py                   # FastAPI + Socket.IO ASGI entry
+├── conftest.py               # Pytest fixtures
+│
+├── engine/                   # ★ Pure game logic (no I/O)
+│   ├── dice.py               # cryptographically secure dice
+│   ├── movement.py           # move_player, send_to_jail
+│   ├── cards.py              # 40-card deck engine
+│   ├── property.py           # buy, rent, build, mortgage
+│   ├── auction.py            # timed auction lifecycle
+│   ├── trade_manager.py      # offer/accept/reject/cancel
+│   ├── turn_manager.py       # phase machine, timer
+│   ├── bankruptcy.py         # asset liquidation
+│   └── game_initializer.py   # board load, deck shuffle
+│
+├── sockets/                  # ★ Socket.IO handlers
+│   ├── connection.py         # connect/disconnect + cleanup
+│   ├── room_events.py        # create/join/leave/kick/settings
+│   ├── game_events.py        # start/roll/end/jail/tax
+│   ├── property_events.py    # buy/mortgage/build/sell
+│   ├── auction_events.py     # start/bid/end
+│   └── trade_events.py       # create/accept/reject/cancel
+│
+├── persistence/              # ★ SQLite layer
+│   ├── db.py                 # schema init, WAL mode
+│   └── repository.py         # save/load full game snapshots
+│
+├── rooms/manager.py          # Room CRUD, color assignment
+├── schemas/                  # Pydantic models
+├── services/                 # Rate limiter, session manager
+├── utils/                    # HMAC, code gen, name gen
+└── tests/                    # 10 test files, 158 tests
+```
+
+### Frontend Module Map
+
+```
+frontend/
+├── components/               # 12 React components
+│   ├── Board.tsx             # 11×11 grid, tiles, tokens, log
+│   ├── DiceAnim.tsx          # 3D dice animation
+│   ├── TokenVisualizer.tsx   # smooth position tweening
+│   ├── PlayerSidebar.tsx     # player list + status
+│   ├── AuctionModal.tsx      # live bidding UI
+│   ├── TradeModal.tsx        # trade creation UI
+│   ├── PropertyDetailModal   # rent schedule & buildings
+│   ├── RoomSettings.tsx      # host configuration panel
+│   ├── AudioSettings.tsx     # volume & mute controls
+│   ├── BankruptModal.tsx     # bankruptcy overlay
+│   ├── CardDrawModal.tsx     # card reveal animation
+│   └── Toast.tsx             # notification system
+│
+├── stores/gameStore.ts       # Zustand: 17 listeners, 23 actions
+├── services/socket.ts        # Socket.IO client + LAN detection
+├── utils/                    # audio, formatting, token movement
+├── animations/               # 30+ Framer Motion presets
+├── constants/theme.ts        # neon cyberpunk design tokens
+└── tailwind.config.js        # extended theme
+```
+
+### Data Flow
+
+```
+Player clicks "Roll Dice"
+        │
+        ▼
+gameStore.rollDice()          # Frontend
+   └─► checks pendingAction   # Guard double-click
+   └─► socket.emit('game:dice_roll')
+        │
+        ▼
+Backend socket handler         # Backend
+   └─► turn_manager.process_roll()
+       └─► dice.roll_dice()
+       └─► movement.move_player()
+       └─► property checks (landing)
+       └─► turn state update
+   └─► sio.emit('game:dice_result')
+   └─► sio.emit('game:state_update')
+        │
+        ▼
+Frontend socket listeners     # Frontend
+   └─► game:dice_result → set diceResult
+   └─► game:state_update → set game + turn
+        │
+        ▼
+React re-renders              # UI update
+   └─► DiceAnim shows values
+   └─► TokenVisualizer animates movement
+   └─► Board highlights landed tile
+```
+
+---
+
+## 🚀 Quick Start
+
+### One-Click
 
 ```bash
-# Copy the example env file
+# Windows
+setup.bat && start.bat
+
+# Linux/macOS
+chmod +x setup.sh start.sh && ./setup.sh && ./start.sh
+```
+
+Open **http://localhost:3000** 🎮
+
+### Manual
+
+```bash
+# 1. Environment
 cp .env.example .env
-```
 
-Edit `.env` if needed (defaults work for local development):
-```env
-DINO_SECRET_KEY=replace-with-strong-random-secret
-DINO_CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
-VITE_API_URL=http://localhost:8000
-```
-
-### Step 2: Backend Setup
-
-```bash
+# 2. Backend
 cd backend
-
-# Create virtual environment (recommended)
-python -m venv .venv
-
-# Activate it
-# Windows:
-.venv\Scripts\activate
-# Linux/macOS:
-source .venv/bin/activate
-
-# Install dependencies
+python -m venv .venv && source .venv/bin/activate  # or .venv\Scripts\activate
 pip install -r requirements.txt
-```
+uvicorn main:socket_app --host 0.0.0.0 --port 8000 --reload
 
-**Backend dependencies** (`backend/requirements.txt`):
-```
-fastapi==0.115.12
-uvicorn[standard]==0.30.6
-python-socketio==5.11.0
-pydantic==2.11.4
-```
-
-### Step 3: Frontend Setup
-
-```bash
+# 3. Frontend (separate terminal)
 cd frontend
 npm install
-```
-
-**Frontend dependencies** (`frontend/package.json`):
-```
-react, react-dom, socket.io-client, zustand, framer-motion, lucide-react
-typescript, vite, tailwindcss, postcss, autoprefixer (dev)
-```
-
-### Step 4: Start Servers
-
-**Terminal 1 — Backend:**
-```bash
-cd backend
-python -m uvicorn main:socket_app --host 0.0.0.0 --port 8000 --reload
-```
-
-**Terminal 2 — Frontend:**
-```bash
-cd frontend
 npm run dev -- --port 3000
 ```
 
-### Step 5: Play!
-
-Open **http://localhost:3000** in your browser.
-
----
-
-## Verify Installation
-
-### Backend Health Check
-```bash
-curl http://localhost:8000/health
-# Expected: {"status":"ok","checks":{"database":"ok","rooms":"ok","games":"ok"}}
-```
-
-### Run Smoke Test
-```bash
-cd backend
-python tests/smoke_live_socket.py
-# Expected: SMOKE_PASS
-```
-
----
-
-## Project Structure
-
-```
-dino-wolf-BT-v2-organized/
-├── backend/                    # Python FastAPI + Socket.IO server
-│   ├── constants/              # Game rules, constants
-│   ├── engine/                 # Core game logic
-│   │   ├── auction.py          # Auction system
-│   │   ├── bankruptcy.py       # Bankruptcy handling
-│   │   ├── cards.py            # Treasury & Surprise cards
-│   │   ├── dice.py             # Dice rolling, jail logic
-│   │   ├── game_initializer.py # Game setup
-│   │   ├── movement.py         # Player movement
-│   │   ├── property.py         # Property buying, rent, buildings
-│   │   ├── trade_manager.py    # Player trading
-│   │   └── turn_manager.py     # Turn flow control
-│   ├── persistence/            # SQLite database
-│   ├── rooms/                  # Room management
-│   ├── schemas/                # Pydantic models
-│   │   ├── action.py           # TurnState, DiceState, TurnPhase enum
-│   │   ├── contracts.py        # Socket payload schemas
-│   │   ├── game.py             # GameState, PropertyState
-│   │   ├── player.py           # PlayerState
-│   │   └── room.py             # RoomState, RoomStatus enum
-│   ├── services/               # Rate limiter, session manager
-│   ├── sockets/                # Socket.IO event handlers
-│   ├── tests/                  # Smoke tests
-│   ├── utils/                  # Security, code generation
-│   ├── main.py                 # App entry point
-│   └── requirements.txt        # Python dependencies
-│
-├── frontend/                   # React + TypeScript + Vite app
-│   ├── animations/             # Framer Motion presets
-│   ├── components/             # React components
-│   │   ├── Board.tsx           # Main game board
-│   │   ├── CenterPanel.tsx     # Center info panel
-│   │   ├── PlayerSidebar.tsx   # Player list
-│   │   ├── DiceAnim.tsx        # Dice animation
-│   │   ├── TokenVisualizer.tsx # Token movement
-│   │   ├── AuctionModal.tsx    # Auction UI
-│   │   ├── TradeModal.tsx      # Trading UI
-│   │   ├── PropertyDetailModal.tsx
-│   │   ├── RoomSettings.tsx    # Room configuration
-│   │   ├── AudioSettings.tsx   # Sound controls
-│   │   ├── BankruptModal.tsx   # Bankruptcy UI
-│   │   └── Toast.tsx           # Notifications
-│   ├── constants/              # Theme constants
-│   ├── services/               # Socket.IO client
-│   ├── stores/                 # Zustand state management
-│   ├── utils/                  # Audio, formatting, token movement
-│   ├── src/                    # App entry, main.tsx
-│   ├── index.html              # HTML template
-│   ├── package.json            # npm dependencies
-│   ├── tsconfig.json           # TypeScript config
-│   ├── vite.config.ts          # Vite config
-│   └── tailwind.config.js      # Tailwind CSS config
-│
-├── shared/                     # Shared between backend & frontend
-│   ├── configs/board_config.json   # Board tile definitions
-│   ├── contracts/socket_payloads.json
-│   └── events/socket_events.json
-│
-├── docker/                     # Docker support
-│   └── Dockerfile
-├── docker-compose.yml          # Docker Compose config
-├── .env.example                # Environment template
-├── setup.bat                   # Windows one-click setup
-├── setup.sh                    # Linux/macOS one-click setup
-├── start.bat                   # Windows one-click start
-├── start.sh                    # Linux/macOS one-click start
-└── reference-images.txt        # UI design references
-```
-
----
-
-## Game Features
-
-- **Real-time multiplayer** via WebSockets
-- **Room system** — create/join rooms with share codes
-- **Property buying/selling** with color group mechanics
-- **Auction system** with timed bidding
-- **Player trading** — money, properties, Get Out of Jail cards
-- **Jail mechanics** — doubles escape, fine payment, max turns
-- **Building system** — houses and hotels (backend ready)
-- **Mortgage system** (backend ready)
-- **Dice animation** with sound effects
-- **Token movement** with smooth animations
-- **Dark neon cyberpunk UI** with glassmorphism
-
----
-
-## Docker Setup
+### Docker
 
 ```bash
 docker compose up --build
 ```
 
-This builds and runs the entire application in containers.
-
 ---
 
-## Troubleshooting
+## 🧪 Testing
 
-### Port already in use
 ```bash
-# Find and kill process on port 8000 (backend)
-# Windows:
-netstat -ano | findstr :8000
-taskkill /PID <PID> /F
+# Backend — 158 tests
+cd backend && python -m pytest tests/ -v
 
-# Linux/macOS:
-lsof -ti:8000 | xargs kill -9
-```
+# Frontend — 45 tests
+cd frontend && npm run test
 
-### Python not found (Windows)
-Make sure Python is added to PATH during installation, or use the full path:
-```bash
-C:\Users\<you>\AppData\Local\Programs\Python\Python313\python.exe -m pip install -r requirements.txt
-```
+# TypeScript
+cd frontend && npx tsc --noEmit
 
-### npm install fails
-```bash
-# Clear npm cache
-npm cache clean --force
-# Delete node_modules and reinstall
-rm -rf frontend/node_modules
-cd frontend && npm install
+# Live smoke test (requires running server)
+cd backend && python tests/smoke_live_socket.py
 ```
 
 ---
 
-## License
+## 🎨 Theme — Neon Cyberpunk India
 
-This project is for educational and personal use.
+```
+┌──────────────────────────────────────────┐
+│ Background   ■ #0a0a0f  Deep obsidian     │
+│ Surface      ■ #12121a  Dark slate        │
+│ Primary      ■ #22d3ee  Neon cyan         │
+│ Accent       ■ #a855f7  Cyber purple      │
+│ Success      ■ #10b981  Emerald           │
+│ Warning      ■ #f59e0b  Amber             │
+│ Danger       ■ #ef4444  Ruby red          │
+├──────────────────────────────────────────┤
+│ Glassmorphism  backdrop-blur + alpha     │
+│ Neon glows     box-shadow spread         │
+│ Typography     Inter + Orbitron (cyber)  │
+│ Animations     glow-pulse, float, flicker│
+└──────────────────────────────────────────┘
+```
 
+Player tokens are assigned from 6 bold colors: 🔴🔵🟢🟡🟠🟣
+
+Default player names draw from Hindu mythology: *Shiva, Vishnu, Hanuman, Krishna, Rama, Ganesha, Lakshmi, Saraswati, Durga, Indra, Surya, Agni, Varuna, Vayu, Yama* — imbuing each session with a touch of the epic.
+
+---
+
+## 📂 Project Structure
+
+```
+dino-wolf-BT-v2-organized/
+├── backend/          # Python FastAPI + Socket.IO
+│   ├── engine/       # Pure game logic (zero I/O)
+│   ├── sockets/      # Socket.IO event handlers
+│   ├── persistence/  # SQLite save/load
+│   ├── schemas/      # Pydantic models
+│   ├── tests/        # 158 pytest tests
+│   └── main.py       # ASGI entry point
+│
+├── frontend/         # React + TypeScript + Vite
+│   ├── components/   # 12 React components
+│   ├── stores/       # Zustand state management
+│   ├── services/     # Socket.IO client
+│   ├── utils/        # Audio, formatting, movement
+│   └── src/          # App entry, main.tsx
+│
+├── shared/           # Cross-platform configs
+│   ├── configs/      # Board tile definitions
+│   ├── contracts/    # Socket payload schemas
+│   └── events/       # Socket event catalog
+│
+├── docker/           # Multi-stage build
+├── .env.example      # Environment template
+├── setup.bat/.sh     # One-click install
+├── start.bat/.sh     # One-click launch
+└── docker-compose.yml
+```
+
+---
+
+## 📜 Socket Event Reference
+
+### Client → Server
+
+| Event | Payload | When |
+|-------|---------|------|
+| `room:create` | `{name, is_private?}` | Host creates room |
+| `room:join` | `{room_code, name, reconnect_token?}` | Player joins |
+| `room:leave` | — | Player leaves |
+| `room:update_settings` | `{settings}` | Host changes config |
+| `room:kick_player` | `{target_player_id}` | Host kicks player |
+| `game:start` | — | Host starts game |
+| `game:dice_roll` | — | Current player rolls |
+| `game:end_turn` | — | End current turn |
+| `game:pay_jail_fine` | — | Pay Rs 5K to leave jail |
+| `game:use_jail_card` | — | Use GOOJF card |
+| `game:pay_tax` | `{use_percentage}` | Pay pending tax |
+| `game:declare_bankruptcy` | — | Declare bankruptcy |
+| `property:buy` | `{property_id}` | Buy unowned property |
+| `property:mortgage` | `{property_id}` | Mortgage owned property |
+| `property:unmortgage` | `{property_id}` | Unmortgage (110%) |
+| `property:build_house` | `{property_id}` | Build one house |
+| `property:build_hotel` | `{property_id}` | Build hotel |
+| `property:sell_house` | `{property_id}` | Sell one house |
+| `property:sell_hotel` | `{property_id}` | Sell hotel |
+| `auction:start` | `{property_id}` | Initiate auction |
+| `auction:bid` | `{amount}` | Place bid |
+| `auction:end` | — | End auction early |
+| `trade:create` | *(full trade payload)* | Create trade offer |
+| `trade:accept` | `{trade_id}` | Accept trade |
+| `trade:reject` | `{trade_id}` | Reject trade |
+| `trade:cancel` | `{trade_id}` | Cancel trade (initiator) |
+
+### Server → Client
+
+| Event | Payload | When |
+|-------|---------|------|
+| `room:state_update` | `{room}` | Room state changed |
+| `game:start` | `{game, turn}` | Game begins |
+| `game:state_update` | `{game, turn}` | Full state sync |
+| `game:dice_result` | `{die1, die2, total, is_double}` | Dice rolled |
+| `game:over` | `{winner_id, winner_name}` | Game ends |
+| `auction:start` | `{auction}` | Auction begins |
+| `auction:state_update` | `{auction}` | Bid placed / timer |
+| `auction:end` | — | Auction concluded |
+| `card:result` | `{card, card_type, player_id}` | Card drawn |
+| `trade:offer` | `{trade}` | Trade offered to you |
+| `trade:completed` | — | Trade finalized |
+| `trade:rejected` | — | Trade rejected |
+| `trade:cancelled` | — | Trade cancelled |
+| `room:kicked` | `{message}` | You were kicked |
+| `connect_error` | `{message}` | Socket connection failed |
+
+---
+
+## 🔧 Configuration
+
+### Backend (`backend/constants/game_rules.py`)
+
+| Setting | Default | Range |
+|---------|:-------:|:-----:|
+| Starting cash | Rs 150,000 | 50K – 1M |
+| Max players | 6 | 1 – 6 |
+| Turn timer | 60s | 15 – 180 |
+| Auction timer | 9s | — |
+| Max jail turns | 3 | — |
+| Disconnect timeout | 120s | — |
+| Max houses | 32 (bank) | — |
+| Max hotels | 12 (bank) | — |
+
+### Room Settings (configurable in UI)
+
+- `starting_cash` — Bank balance per player
+- `auction_enabled` — Toggle property auctions
+- `double_rent_enabled` — Monopoly rent multiplier
+- `mortgage_enabled` — Allow property mortgages
+- `free_parking_jackpot` — Tax money accumulates on Free Parking
+- `turn_timer_seconds` — Time limit per turn
+- `random_turn_order` — Shuffle or preserve join order
+- `jail_strict_mode` — Strict 3-turn max jail
+
+---
+
+## 🧩 Persistence
+
+Game state is **automatically persisted** to SQLite on every meaningful state change:
+
+- `games` table stores the active game snapshot and runtime JSON
+- On server restart, pending auctions and trades are restored
+- Room and player data is ephemeral (stored in memory)
+
+```
+backend/persistence/game_data.sqlite
+```
+
+---
+
+## 🛡️ Security
+
+- **HMAC-signed session tokens** prevent forgery
+- **Rate limiter** throttles socket events per connection
+- **Input validation** on all socket payloads (Pydantic)
+- **CORS origins** restrict frontend access
+- **Reconnect tokens** prevent session hijacking
+- No client-side game logic — server is authoritative
+
+---
+
+## 🙏 Player Names (from Hindu Mythology)
+
+*Shiva · Vishnu · Hanuman · Krishna · Rama · Ganesha · Kartikeya · Narayana · Rudra · Mahadev · Parashurama · Indra · Surya · Agni · Varuna · Vayu · Yama · Lakshmi · Saraswati · Durga*
+
+---
+
+## 📄 License
+
+Educational and personal use.
+
+---
+
+> *Built with 🔥 by the DINO team. Roll dice, build empires, go bankrupt in style.*

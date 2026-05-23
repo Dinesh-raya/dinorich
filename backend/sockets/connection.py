@@ -180,6 +180,9 @@ async def handle_disconnect_timeout(sid: str, session_id: str, room_code: str):
     if all_gone:
         room_manager.leave_room(sid)
         turn_manager.cleanup_room(room_code)
+        auction_manager.auctions.pop(room_code, None)
+        from engine.trade_manager import trade_manager
+        trade_manager.cleanup_room(room_code)
         from persistence import repository
         repository.delete_room(room_code)
         repository.delete_game(room_code)

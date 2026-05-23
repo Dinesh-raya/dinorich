@@ -24,9 +24,16 @@ def init_db():
         room_code TEXT PRIMARY KEY,
         state_json TEXT NOT NULL,
         turn_json TEXT NOT NULL,
+        runtime_json TEXT NOT NULL DEFAULT '{}',
         FOREIGN KEY(room_code) REFERENCES rooms(room_code)
     )
     ''')
+
+    # Handle existing databases that lack the runtime_json column
+    try:
+        cursor.execute('ALTER TABLE games ADD COLUMN runtime_json TEXT NOT NULL DEFAULT \'{}\'')
+    except Exception:
+        pass
 
     conn.commit()
     conn.close()

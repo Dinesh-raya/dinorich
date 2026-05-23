@@ -222,5 +222,10 @@ class TradeManager:
         """Get a specific trade."""
         return self.active_trades.get(trade_id)
 
+    def cleanup_room(self, room_code: str):
+        """Remove all active trades (trade state is global, not per-room)."""
+        for tid in list(self.active_trades.keys()):
+            self._cleanup_trade(tid)
+
 # Global trade manager instance
 trade_manager = TradeManager()

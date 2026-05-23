@@ -394,20 +394,42 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                     </div>
                   </div>
 
+                  {/* Validation warnings */}
+                  {offeringMoney > myPlayer.money && (
+                    <div className="p-2 rounded-lg bg-danger-500/10 border border-danger-500/30 text-danger-400 text-xs text-center">
+                      Offering more money than you have!
+                    </div>
+                  )}
+                  {requestingMoney > selectedPlayerData.money && (
+                    <div className="p-2 rounded-lg bg-warning-500/10 border border-warning-500/30 text-warning-400 text-xs text-center">
+                      Requesting more money than {selectedPlayerData.name} has!
+                    </div>
+                  )}
+
                   {/* Actions */}
                   <div className="space-y-3 pt-4 border-t border-white/10">
-                    <motion.button
-                      onClick={handleSubmitTrade}
-                      className="w-full py-3 rounded-xl font-cyber font-bold text-base sm:text-lg text-white"
-                      style={{
-                        background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
-                        boxShadow: '0 4px 20px rgba(168, 85, 247, 0.3)'
-                      }}
-                      whileHover={{ scale: 1.02, boxShadow: '0 6px 30px rgba(168, 85, 247, 0.4)' }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      Send Trade Offer
-                    </motion.button>
+                    {(() => {
+                      const isEmpty = offeringMoney === 0 && requestingMoney === 0 &&
+                        offeringProperties.length === 0 && requestingProperties.length === 0 &&
+                        offeringJailCards === 0 && requestingJailCards === 0;
+                      const isInvalid = offeringMoney > myPlayer.money || requestingMoney > selectedPlayerData.money;
+                      const buttonDisabled = isEmpty || isInvalid;
+                      return (
+                        <motion.button
+                          onClick={handleSubmitTrade}
+                          disabled={buttonDisabled}
+                          className="w-full py-3 rounded-xl font-cyber font-bold text-base sm:text-lg text-white transition-opacity"
+                          style={{
+                            background: buttonDisabled ? 'rgba(168, 85, 247, 0.2)' : 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                            boxShadow: buttonDisabled ? 'none' : '0 4px 20px rgba(168, 85, 247, 0.3)'
+                          }}
+                          whileHover={buttonDisabled ? {} : { scale: 1.02, boxShadow: '0 6px 30px rgba(168, 85, 247, 0.4)' }}
+                          whileTap={buttonDisabled ? {} : { scale: 0.98 }}
+                        >
+                          {isEmpty ? 'Add items to trade' : isInvalid ? 'Fix invalid amounts' : 'Send Trade Offer'}
+                        </motion.button>
+                      );
+                    })()}
 
                     {/* Cancel outgoing trade */}
                     {outgoingTradeId && (

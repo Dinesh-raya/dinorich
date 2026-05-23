@@ -13,6 +13,19 @@ TREASURY_CARDS_TEMPLATE = [
     {"text": "Go directly to Jail. Do not pass GO.", "action": "go_to_jail"},
     {"text": "Income tax refund. Collect ₹2,000", "action": "add_money", "amount": 2000},
     {"text": "Pay hospital fees of ₹10,000", "action": "pay_money", "amount": 10000},
+    {"text": "Advance to Bengaluru. If you pass GO, collect ₹20,000", "action": "move_to", "target": 29},
+    {"text": "Life insurance matures. Collect ₹15,000", "action": "add_money", "amount": 15000},
+    {"text": "Pay school fees of ₹5,000", "action": "pay_money", "amount": 5000},
+    {"text": "Received dividend on shares. Collect ₹8,000", "action": "add_money", "amount": 8000},
+    {"text": "Advance to Mumbai Airport. If you pass GO, collect ₹20,000", "action": "move_to", "target": 15},
+    {"text": "Pay your insurance premium of ₹5,000", "action": "pay_money", "amount": 5000},
+    {"text": "You have won second prize in a beauty contest. Collect ₹10,000", "action": "add_money", "amount": 10000},
+    {"text": "Pay electricity bill of ₹7,500", "action": "pay_money", "amount": 7500},
+    {"text": "Consultancy fee. Collect ₹5,000", "action": "add_money", "amount": 5000},
+    {"text": "It's your birthday. Collect ₹2,000 from each player", "action": "add_money", "amount": 2000},
+    {"text": "Property tax due. Pay ₹15,000", "action": "pay_money", "amount": 15000},
+    {"text": "Advance to Jaipur. If you pass GO, collect ₹20,000", "action": "move_to", "target": 11},
+    {"text": "Toothpaste advertisement royalty. Collect ₹3,000", "action": "add_money", "amount": 3000},
 ]
 
 SURPRISE_CARDS_TEMPLATE = [
@@ -23,6 +36,19 @@ SURPRISE_CARDS_TEMPLATE = [
     {"text": "Go back 3 spaces", "action": "move_relative", "spaces": -3},
     {"text": "Go directly to Jail. Do not pass GO.", "action": "go_to_jail"},
     {"text": "Speeding fine. Pay ₹1,500", "action": "pay_money", "amount": 1500},
+    {"text": "Advance to Chennai. If you pass GO, collect ₹20,000", "action": "move_to", "target": 19},
+    {"text": "Bank gives you a loan repayment. Collect ₹12,000", "action": "add_money", "amount": 12000},
+    {"text": "Go to Kolkata. If you pass GO, collect ₹20,000", "action": "move_to", "target": 26},
+    {"text": "Pay road tax of ₹4,000", "action": "pay_money", "amount": 4000},
+    {"text": "Advance to the nearest Utility. If unowned, you may buy it", "action": "move_to", "target": 12},
+    {"text": "You are assessed for street repairs. ₹4,000 per house, ₹20,000 per hotel", "action": "pay_money", "amount": 4000},
+    {"text": "Your building loan matures. Collect ₹15,000", "action": "add_money", "amount": 15000},
+    {"text": "Go back to Goa", "action": "move_to", "target": 3},
+    {"text": "Pay lawyer fees of ₹3,000", "action": "pay_money", "amount": 3000},
+    {"text": "Advance to Free Parking", "action": "move_to", "target": 20},
+    {"text": "Collect ₹5,000 consultancy fee", "action": "add_money", "amount": 5000},
+    {"text": "Holiday bonus. Collect ₹3,000", "action": "add_money", "amount": 3000},
+    {"text": "Pay entertainment tax of ₹2,000", "action": "pay_money", "amount": 2000},
 ]
 
 

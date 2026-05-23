@@ -74,7 +74,7 @@ export const AuctionModal = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl p-4"
         >
         <motion.div
           initial={{ scale: 0.8, y: 50, opacity: 0 }}
@@ -273,7 +273,7 @@ export const AuctionModal = () => {
             >
               <div className="text-6xl mb-4">👁️</div>
               <h3 className="text-2xl font-bold text-text-main mb-2">Spectator Mode</h3>
-              <p className="text-text-muted text-lg mb-6">
+              <p className="text-text-muted text-sm sm:text-lg mb-6">
                 You are not participating in this auction. Watch the bidding unfold!
               </p>
               <div className="glass-panel p-6 rounded-2xl inline-block">
@@ -297,7 +297,7 @@ export const AuctionModal = () => {
 
           {/* Footer */}
           <div className="mt-8 pt-6 border-t border-white/10">
-            <div className="flex justify-between items-center text-sm text-text-muted">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-2 text-sm text-text-muted">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-primary-500 rounded-full animate-pulse"></div>
                 <span>Active Auction • {auction.participants.length} Participants</span>

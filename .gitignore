@@ -25,6 +25,10 @@ venv/
 .DS_Store
 Thumbs.db
 
+# Logs
+*.log
+vite.*
+
 # OpenClaude / Agent tools
 .agents/
 .claude/

@@ -192,61 +192,9 @@ def game_show_intro(volume=0.5):
     gap = [0] * int(SAMPLE_RATE * 0.08)
     return n1 + gap + n2 + gap + n3 + gap + n4
 
-def bgm_loop(duration=30, volume=0.15):
-    """Generate a simple background music loop."""
-    # Simple chord progression: C - Am - F - G
-    chords = [
-        [261.63, 329.63, 392.00],  # C major
-        [220.00, 261.63, 329.63],  # A minor
-        [174.61, 220.00, 261.63],  # F major
-        [196.00, 246.94, 293.66],  # G major
-    ]
-    chord_duration = duration / (len(chords) * 3)  # 3 repeats
-    samples = []
-    for _ in range(3):  # Repeat 3 times
-        for chord in chords:
-            chord_samples = [0.0] * int(SAMPLE_RATE * chord_duration)
-            for freq in chord:
-                wave_samples = sine_wave(freq, chord_duration, volume / len(chord))
-                for i in range(len(chord_samples)):
-                    if i < len(wave_samples):
-                        chord_samples[i] += wave_samples[i]
-            # Add subtle rhythm
-            for i in range(len(chord_samples)):
-                t = i / SAMPLE_RATE
-                beat = 0.7 + 0.3 * math.sin(2 * math.pi * 2 * t)  # 2 Hz beat
-                chord_samples[i] *= beat
-            samples.extend(chord_samples)
-    return samples
-
 def auction_bell(volume=0.5):
     """Auction bell ding."""
     return chime(1000, 0.3, volume)
-
-def menu_bgm(duration=30, volume=0.12):
-    """Menu background music - gentler."""
-    chords = [
-        [196.00, 246.94, 293.66],  # G major
-        [174.61, 220.00, 261.63],  # F major
-        [164.81, 196.00, 246.94],  # E minor
-        [196.00, 246.94, 293.66],  # G major
-    ]
-    chord_duration = duration / (len(chords) * 3)
-    samples = []
-    for _ in range(3):
-        for chord in chords:
-            chord_samples = [0.0] * int(SAMPLE_RATE * chord_duration)
-            for freq in chord:
-                wave_samples = sine_wave(freq, chord_duration, volume / len(chord))
-                for i in range(len(chord_samples)):
-                    if i < len(wave_samples):
-                        chord_samples[i] += wave_samples[i]
-            for i in range(len(chord_samples)):
-                t = i / SAMPLE_RATE
-                beat = 0.8 + 0.2 * math.sin(2 * math.pi * 0.5 * t)
-                chord_samples[i] *= beat
-            samples.extend(chord_samples)
-    return samples
 
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -291,11 +239,7 @@ def main():
     write_wav('player_bankrupt.wav', sad_trombone(0.4))
     write_wav('player_win.wav', winning_chime(0.6))
 
-    # Background Music
-    write_wav('bgm_game.wav', bgm_loop(30, 0.12))
-    write_wav('bgm_menu.wav', menu_bgm(30, 0.10))
-
-    print(f"\nDone! Generated 24 sound files in {OUTPUT_DIR}")
+    print(f"\nDone! Generated sound files in {OUTPUT_DIR}")
 
 if __name__ == '__main__':
     main()

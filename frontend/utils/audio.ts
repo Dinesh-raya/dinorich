@@ -41,20 +41,14 @@ const SOUNDS = {
   player_bankrupt: '/sounds/player_bankrupt.wav',
   player_win: '/sounds/player_win.wav',
 
-  // Background Music
-  bgm_menu: '/sounds/bgm_menu.wav',
-  bgm_game: '/sounds/bgm_game.wav',
 };
 
 export type SoundName = keyof typeof SOUNDS;
 
 class SoundManager {
   private enabled: boolean = true;
-  private musicEnabled: boolean = true;
   private audioMap: Map<string, HTMLAudioElement> = new Map();
-  private bgmAudio: HTMLAudioElement | null = null;
   private volume: number = 0.7;
-  private musicVolume: number = 0.3;
 
   constructor() {
     // Preload all sound effects
@@ -65,12 +59,6 @@ class SoundManager {
       audio.volume = this.volume;
       this.audioMap.set(key, audio);
     });
-    
-    // Initialize background music
-    this.bgmAudio = new Audio(SOUNDS.bgm_game);
-    this.bgmAudio.loop = true;
-    this.bgmAudio.volume = this.musicVolume;
-    this.bgmAudio.preload = 'auto';
   }
 
   play(soundName: SoundName, options: { volume?: number; loop?: boolean } = {}) {
@@ -104,25 +92,6 @@ class SoundManager {
     }, 0);
   }
 
-  startBackgroundMusic(type: 'menu' | 'game' = 'game') {
-    if (!this.musicEnabled || !this.bgmAudio) return;
-    
-    this.bgmAudio.src = type === 'menu' ? SOUNDS.bgm_menu : SOUNDS.bgm_game;
-    this.bgmAudio.currentTime = 0;
-    this.bgmAudio.volume = this.musicVolume;
-    
-    this.bgmAudio.play().catch(e => {
-      console.warn('Background music play failed:', e);
-    });
-  }
-
-  stopBackgroundMusic() {
-    if (this.bgmAudio) {
-      this.bgmAudio.pause();
-      this.bgmAudio.currentTime = 0;
-    }
-  }
-
   setVolume(volume: number) {
     this.volume = Math.max(0, Math.min(1, volume));
     this.audioMap.forEach(audio => {
@@ -130,47 +99,17 @@ class SoundManager {
     });
   }
 
-  setMusicVolume(volume: number) {
-    this.musicVolume = Math.max(0, Math.min(1, volume));
-    if (this.bgmAudio) {
-      this.bgmAudio.volume = this.musicVolume;
-    }
-  }
-
   toggleSound() {
     this.enabled = !this.enabled;
     return this.enabled;
-  }
-
-  toggleMusic() {
-    this.musicEnabled = !this.musicEnabled;
-    if (!this.musicEnabled && this.bgmAudio) {
-      this.bgmAudio.pause();
-    } else if (this.musicEnabled && this.bgmAudio) {
-      this.bgmAudio.play().catch(e => console.warn('Music resume failed:', e));
-    }
-    return this.musicEnabled;
   }
 
   setSoundEnabled(enabled: boolean) {
     this.enabled = enabled;
   }
 
-  setMusicEnabled(enabled: boolean) {
-    this.musicEnabled = enabled;
-    if (!this.musicEnabled && this.bgmAudio) {
-      this.bgmAudio.pause();
-    } else if (this.musicEnabled && this.bgmAudio) {
-      this.bgmAudio.play().catch(e => console.warn('Music resume failed:', e));
-    }
-  }
-
   isSoundEnabled(): boolean {
     return this.enabled;
-  }
-
-  isMusicEnabled(): boolean {
-    return this.musicEnabled;
   }
 
   // Game-specific sound helpers
@@ -287,13 +226,8 @@ export const useSound = () => {
     playButtonHover: soundManager.playButtonHover.bind(soundManager),
     playGameStart: soundManager.playGameStart.bind(soundManager),
     playGameEnd: soundManager.playGameEnd.bind(soundManager),
-    startBackgroundMusic: soundManager.startBackgroundMusic.bind(soundManager),
-    stopBackgroundMusic: soundManager.stopBackgroundMusic.bind(soundManager),
     toggleSound: soundManager.toggleSound.bind(soundManager),
-    toggleMusic: soundManager.toggleMusic.bind(soundManager),
     setVolume: soundManager.setVolume.bind(soundManager),
-    setMusicVolume: soundManager.setMusicVolume.bind(soundManager),
     isSoundEnabled: soundManager.isSoundEnabled.bind(soundManager),
-    isMusicEnabled: soundManager.isMusicEnabled.bind(soundManager),
   };
 };

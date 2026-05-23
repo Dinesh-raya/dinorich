@@ -118,6 +118,7 @@ interface GameStore {
   outgoingTradeId: string | null;
   gameOver: { winner_id: string | null, winner_name: string } | null;
   error: string | null;
+  pendingAction: string | null;
 
   connect: () => void;
   joinRoom: (code: string, name: string) => void;
@@ -171,7 +172,6 @@ export const useGameStore = create<GameStore>((set) => {
     set({ game: data.game, turn: data.turn, room: data.game.room, gameOver: null });
     showToast('Game started! Roll the dice to begin.', 'success');
     soundManager.playGameStart();
-    soundManager.startBackgroundMusic('game');
   });
 
   // Track previous state for detecting events
@@ -266,7 +266,6 @@ export const useGameStore = create<GameStore>((set) => {
     set({ gameOver: data });
     const isWinner = data.winner_id === socket.id;
     soundManager.playGameEnd(isWinner);
-    soundManager.stopBackgroundMusic();
   });
 
   socket.on('card:result', (data: CardDraw) => {
@@ -320,6 +319,7 @@ export const useGameStore = create<GameStore>((set) => {
     gameOver: null,
     moneyChange: null,
     error: null,
+    pendingAction: null,
 
     connect: () => {
       const playerName = localStorage.getItem('dino_player_name') || '';
@@ -329,9 +329,12 @@ export const useGameStore = create<GameStore>((set) => {
     },
 
     joinRoom: (code, name) => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'joinRoom' });
       localStorage.setItem('dino_player_name', name);
       const reconnectToken = localStorage.getItem('dino_reconnect_token') || undefined;
       socket.emit('room:join', { room_code: code, name, reconnect_token: reconnectToken }, (response: any) => {
+        set({ pendingAction: null });
         if (response.status === 'error') {
           set({ error: response.message });
         } else {
@@ -344,8 +347,11 @@ export const useGameStore = create<GameStore>((set) => {
     },
 
     createRoom: (name) => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'createRoom' });
       localStorage.setItem('dino_player_name', name);
       socket.emit('room:create', { name }, (response: any) => {
+        set({ pendingAction: null });
         if (response.status === 'error') {
           set({ error: response.message });
         } else {
@@ -358,22 +364,31 @@ export const useGameStore = create<GameStore>((set) => {
     },
 
     startGame: () => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'startGame' });
       socket.emit('game:start', {}, (response: any) => {
+        set({ pendingAction: null });
         if (response.status === 'error') set({ error: response.message });
       });
     },
 
     rollDice: () => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'rollDice' });
       socket.emit('game:dice_roll', {}, (response: any) => {
-         if (response.status === 'error') {
-           set({ error: response.message });
-           showToast(response.message, 'error');
-         }
+        set({ pendingAction: null });
+        if (response.status === 'error') {
+          set({ error: response.message });
+          showToast(response.message, 'error');
+        }
       });
     },
 
     endTurn: () => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'endTurn' });
       socket.emit('game:end_turn', {}, (response: any) => {
+        set({ pendingAction: null });
         if (response.status === 'error') {
           set({ error: response.message });
           showToast(response.message, 'error');
@@ -382,7 +397,10 @@ export const useGameStore = create<GameStore>((set) => {
     },
 
     declareBankruptcy: () => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'declareBankruptcy' });
       socket.emit('game:declare_bankruptcy', {}, (response: any) => {
+        set({ pendingAction: null });
         if (response.status === 'error') {
           set({ error: response.message });
           showToast(response.message, 'error');
@@ -391,7 +409,10 @@ export const useGameStore = create<GameStore>((set) => {
     },
 
     buyProperty: (id) => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'buyProperty' });
       socket.emit('property:buy', { property_id: id }, (response: any) => {
+        set({ pendingAction: null });
         if (response.status === 'error') {
           set({ error: response.message });
           showToast(response.message, 'error');
@@ -403,7 +424,10 @@ export const useGameStore = create<GameStore>((set) => {
     },
 
     startAuction: (propertyId) => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'startAuction' });
       socket.emit('auction:start', { property_id: propertyId }, (response: any) => {
+        set({ pendingAction: null });
         if (response.status === 'error') {
           set({ error: response.message });
           showToast(response.message, 'error');
@@ -412,7 +436,10 @@ export const useGameStore = create<GameStore>((set) => {
     },
 
     placeBid: (amount) => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'placeBid' });
       socket.emit('auction:bid', { amount }, (response: any) => {
+        set({ pendingAction: null });
         if (response.status === 'error') {
           set({ error: response.message });
           showToast(response.message, 'error');
@@ -423,7 +450,10 @@ export const useGameStore = create<GameStore>((set) => {
     },
 
     endAuction: () => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'endAuction' });
       socket.emit('auction:end', {}, (response: any) => {
+        set({ pendingAction: null });
         if (response.status === 'error') {
           set({ error: response.message });
           showToast(response.message, 'error');
@@ -432,7 +462,10 @@ export const useGameStore = create<GameStore>((set) => {
     },
 
     updateRoomSettings: (settings) => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'updateRoomSettings' });
       socket.emit('room:update_settings', { settings }, (response: any) => {
+        set({ pendingAction: null });
         if (response.status === 'error') {
           set({ error: response.message });
           showToast(response.message, 'error');
@@ -443,7 +476,10 @@ export const useGameStore = create<GameStore>((set) => {
     },
 
     buildHouse: (propertyId) => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'buildHouse' });
       socket.emit('property:build_house', { property_id: propertyId }, (response: any) => {
+        set({ pendingAction: null });
         if (response.status === 'error') {
           set({ error: response.message });
           showToast(response.message, 'error');
@@ -455,7 +491,10 @@ export const useGameStore = create<GameStore>((set) => {
     },
 
     buildHotel: (propertyId) => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'buildHotel' });
       socket.emit('property:build_hotel', { property_id: propertyId }, (response: any) => {
+        set({ pendingAction: null });
         if (response.status === 'error') {
           set({ error: response.message });
           showToast(response.message, 'error');
@@ -467,7 +506,10 @@ export const useGameStore = create<GameStore>((set) => {
     },
 
     sellHouse: (propertyId) => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'sellHouse' });
       socket.emit('property:sell_house', { property_id: propertyId }, (response: any) => {
+        set({ pendingAction: null });
         if (response.status === 'error') {
           set({ error: response.message });
           showToast(response.message, 'error');
@@ -478,7 +520,10 @@ export const useGameStore = create<GameStore>((set) => {
     },
 
     sellHotel: (propertyId) => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'sellHotel' });
       socket.emit('property:sell_hotel', { property_id: propertyId }, (response: any) => {
+        set({ pendingAction: null });
         if (response.status === 'error') {
           set({ error: response.message });
           showToast(response.message, 'error');
@@ -489,7 +534,10 @@ export const useGameStore = create<GameStore>((set) => {
     },
 
     mortgageProperty: (propertyId) => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'mortgageProperty' });
       socket.emit('property:mortgage', { property_id: propertyId }, (response: any) => {
+        set({ pendingAction: null });
         if (response.status === 'error') {
           set({ error: response.message });
           showToast(response.message, 'error');
@@ -501,7 +549,10 @@ export const useGameStore = create<GameStore>((set) => {
     },
 
     unmortgageProperty: (propertyId) => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'unmortgageProperty' });
       socket.emit('property:unmortgage', { property_id: propertyId }, (response: any) => {
+        set({ pendingAction: null });
         if (response.status === 'error') {
           set({ error: response.message });
           showToast(response.message, 'error');
@@ -513,7 +564,10 @@ export const useGameStore = create<GameStore>((set) => {
     },
 
     payJailFine: () => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'payJailFine' });
       socket.emit('game:pay_jail_fine', {}, (response: any) => {
+        set({ pendingAction: null });
         if (response.status === 'error') {
           set({ error: response.message });
           showToast(response.message, 'error');
@@ -525,7 +579,10 @@ export const useGameStore = create<GameStore>((set) => {
     },
 
     useJailCard: () => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'useJailCard' });
       socket.emit('game:use_jail_card', {}, (response: any) => {
+        set({ pendingAction: null });
         if (response.status === 'error') {
           set({ error: response.message });
           showToast(response.message, 'error');
@@ -537,7 +594,10 @@ export const useGameStore = create<GameStore>((set) => {
     },
 
     payTax: (usePercentage: boolean) => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'payTax' });
       socket.emit('game:pay_tax', { use_percentage: usePercentage }, (response: any) => {
+        set({ pendingAction: null });
         if (response.status === 'error') {
           set({ error: response.message });
           showToast(response.message, 'error');
@@ -548,7 +608,10 @@ export const useGameStore = create<GameStore>((set) => {
     },
 
     acceptTrade: (tradeId: string) => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'acceptTrade' });
       socket.emit('trade:accept', { trade_id: tradeId }, (response: any) => {
+        set({ pendingAction: null });
         if (response.status === 'error') {
           set({ error: response.message });
           showToast(response.message, 'error');
@@ -560,7 +623,10 @@ export const useGameStore = create<GameStore>((set) => {
     },
 
     rejectTrade: (tradeId: string) => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'rejectTrade' });
       socket.emit('trade:reject', { trade_id: tradeId }, (response: any) => {
+        set({ pendingAction: null });
         if (response.status === 'error') {
           set({ error: response.message });
           showToast(response.message, 'error');
@@ -572,7 +638,10 @@ export const useGameStore = create<GameStore>((set) => {
     },
 
     cancelTrade: (tradeId: string) => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'cancelTrade' });
       socket.emit('trade:cancel', { trade_id: tradeId }, (response: any) => {
+        set({ pendingAction: null });
         if (response.status === 'error') {
           set({ error: response.message });
           showToast(response.message, 'error');
@@ -584,7 +653,10 @@ export const useGameStore = create<GameStore>((set) => {
     },
 
     kickPlayer: (targetPlayerId: string) => {
+      if (useGameStore.getState().pendingAction) return;
+      set({ pendingAction: 'kickPlayer' });
       socket.emit('room:kick_player', { target_player_id: targetPlayerId }, (response: any) => {
+        set({ pendingAction: null });
         if (response.status === 'error') {
           set({ error: response.message });
           showToast(response.message, 'error');
@@ -604,7 +676,6 @@ export const useGameStore = create<GameStore>((set) => {
 
     leaveGame: () => {
       socket.emit('room:leave');
-      soundManager.stopBackgroundMusic();
       set({
         room: null,
         game: null,

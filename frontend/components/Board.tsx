@@ -195,7 +195,7 @@ const BoardTile = memo(({
           className="h-4 w-full border-b border-white/10 flex items-center justify-center"
           style={{ backgroundColor: tileColor }}
         >
-          {tileIcon && <span className="text-[8px]">{tileIcon}</span>}
+          {tileIcon && <span className="text-[9px] sm:text-[10px]">{tileIcon}</span>}
         </div>
       )}
 
@@ -217,7 +217,7 @@ const BoardTile = memo(({
         </span>
 
         {tile.price && (
-          <span className="text-[9px] md:text-[10px] font-semibold text-primary-400/80 mt-0.5">
+          <span className="text-[10px] md:text-xs font-semibold text-primary-400/80 mt-0.5">
             {formatMoneyShort(tile.price)}
           </span>
         )}
@@ -269,7 +269,7 @@ const BoardTile = memo(({
             title="Mortgaged"
             variants={animations.scaleIn}
           >
-            <span className="text-white text-[6px] font-bold">M</span>
+            <span className="text-white text-[8px] sm:text-[10px] font-bold">M</span>
           </motion.div>
         )}
 
@@ -630,7 +630,7 @@ export const Board = () => {
                   className="mt-1 text-center"
                   variants={animations.fadeIn}
                 >
-                  <p className="text-text-muted text-[10px] md:text-xs mb-2">Buy this property?</p>
+                  <p className="text-text-muted text-xs md:text-sm mb-2">Buy this property?</p>
                   <div className="flex gap-2">
                     <motion.button
                       className="bg-success-500 text-white font-bold py-2.5 px-5 rounded-lg hover:bg-success-600 transition-colors text-xs md:text-sm"
@@ -777,13 +777,13 @@ export const Board = () => {
             >
               DINO-RICHUP
             </motion.h1>
-            <p className="text-text-muted text-[10px] md:text-base font-cyber mt-0.5 md:mt-1 tracking-widest">
+            <p className="text-text-muted text-xs md:text-sm font-cyber mt-0.5 md:mt-1 tracking-widest">
               PAN-INDIA EDITION
             </p>
 
             {/* Compact game stats */}
             {game && (
-              <div className="mt-2 flex items-center justify-center gap-3 text-[10px] text-text-muted">
+              <div className="mt-2 flex items-center justify-center gap-3 text-xs md:text-sm text-text-muted">
                 {(() => {
                   const props = Object.values(game.properties || {});
                   const owned = props.filter((p: any) => p.owner_id).length;

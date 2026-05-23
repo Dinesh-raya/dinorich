@@ -1,8 +1,11 @@
+import json
 import logging
 from typing import Optional, Tuple
 from sockets.server import sio
 from rooms.manager import room_manager
 from engine.turn_manager import turn_manager
+from engine.auction import auction_manager
+from engine.trade_manager import trade_manager
 from schemas.game import GameState
 from schemas.action import TurnState
 from sockets.events import GAME_EVENTS
@@ -38,13 +41,41 @@ def persist_room(room_code: str):
         logger.error(f"Failed to persist room {room_code}: {e}")
 
 
+def _build_runtime_json(room_code: str) -> str:
+    """Build runtime JSON for a room (auction + trade state)."""
+    runtime = {}
+    auction = auction_manager.get_auction(room_code)
+    if auction:
+        runtime["auction"] = auction.model_dump()
+    trade_data = {}
+    for tid, trade in trade_manager.active_trades.items():
+        trade_data[tid] = {
+            "trade_id": trade.trade_id,
+            "from_player_id": trade.from_player_id,
+            "to_player_id": trade.to_player_id,
+            "offering_money": trade.offering_money,
+            "requesting_money": trade.requesting_money,
+            "offering_properties": trade.offering_properties,
+            "requesting_properties": trade.requesting_properties,
+            "offering_get_out_of_jail_cards": trade.offering_get_out_of_jail_cards,
+            "requesting_get_out_of_jail_cards": trade.requesting_get_out_of_jail_cards,
+            "status": trade.status,
+        }
+    if trade_data:
+        runtime["trades"] = trade_data
+    if trade_manager.player_trades:
+        runtime["player_trades"] = trade_manager.player_trades
+    return json.dumps(runtime) if runtime else None
+
+
 def persist_game(room_code: str):
-    """Persist game + turn state to DB (non-blocking best-effort)."""
+    """Persist game + turn + runtime state to DB (non-blocking best-effort)."""
     try:
         game = turn_manager.get_game(room_code)
         turn = turn_manager.get_turn_state(room_code)
         if game and turn:
-            repository.save_game(room_code, game, turn)
+            runtime_json = _build_runtime_json(room_code)
+            repository.save_game(room_code, game, turn, runtime_json)
     except Exception as e:
         logger.error(f"Failed to persist game {room_code}: {e}")
 

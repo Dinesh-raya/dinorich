@@ -1,9 +1,15 @@
+import logging
+
+from pydantic import ValidationError
+
 from sockets.server import sio
 from engine.trade_manager import trade_manager
 from engine.turn_manager import turn_manager
 from services.rate_limiter import rate_limiter
 from sockets.helpers import get_room_code_or_error, emit_game_state, persist_game
 from schemas.contracts import TradeCreatePayload, TradeActionPayload
+
+logger = logging.getLogger(__name__)
 
 @sio.on("trade:create")
 async def trade_create(sid, data):
@@ -21,8 +27,11 @@ async def trade_create(sid, data):
 
     try:
         payload = TradeCreatePayload(**data)
-    except Exception as e:
+    except ValidationError as e:
         return {"status": "error", "message": f"Invalid payload: {e}"}
+    except Exception as e:
+        logger.exception("Error in trade_create")
+        return {"status": "error", "message": "Internal error"}
 
     to_player_id = payload.to_player_id
     offering_money = payload.offering_money
@@ -82,8 +91,11 @@ async def trade_accept(sid, data):
 
     try:
         payload = TradeActionPayload(**data)
-    except Exception as e:
+    except ValidationError as e:
         return {"status": "error", "message": f"Invalid payload: {e}"}
+    except Exception as e:
+        logger.exception("Error in trade_accept")
+        return {"status": "error", "message": "Internal error"}
 
     trade_id = payload.trade_id
     # Save trade data BEFORE accepting (accept_trade deletes it via _cleanup_trade)
@@ -129,8 +141,11 @@ async def trade_reject(sid, data):
 
     try:
         payload = TradeActionPayload(**data)
-    except Exception as e:
+    except ValidationError as e:
         return {"status": "error", "message": f"Invalid payload: {e}"}
+    except Exception as e:
+        logger.exception("Error in trade_reject")
+        return {"status": "error", "message": "Internal error"}
 
     trade_id = payload.trade_id
     # Save sender ID BEFORE rejecting (reject_trade deletes via _cleanup_trade)
@@ -158,8 +173,11 @@ async def trade_cancel(sid, data):
 
     try:
         payload = TradeActionPayload(**data)
-    except Exception as e:
+    except ValidationError as e:
         return {"status": "error", "message": f"Invalid payload: {e}"}
+    except Exception as e:
+        logger.exception("Error in trade_cancel")
+        return {"status": "error", "message": "Internal error"}
 
     trade_id = payload.trade_id
     # Save recipient ID BEFORE canceling (cancel_trade deletes via _cleanup_trade)

@@ -25,9 +25,11 @@ import sockets.trade_events
 from persistence.db import init_db
 from persistence.repository import save_snapshot, load_snapshot
 from rooms.manager import room_manager
+from services.session_manager import session_manager
 from engine.turn_manager import turn_manager
 from engine.auction import auction_manager
-from schemas.action import TurnPhase
+from engine.trade_manager import trade_manager, TradeOffer
+from schemas.action import TurnPhase, AuctionState
 
 async def background_save_loop():
     tick_count = 0
@@ -78,12 +80,23 @@ async def background_save_loop():
                             {"game": cached_game_dump[room_code], "turn": turn.model_dump() if turn else None},
                             room=room_code,
                         )
-                        save_snapshot(room_manager.rooms, turn_manager.games, turn_manager.turn_states)
+                        save_snapshot(room_manager.rooms, turn_manager.games, turn_manager.turn_states,
+                                      auctions=auction_manager.auctions, trade_manager_obj=trade_manager)
                 else:
                     await sio.emit("auction:state_update", {"auction": auction.model_dump()}, room=room_code)
 
             if tick_count % 10 == 0:
-                save_snapshot(room_manager.rooms, turn_manager.games, turn_manager.turn_states)
+                save_snapshot(room_manager.rooms, turn_manager.games, turn_manager.turn_states,
+                              auctions=auction_manager.auctions, trade_manager_obj=trade_manager)
+                # Clean up stale cache entries for rooms that no longer exist
+                stale_keys = set(cached_game_dump) | set(last_emitted_version) | set(last_turn_time)
+                stale_keys = [rc for rc in stale_keys if rc not in room_manager.rooms]
+                for rc in stale_keys:
+                    cached_game_dump.pop(rc, None)
+                    last_emitted_version.pop(rc, None)
+                    last_turn_time.pop(rc, None)
+                # Clean up expired sessions (older than 24h)
+                session_manager.cleanup_expired()
         except asyncio.CancelledError:
             break
         except Exception as e:
@@ -93,7 +106,7 @@ async def background_save_loop():
 async def lifespan(app: FastAPI):
     # Startup
     init_db()
-    loaded_rooms, loaded_games, loaded_turns = load_snapshot()
+    loaded_rooms, loaded_games, loaded_turns, loaded_auctions, loaded_trades = load_snapshot()
     
     room_manager.rooms = loaded_rooms
     turn_manager.games = loaded_games
@@ -103,8 +116,33 @@ async def lifespan(app: FastAPI):
     for room_code, room in loaded_rooms.items():
         for pid in room.players:
             room_manager.player_rooms[pid] = room_code
+    
+    # Restore auction state
+    for room_code, auction_data in loaded_auctions.items():
+        auction_manager.auctions[room_code] = AuctionState.model_validate(auction_data)
+    
+    # Restore trade state
+    for room_code, trade_data in loaded_trades.items():
+        for tid, tdata in trade_data.get("trades", {}).items():
+            if tdata["status"] == "pending":
+                trade = TradeOffer(
+                    trade_id=tdata["trade_id"],
+                    from_player_id=tdata["from_player_id"],
+                    to_player_id=tdata["to_player_id"],
+                    offering_money=tdata["offering_money"],
+                    requesting_money=tdata["requesting_money"],
+                    offering_properties=tdata.get("offering_properties", []),
+                    requesting_properties=tdata.get("requesting_properties", []),
+                    offering_get_out_of_jail_cards=tdata.get("offering_get_out_of_jail_cards", 0),
+                    requesting_get_out_of_jail_cards=tdata.get("requesting_get_out_of_jail_cards", 0),
+                )
+                trade.status = tdata["status"]
+                trade_manager.active_trades[tid] = trade
+        for pid, tids in trade_data.get("player_trades", {}).items():
+            trade_manager.player_trades[pid] = [tid for tid in tids if tid in trade_manager.active_trades]
             
-    logger.info(f"Loaded {len(loaded_rooms)} rooms and {len(loaded_games)} games from DB.")
+    logger.info(f"Loaded {len(loaded_rooms)} rooms, {len(loaded_games)} games, "
+                f"{len(loaded_auctions)} auctions, {len(loaded_trades)} trade sets from DB.")
     
     task = asyncio.create_task(background_save_loop())
     
@@ -112,7 +150,8 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     task.cancel()
-    save_snapshot(room_manager.rooms, turn_manager.games, turn_manager.turn_states)
+    save_snapshot(room_manager.rooms, turn_manager.games, turn_manager.turn_states,
+                  auctions=auction_manager.auctions, trade_manager_obj=trade_manager)
 
 app = FastAPI(title="DINO-RICHUP: PAN-INDIA EDITION API", lifespan=lifespan)
 

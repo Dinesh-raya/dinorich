@@ -96,8 +96,10 @@ class TurnManager:
             if escaped:
                 jail_escape = True
                 if not dice.is_double:
-                    # Non-double jail escape: player stays on jail tile, turn ends
-                    game.add_log(f"{player.name} served maximum jail time and is released")
+                    # Official rules: forced release on 3rd turn — charge fine
+                    fine = GameRules.JAIL_FINE
+                    player.money -= fine
+                    game.add_log(f"{player.name} served maximum jail time, paid ₹{fine:,} fine and is released")
                     turn.can_roll = False
                     turn.can_end_turn = True
                     turn.phase = TurnPhase.END
