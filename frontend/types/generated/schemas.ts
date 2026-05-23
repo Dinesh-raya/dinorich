@@ -68,8 +68,9 @@ export interface KickPlayerPayload {
 
 
 export interface PlayerState {
-  id: string;  // Unique socket ID or session ID for the player
+  id: string;  // Stable session ID for the player
   session_id?: string | null;  // Stable session identity for reconnect
+  socket_id: string;  // Current transport socket ID
   name: string;  // Display name of the player
   position: number;  // Current tile index 0-39
   money: number;  // Current balance in ₹
@@ -132,10 +133,10 @@ export interface RoomSettings {
 
 export interface RoomState {
   room_id: string;  // Unique 4-6 character invite code
-  host_id: string;  // Socket ID of the room host
+  host_id: string;  // Session ID of the room host
   is_private: boolean;  // If true, room should not be listed publicly
   settings: RoomSettings;
-  players: Record<string, PlayerState>;  // Map of socket IDs to PlayerState
+  players: Record<string, PlayerState>;  // Map of session IDs to PlayerState
   status: RoomStatus;  // Room status
 }
 
@@ -147,6 +148,17 @@ export interface RoomUpdateSettingsPayload {
 
 export interface TradeActionPayload {
   trade_id: string;
+}
+
+
+export interface TradeCounterPayload {
+  trade_id: string;
+  offering_money: number;  // Default: 0
+  requesting_money: number;  // Default: 0
+  offering_properties: number[];
+  requesting_properties: number[];
+  offering_get_out_of_jail_cards: number;  // Default: 0
+  requesting_get_out_of_jail_cards: number;  // Default: 0
 }
 
 
