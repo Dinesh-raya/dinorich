@@ -1,9 +1,7 @@
 # DINO-RICHUP: Complete Game Data Reference (Proposed Rebalance — ÷100 Scale)
 
-> **Status:** Proposed. These values do **not** match the current running codebase.
-> The current game uses the original scale (₹X,000). This document proposes a ÷100
-> rebalance for cleaner numbers and better decision-making. Codebase edge-case rules
-> from the current implementation are preserved and annotated.
+> **Status:** Implemented (÷100 scale, active). These values match the current codebase.
+> Codebase edge-case rules are preserved and annotated.
 
 ---
 
