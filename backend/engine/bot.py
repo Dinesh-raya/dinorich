@@ -146,8 +146,7 @@ class BotBrain:
                 if not prop:
                     continue
 
-                # Try to build hotel if we have 4 houses
-                if prop.houses == GameRules.HOUSES_BEFORE_HOTEL or prop.hotels == 0:
+                if prop.houses == GameRules.HOUSES_BEFORE_HOTEL and prop.hotels == 0:
                     can, msg = can_build_hotel(game, player_id, tid)
                     if can and player.money >= house_price * GameRules.HOTEL_PRICE_MULTIPLIER:
                         success, _ = build_hotel(game, player_id, tid)
@@ -193,30 +192,34 @@ class BotBrain:
                     logger.debug(f"Bot {player_id} mortgaged {tid} to resolve debt")
 
     def _pay_tax(self, game: GameState, turn: TurnState, player_id: str):
-        """Pay tax — choose cheaper option."""
+        """Pay tax — choose cheaper option. Luxury Tax is flat only."""
         player = game.room.players[player_id]
 
         if not turn.pending_tax:
             return
 
+        tile_id = turn.pending_tax.get("tile_id")
         flat_amount = turn.pending_tax.get("amount", 0)
 
-        # Calculate 10% of total worth (same logic as turn_manager)
-        total_worth = player.money
-        for pid in player.properties_owned:
-            config = get_board_config().get(pid)
-            if config:
-                total_worth += config.get("price", 0)
-                color = config.get("color")
-                if color:
-                    house_price = GameRules.HOUSE_PRICES.get(color, 0)
-                    prop = game.properties.get(pid)
-                    if prop:
-                        total_worth += prop.houses * house_price
-                        total_worth += prop.hotels * house_price * 5
+        # Luxury Tax (tile 38) is flat only
+        if tile_id == 38:
+            use_percentage = False
+        else:
+            total_worth = player.money
+            for pid in player.properties_owned:
+                config = get_board_config().get(pid)
+                if config:
+                    total_worth += config.get("price", 0)
+                    color = config.get("color")
+                    if color:
+                        house_price = GameRules.HOUSE_PRICES.get(color, 0)
+                        prop = game.properties.get(pid)
+                        if prop:
+                            total_worth += prop.houses * house_price
+                            total_worth += prop.hotels * house_price * 5
 
-        percentage_amount = int(total_worth * 0.1)
-        use_percentage = percentage_amount < flat_amount
+            percentage_amount = int(total_worth * 0.1)
+            use_percentage = percentage_amount < flat_amount
 
         from engine.turn_manager import turn_manager
         turn_manager.pay_tax(game.room.room_id, player_id, use_percentage)
