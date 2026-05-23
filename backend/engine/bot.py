@@ -59,8 +59,8 @@ class BotBrain:
         price = config.get("price", 0)
         color = config.get("color", "")
 
-        # Always buy cheap properties (< 50k)
-        if price <= 50000:
+        # Always buy cheap properties (< 500)
+        if price <= 500:
             return True
 
         # Buy if we have > 3x the price in cash (keep reserve)
@@ -111,7 +111,7 @@ class BotBrain:
 
         # Bid increment: jump to 60-80% of max
         target = int(max_bid * (0.6 + random.random() * 0.2))
-        return max(current_bid + 100, target)
+        return max(current_bid + 1, target)
 
     def decide_build(self, game: GameState, player_id: str) -> bool:
         """Try to build houses/hotels. Returns True if any building happened."""

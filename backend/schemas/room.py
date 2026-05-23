@@ -11,7 +11,7 @@ class RoomStatus(str, Enum):
 
 class RoomSettings(BaseModel):
     max_players: int = Field(6, ge=1, le=6, description="Maximum players allowed (1-6)")
-    starting_cash: int = Field(500000, ge=50000, le=1000000, description="Initial money for each player")
+    starting_cash: int = Field(15000, ge=5000, le=100000, description="Initial money for each player")
     auction_enabled: bool = Field(True, description="Whether auctions are enabled")
     double_rent_enabled: bool = Field(True, description="Whether double rent applies to monopolies")
     mortgage_enabled: bool = Field(True, description="Whether properties can be mortgaged")

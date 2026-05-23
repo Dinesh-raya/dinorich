@@ -12,7 +12,7 @@ from constants.game_rules import GameRules
 # Helpers
 # ---------------------------------------------------------------------------
 
-def make_player(pid: str, name: str, money: int = 150000, color: str = "#ff0000", **kwargs) -> PlayerState:
+def make_player(pid: str, name: str, money: int = 15000, color: str = "#ff0000", **kwargs) -> PlayerState:
     return PlayerState(id=pid, name=name, color=color, money=money, **kwargs)
 
 
@@ -101,7 +101,7 @@ class TestBankruptcyToBank:
 
     def test_buildings_returned_at_half_price(self):
         game = make_test_game()
-        # Guwahati (tile 1, brown) house price = 50000
+        # Guwahati (tile 1, brown) house price = 500
         game.room.players["p1"].properties_owned = [1]
         game.properties[1].owner_id = "p1"
         game.properties[1].houses = 3

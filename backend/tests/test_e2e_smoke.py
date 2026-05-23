@@ -30,7 +30,7 @@ class TestRoomLifecycle:
         game = init_game_state(room)
         assert game is not None
         assert len(game.turn_order) == 1
-        assert game.room.players["test_p1"].money == 500000
+        assert game.room.players["test_p1"].money == 15000
 
 
 @pytest.mark.skip(reason="requires python-socketio in test environment")

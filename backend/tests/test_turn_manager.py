@@ -14,7 +14,7 @@ from constants.game_rules import GameRules
 # Helpers
 # ---------------------------------------------------------------------------
 
-def make_player(pid: str, name: str, money: int = 150000, color: str = "#ff0000", **kwargs) -> PlayerState:
+def make_player(pid: str, name: str, money: int = 15000, color: str = "#ff0000", **kwargs) -> PlayerState:
     return PlayerState(id=pid, name=name, color=color, money=money, **kwargs)
 
 
@@ -195,7 +195,7 @@ class TestProcessRoll:
         result = tm.process_roll("TEST01", "p1")
         turn = result["turn"]
         assert turn.pending_tax is not None
-        assert turn.pending_tax["amount"] == 200000
+        assert turn.pending_tax["amount"] == 2400
 
     @patch("engine.turn_manager.roll_dice")
     def test_returns_none_for_wrong_player(self, mock_roll):
@@ -232,19 +232,19 @@ class TestPayTax:
         game = make_test_game()
         tm = start(game)
         turn = tm.get_turn_state("TEST01")
-        turn.pending_tax = {"amount": 200000, "name": "Income Tax", "tile_id": 4}
+        turn.pending_tax = {"amount": 2400, "name": "Income Tax", "tile_id": 4}
         p1_money = game.room.players["p1"].money
         result = tm.pay_tax("TEST01", "p1")
         assert result is not None
-        assert game.room.players["p1"].money == p1_money - 200000
+        assert game.room.players["p1"].money == p1_money - 2400
         assert turn.pending_tax is None
 
     def test_detects_negative_balance_debt(self):
         game = make_test_game()
         tm = start(game)
-        game.room.players["p1"].money = 50000  # Not enough for 200k tax
+        game.room.players["p1"].money = 1000  # Not enough for 2400 tax
         turn = tm.get_turn_state("TEST01")
-        turn.pending_tax = {"amount": 200000, "name": "Income Tax", "tile_id": 4}
+        turn.pending_tax = {"amount": 2400, "name": "Income Tax", "tile_id": 4}
         result = tm.pay_tax("TEST01", "p1")
         assert result is not None
         assert game.room.players["p1"].money < 0
@@ -306,7 +306,7 @@ class TestPayJailFine:
         tm = start(game)
         player = game.room.players["p1"]
         player.is_in_jail = True
-        player.money = 1000  # Less than JAIL_FINE (5000)
+        player.money = 100  # Less than JAIL_FINE (500)
         assert tm.pay_jail_fine("TEST01", "p1") is None
 
     def test_pay_jail_fine_fails_if_not_in_jail(self):
@@ -400,12 +400,12 @@ class TestPayTaxPercentage:
         game.room.players["p1"].properties_owned = [1, 3]
         tm = start(game)
         turn = tm.get_turn_state("TEST01")
-        turn.pending_tax = {"amount": 200000, "name": "Income Tax", "tile_id": 4}
+        turn.pending_tax = {"amount": 2400, "name": "Income Tax", "tile_id": 4}
         p1 = game.room.players["p1"]
         initial_money = p1.money
         result = tm.pay_tax("TEST01", "p1", use_percentage=True)
         assert result is not None
-        # 10% of (150k cash + 60k tile1 + 60k tile3 + 2*50k houses) = 10% of 370k = 37k
-        expected_tax = int((initial_money + 60000 + 60000 + 2 * 50000) * 0.1)
+        # 10% of (15k cash + 600 tile1 + 600 tile3 + 2*500 houses) = 10% of 17200 = 1720
+        expected_tax = int((initial_money + 600 + 600 + 2 * 500) * 0.1)
         assert p1.money == initial_money - expected_tax
         assert turn.pending_tax is None

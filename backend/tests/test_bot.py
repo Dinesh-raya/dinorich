@@ -10,7 +10,7 @@ from engine.bot import BotBrain, is_bot, get_bot_name, get_bot_color
 from engine.property import get_board_config
 
 
-def make_player(pid: str, name: str, money: int = 500000, color: str = "#ff0000", **kwargs) -> PlayerState:
+def make_player(pid: str, name: str, money: int = 15000, color: str = "#ff0000", **kwargs) -> PlayerState:
     return PlayerState(id=pid, name=name, color=color, money=money, **kwargs)
 
 
@@ -86,13 +86,13 @@ class TestBotIdentifiers:
 
 class TestDecideBuy:
     def test_buy_very_cheap_property(self, brain, game):
-        """Properties ≤50k are always bought."""
-        assert brain.decide_buy(game, "p1", 1) is True  # Guwahati = 60k
+        """Properties ≤500 are always bought."""
+        assert brain.decide_buy(game, "p1", 1) is True  # Guwahati = 600
 
     def test_buy_with_high_cash(self, brain, game):
         """When money > 3x price, always buy."""
         game.room.players["p1"].money = 999999
-        assert brain.decide_buy(game, "p1", 19) is True  # Chennai = 200k
+        assert brain.decide_buy(game, "p1", 19) is True  # Chennai = 2000
 
     def test_buy_completes_monopoly_with_cash(self, brain, game):
         """Buy if it completes a color set and cash ≥ 2x price."""
@@ -105,14 +105,14 @@ class TestDecideBuy:
         """Don't buy if completing monopoly but cash < 2x price."""
         p1 = game.room.players["p1"]
         p1.properties_owned = [1]  # Already owns Guwahati
-        p1.money = 90000  # Less than 2 * 60000
+        p1.money = 1000  # Less than 2 * 600
         assert brain.decide_buy(game, "p1", 3) is False
 
     def test_buy_passes_otherwise(self, brain, game):
         """Default: pass, let it go to auction."""
         p1 = game.room.players["p1"]
         p1.properties_owned = []
-        p1.money = 150000  # Less than 3 * 60000, not completing monopoly
+        p1.money = 1000  # Less than 3 * 600, not completing monopoly
         assert brain.decide_buy(game, "p1", 1) is False
 
     def test_buy_no_player(self, brain, game):
@@ -256,11 +256,11 @@ class TestPayTax:
     def test_choose_percentage_when_cheaper(self, brain, game):
         """Chooses 10% when it costs less than flat amount."""
         p1 = game.room.players["p1"]
-        p1.money = 50000  # Low cash + no properties = 5k at 10%
+        p1.money = 20000  # Low cash + no properties = 2k at 10% (< 2400 flat)
         turn = TurnState(
             active_player_id="p1",
             phase=TurnPhase.ACTION,
-            pending_tax={"amount": 200000, "name": "Income Tax", "tile_id": 4},
+            pending_tax={"amount": 2400, "name": "Income Tax", "tile_id": 4},
         )
 
         with patch("engine.turn_manager.turn_manager.pay_tax") as mock_pay:
@@ -270,15 +270,15 @@ class TestPayTax:
     def test_choose_flat_when_cheaper(self, brain, game):
         """Chooses flat amount when 10% is more expensive."""
         p1 = game.room.players["p1"]
-        # Make player wealthy so 10% > flat 200k
-        p1.properties_owned = [37, 39]  # Mumbai (350k) + Delhi (400k)
+        # Make player wealthy so 10% > flat 2400
+        p1.properties_owned = [37, 39]  # Mumbai (3500) + Delhi (4000)
         p1.money = 5000000
         game.properties[37] = make_property_state(37, owner_id="p1")
         game.properties[39] = make_property_state(39, owner_id="p1")
         turn = TurnState(
             active_player_id="p1",
             phase=TurnPhase.ACTION,
-            pending_tax={"amount": 200000, "name": "Income Tax", "tile_id": 4},
+            pending_tax={"amount": 2400, "name": "Income Tax", "tile_id": 4},
         )
 
         with patch("engine.turn_manager.turn_manager.pay_tax") as mock_pay:

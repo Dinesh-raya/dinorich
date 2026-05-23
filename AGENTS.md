@@ -9,6 +9,14 @@ Indian Monopoly-style multiplayer board game. Backend in Python (FastAPI + pytho
 - DB: None (in-memory game state)
 - CI: GitHub Actions (pytest backend, tsc + vitest frontend)
 
+## Economy (÷100 Rebalance Applied)
+- Starting cash: ₹15,000 | GO reward: ₹1,500 | Jail fine: ₹500
+- Property prices: ₹600 (brown) → ₹4,000 (dark blue)
+- Income Tax: flat ₹2,400 / 10% | Luxury Tax: flat ₹1,500
+- House prices: ₹500 (brown) / ₹600 (light blue) → ₹2,000 (green/dark blue)
+- Airport rent: ₹250 × 2^(owned-1) | Utility rent: die × ₹40 (1) / die × ₹100 (2)
+- See `docs/GAME_DATA_proposed.md` for full reference
+
 ## Key Files
 - `shared/configs/board_config.json` — all tile prices, rents, mortgages
 - `backend/constants/game_rules.py` — game constants (starting cash, jail fine, house prices)

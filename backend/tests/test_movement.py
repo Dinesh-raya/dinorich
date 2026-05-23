@@ -12,7 +12,7 @@ from constants.game_rules import GameRules
 # Helpers
 # ---------------------------------------------------------------------------
 
-def make_player(pid: str, name: str, money: int = 150000, color: str = "#ff0000", **kwargs) -> PlayerState:
+def make_player(pid: str, name: str, money: int = 15000, color: str = "#ff0000", **kwargs) -> PlayerState:
     return PlayerState(id=pid, name=name, color=color, money=money, **kwargs)
 
 

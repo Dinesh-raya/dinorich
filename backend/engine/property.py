@@ -69,11 +69,11 @@ def calculate_rent(game_state: GameState, property_id: int, dice_total: int = 0)
 
     elif config["type"] == "airport":
         owned_airports = sum(1 for p in owner.properties_owned if get_board_config()[p]["type"] == "airport")
-        return 25000 * (2 ** (owned_airports - 1))
+        return 250 * (2 ** (owned_airports - 1))
 
     elif config["type"] == "utility":
         owned_utilities = sum(1 for p in owner.properties_owned if get_board_config()[p]["type"] == "utility")
-        multiplier = 10000 if owned_utilities >= 2 else 4000
+        multiplier = 100 if owned_utilities >= 2 else 40
         return dice_total * multiplier
 
     return 0

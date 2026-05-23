@@ -13,7 +13,7 @@ from constants.game_rules import GameRules
 # Helpers
 # ---------------------------------------------------------------------------
 
-def make_player(pid: str, name: str, money: int = 150000, color: str = "#ff0000", **kwargs) -> PlayerState:
+def make_player(pid: str, name: str, money: int = 15000, color: str = "#ff0000", **kwargs) -> PlayerState:
     return PlayerState(id=pid, name=name, color=color, money=money, **kwargs)
 
 
@@ -113,9 +113,9 @@ class TestExecuteCardAddMoney:
         game = make_test_game()
         engine = CardEngine()
         initial = game.room.players["p1"].money
-        card = make_card("add_money", amount=20000)
+        card = make_card("add_money", amount=200)
         engine.execute_card(game, "p1", card)
-        assert game.room.players["p1"].money == initial + 20000
+        assert game.room.players["p1"].money == initial + 200
 
 
 # ---------------------------------------------------------------------------
@@ -127,23 +127,23 @@ class TestExecuteCardPayMoney:
         game = make_test_game()
         engine = CardEngine()
         initial = game.room.players["p1"].money
-        card = make_card("pay_money", amount=5000)
+        card = make_card("pay_money", amount=50)
         engine.execute_card(game, "p1", card)
-        assert game.room.players["p1"].money == initial - 5000
+        assert game.room.players["p1"].money == initial - 50
 
     def test_pay_money_adds_to_free_parking_if_enabled(self):
         game = make_test_game()
         game.room.settings.free_parking_jackpot = True
         engine = CardEngine()
-        card = make_card("pay_money", amount=5000)
+        card = make_card("pay_money", amount=50)
         engine.execute_card(game, "p1", card)
-        assert game.free_parking_pool == 5000
+        assert game.free_parking_pool == 50
 
     def test_pay_money_no_free_parking_if_disabled(self):
         game = make_test_game()
         game.room.settings.free_parking_jackpot = False
         engine = CardEngine()
-        card = make_card("pay_money", amount=5000)
+        card = make_card("pay_money", amount=50)
         engine.execute_card(game, "p1", card)
         assert game.free_parking_pool == 0
 
@@ -326,9 +326,9 @@ class TestExecuteCardPayPerBuilding:
         game.properties[5] = PropertyState(tile_id=5, owner_id="p1", hotels=1)
         initial_money = game.room.players["p1"].money
         engine = CardEngine()
-        card = make_card("pay_per_building", per_house=4000, per_hotel=20000)
+        card = make_card("pay_per_building", per_house=40, per_hotel=200)
         engine.execute_card(game, "p1", card)
-        expected = 2 * 4000 + 1 * 20000  # 28000
+        expected = 2 * 40 + 1 * 200  # 280
         assert game.room.players["p1"].money == initial_money - expected
 
     def test_adds_to_free_parking_pool_if_enabled(self):
@@ -338,9 +338,9 @@ class TestExecuteCardPayPerBuilding:
         game.properties[1] = PropertyState(tile_id=1, owner_id="p1", houses=1)
         initial_pool = game.free_parking_pool
         engine = CardEngine()
-        card = make_card("pay_per_building", per_house=4000, per_hotel=20000)
+        card = make_card("pay_per_building", per_house=40, per_hotel=200)
         engine.execute_card(game, "p1", card)
-        assert game.free_parking_pool == initial_pool + 4000
+        assert game.free_parking_pool == initial_pool + 40
 
     def test_no_charge_if_no_buildings(self):
         game = make_test_game()
@@ -348,7 +348,7 @@ class TestExecuteCardPayPerBuilding:
         game.properties[1] = PropertyState(tile_id=1, owner_id="p1", houses=0, hotels=0)
         initial_money = game.room.players["p1"].money
         engine = CardEngine()
-        card = make_card("pay_per_building", per_house=4000, per_hotel=20000)
+        card = make_card("pay_per_building", per_house=40, per_hotel=200)
         engine.execute_card(game, "p1", card)
         assert game.room.players["p1"].money == initial_money  # No charge
 
@@ -363,10 +363,10 @@ class TestExecuteCardCollectFromEachPlayer:
         initial_p1_money = game.room.players["p1"].money
         initial_p2_money = game.room.players["p2"].money
         engine = CardEngine()
-        card = make_card("collect_from_each_player", per_player=2000)
+        card = make_card("collect_from_each_player", per_player=20)
         engine.execute_card(game, "p1", card)
-        assert game.room.players["p1"].money == initial_p1_money + 2000
-        assert game.room.players["p2"].money == initial_p2_money - 2000
+        assert game.room.players["p1"].money == initial_p1_money + 20
+        assert game.room.players["p2"].money == initial_p2_money - 20
 
     def test_skips_bankrupt_players(self):
         game = make_test_game()
@@ -374,7 +374,7 @@ class TestExecuteCardCollectFromEachPlayer:
         initial_p1_money = game.room.players["p1"].money
         initial_p2_money = game.room.players["p2"].money
         engine = CardEngine()
-        card = make_card("collect_from_each_player", per_player=2000)
+        card = make_card("collect_from_each_player", per_player=20)
         engine.execute_card(game, "p1", card)
         # p1 doesn't collect from bankrupt p2
         assert game.room.players["p1"].money == initial_p1_money  # No collection

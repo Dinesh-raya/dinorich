@@ -22,7 +22,7 @@ from constants.game_rules import GameRules
 # Helpers
 # ---------------------------------------------------------------------------
 
-def make_player(pid: str, name: str, money: int = 150000, color: str = "#ff0000") -> PlayerState:
+def make_player(pid: str, name: str, money: int = 15000, color: str = "#ff0000") -> PlayerState:
     return PlayerState(id=pid, name=name, color=color, money=money)
 
 
@@ -66,12 +66,12 @@ def add_property(game: GameState, tile_id: int, owner_id: str | None = None,
 class TestBuyProperty:
     def test_deducts_money_sets_owner(self):
         game = make_test_game()
-        add_property(game, 1)  # Guwahati, brown, price 60000
+        add_property(game, 1)  # Guwahati, brown, price 600
         p1 = game.room.players["p1"]
         initial_money = p1.money
         success, msg = buy_property(game, "p1", 1)
         assert success is True
-        assert p1.money == initial_money - 60000
+        assert p1.money == initial_money - 600
         assert game.properties[1].owner_id == "p1"
         assert 1 in p1.properties_owned
 
@@ -85,7 +85,7 @@ class TestBuyProperty:
     def test_fails_when_not_enough_money(self):
         game = make_test_game()
         add_property(game, 1)
-        game.room.players["p1"].money = 10000  # Not enough for 60k
+        game.room.players["p1"].money = 500  # Not enough for 600
         success, msg = buy_property(game, "p1", 1)
         assert success is False
         assert "not enough" in msg.lower()
@@ -98,11 +98,11 @@ class TestBuyProperty:
 class TestCalculateRent:
     def test_base_rent_no_monopoly(self):
         game = make_test_game()
-        # Guwahati (tile 1, brown). Base rent = 2000
+        # Guwahati (tile 1, brown). Base rent = 20
         add_property(game, 1, owner_id="p1")
         # Only own one of two brown properties - no monopoly
         rent = calculate_rent(game, 1)
-        assert rent == 2000
+        assert rent == 20
 
     def test_monopoly_doubles_rent(self):
         game = make_test_game()
@@ -111,23 +111,23 @@ class TestCalculateRent:
         add_property(game, 3, owner_id="p1")
         rent = calculate_rent(game, 1)
         # With double_rent_enabled (default), monopoly doubles base rent
-        assert rent == 4000  # 2000 * 2
+        assert rent == 40  # 20 * 2
 
     def test_rent_with_houses(self):
         game = make_test_game()
         add_property(game, 1, owner_id="p1", houses=3)
         add_property(game, 3, owner_id="p1")
         rent = calculate_rent(game, 1)
-        # rent[3] for Guwahati = 90000
-        assert rent == 90000
+        # rent[3] for Guwahati = 900
+        assert rent == 900
 
     def test_rent_with_hotel(self):
         game = make_test_game()
         add_property(game, 1, owner_id="p1", hotels=1)
         add_property(game, 3, owner_id="p1")
         rent = calculate_rent(game, 1)
-        # rent[5] for Guwahati = 250000
-        assert rent == 250000
+        # rent[5] for Guwahati = 2500
+        assert rent == 2500
 
     def test_mortgaged_property_returns_zero(self):
         game = make_test_game()
@@ -159,7 +159,7 @@ class TestCanBuildHouse:
         game = make_test_game()
         add_property(game, 1, owner_id="p1")
         add_property(game, 3, owner_id="p1")
-        game.room.players["p1"].money = 500000
+        game.room.players["p1"].money = 5000
         ok, msg = can_build_house(game, "p1", 1)
         assert ok is True
 
@@ -169,7 +169,7 @@ class TestCanBuildHouse:
         add_property(game, 6, owner_id="p1", houses=3)
         add_property(game, 8, owner_id="p1", houses=0)
         add_property(game, 9, owner_id="p1", houses=0)
-        game.room.players["p1"].money = 500000
+        game.room.players["p1"].money = 5000
         # Building on tile 6 (3 houses) would make diff=3 vs tile 8 (0) > MAX_HOUSE_DIFFERENCE(1)
         ok, msg = can_build_house(game, "p1", 6)
         assert ok is False
@@ -179,7 +179,7 @@ class TestCanBuildHouse:
         game = make_test_game()
         add_property(game, 1, owner_id="p1", houses=4)
         add_property(game, 3, owner_id="p1", houses=4)
-        game.room.players["p1"].money = 500000
+        game.room.players["p1"].money = 5000
         ok, msg = can_build_house(game, "p1", 1)
         assert ok is False
         assert "maximum" in msg.lower()
@@ -205,8 +205,8 @@ class TestSellHouse:
         ok, msg = sell_house(game, "p1", 1)
         assert ok is True
         assert game.properties[1].houses == 1
-        # Brown house price = 50000, sell at half = 25000
-        assert p1.money == initial_money + 25000
+        # Brown house price = 500, sell at half = 250
+        assert p1.money == initial_money + 250
 
     def test_fails_when_no_houses(self):
         game = make_test_game()
@@ -239,8 +239,8 @@ class TestSellHotel:
         assert ok is True
         assert game.properties[1].hotels == 0
         assert game.properties[1].houses == 4
-        # Brown house_price=50000, hotel_price=50000*5=250000, sell_price=125000
-        assert game.room.players["p1"].money == initial_money + 125000
+        # Brown house_price=500, hotel_price=500*5=2500, sell_price=1250
+        assert game.room.players["p1"].money == initial_money + 1250
 
     def test_fails_when_no_hotel(self):
         game = make_test_game()
@@ -267,8 +267,8 @@ class TestMortgageProperty:
         ok, msg = mortgage_property(game, "p1", 1)
         assert ok is True
         assert game.properties[1].is_mortgaged is True
-        # mortgage value for tile 1 is 30,000 (50% of 60k)
-        assert game.room.players["p1"].money == initial_money + 30000
+        # mortgage value for tile 1 is 300 (50% of 600)
+        assert game.room.players["p1"].money == initial_money + 300
 
     def test_unmortgage_charges_interest(self):
         game = make_test_game()
@@ -277,8 +277,8 @@ class TestMortgageProperty:
         ok, msg = unmortgage_property(game, "p1", 1)
         assert ok is True
         assert game.properties[1].is_mortgaged is False
-        # unmortgage cost = 30,000 * 1.1 = 33,000
-        assert game.room.players["p1"].money == initial_money - 33000
+        # unmortgage cost = 300 * 1.1 = 330
+        assert game.room.players["p1"].money == initial_money - 330
 
     def test_cannot_mortgage_other_players_property(self):
         game = make_test_game()
@@ -311,7 +311,7 @@ class TestBuildHouse:
         ok, msg = build_house(game, "p1", 1)
         assert ok is True
         assert game.properties[1].houses == 1
-        assert game.room.players["p1"].money == initial_money - 50000  # brown house price
+        assert game.room.players["p1"].money == initial_money - 500  # brown house price
 
     def test_fails_without_monopoly(self):
         game = make_test_game()
@@ -347,7 +347,7 @@ class TestBuildHotel:
         add_property(game, 3, owner_id="p1")
         game.properties[1].houses = 4  # Ready for hotel
         game.properties[3].houses = 4  # Both brown properties need 4 houses
-        game.room.players["p1"].money = 500000  # Enough for hotel (250k)
+        game.room.players["p1"].money = 5000  # Enough for hotel (2500)
         initial_money = game.room.players["p1"].money
         initial_houses_in_bank = game.houses_remaining
         ok, msg = build_hotel(game, "p1", 1)
@@ -355,7 +355,7 @@ class TestBuildHotel:
         assert game.properties[1].hotels == 1
         assert game.properties[1].houses == 0
         assert game.houses_remaining == initial_houses_in_bank + 4  # 4 houses returned
-        assert game.room.players["p1"].money == initial_money - 250000  # 50,000 * 5
+        assert game.room.players["p1"].money == initial_money - 2500  # 500 * 5
 
     def test_fails_without_four_houses(self):
         game = make_test_game()

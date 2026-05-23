@@ -6,49 +6,49 @@ from constants.game_rules import GameRules
 
 # Card definitions (template)
 TREASURY_CARDS_TEMPLATE = [
-    {"text": "Advance to GO. Collect ₹20,000", "action": "move_to", "target": 0},
-    {"text": "Bank error in your favor. Collect ₹20,000", "action": "add_money", "amount": 20000},
-    {"text": "Doctor's fees. Pay ₹5,000", "action": "pay_money", "amount": 5000},
+    {"text": "Advance to GO. Collect ₹1,500", "action": "move_to", "target": 0},
+    {"text": "Bank error in your favor. Collect ₹200", "action": "add_money", "amount": 200},
+    {"text": "Doctor's fees. Pay ₹50", "action": "pay_money", "amount": 50},
     {"text": "Get Out of Jail Free card", "action": "get_out_of_jail_free"},
     {"text": "Go directly to Jail. Do not pass GO.", "action": "go_to_jail"},
-    {"text": "Income tax refund. Collect ₹2,000", "action": "add_money", "amount": 2000},
-    {"text": "Pay hospital fees of ₹10,000", "action": "pay_money", "amount": 10000},
-    {"text": "Advance to Bengaluru. If you pass GO, collect ₹20,000", "action": "move_to", "target": 29},
-    {"text": "Life insurance matures. Collect ₹15,000", "action": "add_money", "amount": 15000},
-    {"text": "Pay school fees of ₹5,000", "action": "pay_money", "amount": 5000},
-    {"text": "Received dividend on shares. Collect ₹8,000", "action": "add_money", "amount": 8000},
-    {"text": "Advance to Mumbai Airport. If you pass GO, collect ₹20,000", "action": "move_to", "target": 15},
-    {"text": "Pay your insurance premium of ₹5,000", "action": "pay_money", "amount": 5000},
-    {"text": "You have won second prize in a beauty contest. Collect ₹10,000", "action": "add_money", "amount": 10000},
-    {"text": "Pay electricity bill of ₹7,500", "action": "pay_money", "amount": 7500},
-    {"text": "Consultancy fee. Collect ₹5,000", "action": "add_money", "amount": 5000},
-    {"text": "It's your birthday. Collect ₹2,000 from each player", "action": "collect_from_each_player", "per_player": 2000},
-    {"text": "Property tax due. Pay ₹15,000", "action": "pay_money", "amount": 15000},
-    {"text": "Advance to Jaipur. If you pass GO, collect ₹20,000", "action": "move_to", "target": 11},
-    {"text": "Toothpaste advertisement royalty. Collect ₹3,000", "action": "add_money", "amount": 3000},
+    {"text": "Income tax refund. Collect ₹20", "action": "add_money", "amount": 20},
+    {"text": "Pay hospital fees of ₹100", "action": "pay_money", "amount": 100},
+    {"text": "Advance to Bengaluru. If you pass GO, collect ₹1,500", "action": "move_to", "target": 29},
+    {"text": "Life insurance matures. Collect ₹150", "action": "add_money", "amount": 150},
+    {"text": "Pay school fees of ₹50", "action": "pay_money", "amount": 50},
+    {"text": "Received dividend on shares. Collect ₹80", "action": "add_money", "amount": 80},
+    {"text": "Advance to Mumbai Airport. If you pass GO, collect ₹1,500", "action": "move_to", "target": 15},
+    {"text": "Pay your insurance premium of ₹50", "action": "pay_money", "amount": 50},
+    {"text": "You have won second prize in a beauty contest. Collect ₹100", "action": "add_money", "amount": 100},
+    {"text": "Pay electricity bill of ₹75", "action": "pay_money", "amount": 75},
+    {"text": "Consultancy fee. Collect ₹50", "action": "add_money", "amount": 50},
+    {"text": "It's your birthday. Collect ₹20 from each player", "action": "collect_from_each_player", "per_player": 20},
+    {"text": "Property tax due. Pay ₹150", "action": "pay_money", "amount": 150},
+    {"text": "Advance to Jaipur. If you pass GO, collect ₹1,500", "action": "move_to", "target": 11},
+    {"text": "Toothpaste advertisement royalty. Collect ₹30", "action": "add_money", "amount": 30},
 ]
 
 SURPRISE_CARDS_TEMPLATE = [
-    {"text": "Advance to GO. Collect ₹20,000", "action": "move_to", "target": 0},
-    {"text": "Advance to Delhi. If you pass GO, collect ₹20,000", "action": "move_to", "target": 39},
-    {"text": "Bank pays you dividend of ₹5,000", "action": "add_money", "amount": 5000},
+    {"text": "Advance to GO. Collect ₹1,500", "action": "move_to", "target": 0},
+    {"text": "Advance to Delhi. If you pass GO, collect ₹1,500", "action": "move_to", "target": 39},
+    {"text": "Bank pays you dividend of ₹50", "action": "add_money", "amount": 50},
     {"text": "Get Out of Jail Free card", "action": "get_out_of_jail_free"},
     {"text": "Go back 3 spaces", "action": "move_relative", "spaces": -3},
     {"text": "Go directly to Jail. Do not pass GO.", "action": "go_to_jail"},
-    {"text": "Speeding fine. Pay ₹1,500", "action": "pay_money", "amount": 1500},
-    {"text": "Advance to Chennai. If you pass GO, collect ₹20,000", "action": "move_to", "target": 19},
-    {"text": "Bank gives you a loan repayment. Collect ₹12,000", "action": "add_money", "amount": 12000},
-    {"text": "Go to Kolkata. If you pass GO, collect ₹20,000", "action": "move_to", "target": 26},
-    {"text": "Pay road tax of ₹4,000", "action": "pay_money", "amount": 4000},
+    {"text": "Speeding fine. Pay ₹15", "action": "pay_money", "amount": 15},
+    {"text": "Advance to Chennai. If you pass GO, collect ₹1,500", "action": "move_to", "target": 19},
+    {"text": "Bank gives you a loan repayment. Collect ₹120", "action": "add_money", "amount": 120},
+    {"text": "Go to Kolkata. If you pass GO, collect ₹1,500", "action": "move_to", "target": 26},
+    {"text": "Pay road tax of ₹40", "action": "pay_money", "amount": 40},
     {"text": "Advance to the nearest Utility. If unowned, you may buy it", "action": "move_to_nearest_utility"},
-    {"text": "You are assessed for street repairs. ₹4,000 per house, ₹20,000 per hotel", "action": "pay_per_building", "per_house": 4000, "per_hotel": 20000},
-    {"text": "Your building loan matures. Collect ₹15,000", "action": "add_money", "amount": 15000},
+    {"text": "You are assessed for street repairs. ₹40 per house, ₹200 per hotel", "action": "pay_per_building", "per_house": 40, "per_hotel": 200},
+    {"text": "Your building loan matures. Collect ₹150", "action": "add_money", "amount": 150},
     {"text": "Go back to Goa", "action": "move_to", "target": 3},
-    {"text": "Pay lawyer fees of ₹3,000", "action": "pay_money", "amount": 3000},
+    {"text": "Pay lawyer fees of ₹30", "action": "pay_money", "amount": 30},
     {"text": "Advance to Free Parking", "action": "move_to", "target": 20},
-    {"text": "Collect ₹5,000 consultancy fee", "action": "add_money", "amount": 5000},
-    {"text": "Holiday bonus. Collect ₹3,000", "action": "add_money", "amount": 3000},
-    {"text": "Pay entertainment tax of ₹2,000", "action": "pay_money", "amount": 2000},
+    {"text": "Collect ₹50 consultancy fee", "action": "add_money", "amount": 50},
+    {"text": "Holiday bonus. Collect ₹30", "action": "add_money", "amount": 30},
+    {"text": "Pay entertainment tax of ₹20", "action": "pay_money", "amount": 20},
 ]
 
 
@@ -124,7 +124,6 @@ class CardEngine:
             player.position = new_pos
         elif action == "move_to_nearest_utility":
             from engine.property import get_board_config
-            # Find the nearest utility (tiles 12 or 28)
             utilities = [12, 28]
             current = player.position
             forward_distances = [(u, (u - current) % GameRules.BOARD_SIZE) for u in utilities]
@@ -137,7 +136,6 @@ class CardEngine:
             if config:
                 game_state.add_log(f"{player.name} moved to {config['name']}")
         elif action == "pay_per_building":
-            # Pay per house and per hotel owned
             house_cost = card.get("per_house", 0)
             hotel_cost = card.get("per_hotel", 0)
             houses = 0
@@ -153,7 +151,6 @@ class CardEngine:
                 game_state.free_parking_pool += total
             game_state.add_log(f"{player.name} paid ₹{total} (₹{house_cost} per house x {houses}, ₹{hotel_cost} per hotel x {hotels})")
         elif action == "collect_from_each_player":
-            # Collect from each other player
             amount = card.get("per_player", 0)
             collected = 0
             for pid, other in game_state.room.players.items():

@@ -46,7 +46,7 @@ class TestHandleJailRoll:
     def _make_player(self, jail_turns: int = 0) -> PlayerState:
         return PlayerState(
             id="p1", name="Test", color="#ff0000",
-            money=150000, is_in_jail=True, jail_turns=jail_turns,
+            money=15000, is_in_jail=True, jail_turns=jail_turns,
         )
 
     def _make_dice(self, d1: int, d2: int) -> DiceState:
