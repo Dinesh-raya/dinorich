@@ -1,6 +1,13 @@
 """E2E smoke test: verifies server starts, health endpoint works, and key flows."""
 import pytest
 
+try:
+    import socketio
+    import httpx
+    has_deps = True
+except ImportError:
+    has_deps = False
+
 
 class TestRoomLifecycle:
     """Tests that can run without python-socketio installed."""
@@ -33,7 +40,7 @@ class TestRoomLifecycle:
         assert game.room.players["test_p1"].money == 15000
 
 
-@pytest.mark.skip(reason="requires python-socketio in test environment")
+@pytest.mark.skipif(not has_deps, reason="requires python-socketio and httpx in test environment")
 class TestHealthEndpoint:
     def test_health_returns_ok(self):
         from fastapi.testclient import TestClient

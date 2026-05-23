@@ -409,3 +409,43 @@ class TestPayTaxPercentage:
         expected_tax = int((initial_money + 600 + 600 + 2 * 500) * 0.1)
         assert p1.money == initial_money - expected_tax
         assert turn.pending_tax is None
+
+    def test_pay_tax_10_percent_excludes_mortgaged_properties(self):
+        game = make_test_game()
+        # Add an unmortgaged property and a mortgaged property
+        game.properties[1] = PropertyState(tile_id=1, owner_id="p1", is_mortgaged=True)
+        game.properties[3] = PropertyState(tile_id=3, owner_id="p1", is_mortgaged=False)
+        game.room.players["p1"].properties_owned = [1, 3]
+        
+        tm = start(game)
+        turn = tm.get_turn_state("TEST01")
+        turn.pending_tax = {"amount": 2400, "name": "Income Tax", "tile_id": 4}
+        p1 = game.room.players["p1"]
+        initial_money = p1.money # 15000
+        result = tm.pay_tax("TEST01", "p1", use_percentage=True)
+        assert result is not None
+        
+        # 10% of (15k cash + 0 for mortgaged tile1 + 600 tile3) = 10% of 15600 = 1560
+        expected_tax = int((initial_money + 600) * 0.1)
+        assert p1.money == initial_money - expected_tax
+        assert turn.pending_tax is None
+
+    def test_pay_tax_10_percent_with_debt(self):
+        game = make_test_game()
+        # Force negative money (debt)
+        game.room.players["p1"].money = -5000
+        # Add unmortgaged property
+        game.properties[1] = PropertyState(tile_id=1, owner_id="p1", is_mortgaged=False)
+        game.room.players["p1"].properties_owned = [1]
+        
+        tm = start(game)
+        turn = tm.get_turn_state("TEST01")
+        turn.pending_tax = {"amount": 2400, "name": "Income Tax", "tile_id": 4}
+        p1 = game.room.players["p1"]
+        result = tm.pay_tax("TEST01", "p1", use_percentage=True)
+        assert result is not None
+        
+        # 10% of (-5k cash + 600 tile1) = -440 -> <= 0 worth.
+        # Enforces flat tax amount (2400)
+        assert p1.money == -5000 - 2400
+        assert turn.pending_tax is None

@@ -84,12 +84,13 @@ async def game_dice_roll(sid, data):
 
         await sio.emit(GAME_EVENTS["DICE_RESULT"], result["dice"], room=room_code)
 
-        if result.get("card_drawn"):
+        card_draws = result.get("card_draws") or ([result] if result.get("card_drawn") else [])
+        for draw in card_draws:
             await sio.emit(
                 "card:result",
                 {
-                    "card": result["card_drawn"],
-                    "card_type": result.get("card_type", "unknown"),
+                    "card": draw["card_drawn"],
+                    "card_type": draw.get("card_type", "unknown"),
                     "player_id": sid
                 },
                 room=room_code

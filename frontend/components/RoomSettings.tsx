@@ -22,6 +22,7 @@ interface RoomSettingsType {
   jail_strict_mode: boolean;
   bot_enabled: boolean;
   board_theme: string;
+  mode: string;
 }
 
 export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
@@ -30,7 +31,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
   // Default settings
   const defaultSettings: RoomSettingsType = {
     max_players: 6,
-    starting_cash: 500000,
+    starting_cash: 15000,
     auction_enabled: true,
     double_rent_enabled: true,
     mortgage_enabled: true,
@@ -40,6 +41,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
     jail_strict_mode: true,
     bot_enabled: false,
     board_theme: 'pan_india',
+    mode: 'classic',
   };
 
   // Use room settings if available, otherwise use defaults
@@ -56,9 +58,22 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
 
   const isHost = room?.host_id === myId;
 
+  const MODE_PRESETS: Record<string, Partial<RoomSettingsType>> = {
+    classic: {},
+    casual: { double_rent_enabled: false, free_parking_jackpot: true, jail_strict_mode: false, turn_timer_seconds: 90 },
+    competitive: { double_rent_enabled: true, turn_timer_seconds: 45, bot_enabled: true },
+    turbo: { starting_cash: 10000, turn_timer_seconds: 30, bot_enabled: true },
+    chaos: { starting_cash: 50000, free_parking_jackpot: true, double_rent_enabled: false, turn_timer_seconds: 120, auction_enabled: false, jail_strict_mode: false },
+  };
+
   const handleSettingChange = (key: keyof RoomSettingsType, value: any) => {
     if (!isHost) return;
-    setSettings(prev => ({ ...prev, [key]: value }));
+    if (key === 'mode') {
+      const preset = MODE_PRESETS[value as string] || {};
+      setSettings({ ...defaultSettings, ...preset, mode: value as string });
+    } else {
+      setSettings(prev => ({ ...prev, [key]: value }));
+    }
   };
 
   const handleSave = () => {
@@ -146,6 +161,47 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
 
             {/* Settings Grid */}
             <div className="p-6 space-y-4">
+              {/* Game Mode Section */}
+              <motion.div
+                className="glass-panel p-6 rounded-2xl border border-purple-500/20"
+                variants={animations.fadeIn}
+                style={{
+                  background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%)',
+                  boxShadow: '0 0 30px rgba(168, 85, 247, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+                }}
+              >
+                <h3 className="text-lg font-bold text-purple-300 mb-5 flex items-center gap-2 font-cyber">
+                  <span className="text-xl">🎯</span>
+                  GAME MODE
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                  {[
+                    { id: 'classic', label: 'Classic', icon: '🎲', desc: 'Standard' },
+                    { id: 'casual', label: 'Casual', icon: '🌴', desc: 'Relaxed rules' },
+                    { id: 'competitive', label: 'Competitive', icon: '⚔️', desc: 'Fast & fierce' },
+                    { id: 'turbo', label: 'Turbo', icon: '⚡', desc: 'Quick matches' },
+                    { id: 'chaos', label: 'Chaos', icon: '💥', desc: 'Crazy mode' },
+                  ].map(({ id, label, icon, desc }) => (
+                    <motion.button
+                      key={id}
+                      onClick={() => handleSettingChange('mode', id)}
+                      className={`relative p-3 rounded-xl border-2 transition-all ${
+                        settings.mode === id
+                          ? 'border-purple-500 bg-purple-500/20 shadow-lg shadow-purple-500/20'
+                          : 'border-white/10 bg-surface/30 hover:border-purple-500/30'
+                      }`}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      disabled={!isHost}
+                    >
+                      <div className="text-2xl mb-1">{icon}</div>
+                      <div className="text-sm font-bold text-text-main">{label}</div>
+                      <div className="text-[10px] text-text-muted">{desc}</div>
+                    </motion.button>
+                  ))}
+                </div>
+              </motion.div>
+
               {/* Game Rules Section */}
               <motion.div
                 className="glass-panel p-6 rounded-2xl border border-purple-500/20"
@@ -201,11 +257,11 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                     </div>
                     <div className="flex items-center gap-3">
                       <motion.button
-                        onClick={() => handleSettingChange('starting_cash', Math.max(50000, settings.starting_cash - 50000))}
+                        onClick={() => handleSettingChange('starting_cash', Math.max(5000, settings.starting_cash - 500))}
                         className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-purple-300 hover:bg-purple-500/20 hover:border-purple-500/30 transition-all"
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        disabled={!isHost || settings.starting_cash <= 50000}
+                        disabled={!isHost || settings.starting_cash <= 5000}
                       >
                         −
                       </motion.button>
@@ -215,11 +271,11 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                       </div>
 
                       <motion.button
-                        onClick={() => handleSettingChange('starting_cash', Math.min(1000000, settings.starting_cash + 50000))}
+                        onClick={() => handleSettingChange('starting_cash', Math.min(100000, settings.starting_cash + 500))}
                         className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-purple-300 hover:bg-purple-500/20 hover:border-purple-500/30 transition-all"
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        disabled={!isHost || settings.starting_cash >= 1000000}
+                        disabled={!isHost || settings.starting_cash >= 100000}
                       >
                         +
                       </motion.button>

@@ -10,6 +10,7 @@ import { BankruptModal, GameOverModal } from '../components/BankruptModal';
 import { TradeModal, TradeNotification } from '../components/TradeModal';
 import { CardDrawModal } from '../components/CardDrawModal';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { ReconnectOverlay } from '../components/ReconnectOverlay';
 import { motion } from 'framer-motion';
 import { soundManager } from '../utils/audio';
 import boardData from '../../shared/configs/board_config.json';
@@ -23,6 +24,412 @@ const PLAYER_NAME_POOL = [
 ];
 const getRandomName = () => PLAYER_NAME_POOL[Math.floor(Math.random() * PLAYER_NAME_POOL.length)];
 
+// Helper to calculate standings
+function calculateStandings(players: any, game: any) {
+  const HOUSE_PRICES: Record<string, number> = {
+    brown: 500, light_blue: 600, pink: 1000, orange: 1000,
+    red: 1500, yellow: 1500, green: 2000, dark_blue: 2000
+  };
+  const allPlayers = Object.values(players);
+  return allPlayers.map((p: any) => {
+    const props = (p.properties_owned || []).map((id: number) => game.properties?.[id]).filter(Boolean);
+    const propValue = props.reduce((sum: number, prop: any) => {
+      const config = boardData.tiles.find((t: any) => t.id === prop.tile_id);
+      const price = config?.price || 0;
+      const housePrice = HOUSE_PRICES[config?.color || ''] || 500;
+      return sum + price + (prop.houses || 0) * housePrice + (prop.hotels || 0) * housePrice * 5;
+    }, 0);
+    return {
+      id: p.id,
+      name: p.name,
+      color: p.color,
+      money: p.money,
+      properties: props.length,
+      netWorth: p.money + propValue,
+      isBankrupt: p.is_bankrupt
+    };
+  }).sort((a: any, b: any) => {
+    if (a.isBankrupt && !b.isBankrupt) return 1;
+    if (!a.isBankrupt && b.isBankrupt) return -1;
+    return b.netWorth - a.netWorth;
+  }).map((p: any, i: number) => ({ ...p, rank: i + 1 }));
+}
+
+// Helper to map players for sidebar
+function mapPlayersForSidebar(room: any, game: any, activePlayerId?: string) {
+  if (!room) return [];
+  return Object.values(room.players).map((p: any) => ({
+    id: p.id,
+    name: p.name,
+    color: p.color,
+    money: p.money,
+    position: p.position,
+    connected: p.connected,
+    isHost: p.id === room.host_id,
+    isCurrentTurn: p.id === activePlayerId,
+    is_in_jail: p.is_in_jail,
+    jail_turns: p.jail_turns,
+    properties: game?.properties ? (Object.values(game.properties) as any[]).filter((prop) => prop.owner_id === p.id).map((prop) => prop.tile_id as number) : []
+  }));
+}
+
+// Custom hook for Bankruptcy and Game Over detection
+function useBankruptcyAndGameOver(
+  game: any,
+  myId: string | null,
+  setBankruptPlayer: (p: any) => void,
+  setShowBankruptModal: (show: boolean) => void,
+  setGameWinner: (w: any) => void,
+  setGameStandings: (s: any) => void,
+  setShowGameOverModal: (show: boolean) => void
+) {
+  const prevBankruptStatus = useRef<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (!game) return;
+
+    const players = game.room.players;
+
+    // Check for newly bankrupt players
+    for (const [id, player] of Object.entries(players) as [string, any][]) {
+      const wasBankrupt = prevBankruptStatus.current[id] || false;
+      if (player.is_bankrupt && !wasBankrupt) {
+        const creditorId = game.turn_order.find((tid: string) => tid !== id && !players[tid]?.is_bankrupt);
+        setBankruptPlayer({
+          name: player.name,
+          creditorName: creditorId ? players[creditorId]?.name : undefined
+        });
+        setShowBankruptModal(true);
+      }
+      prevBankruptStatus.current[id] = player.is_bankrupt;
+    }
+
+    // Check for game over
+    const activePlayers = Object.values(players).filter((p: any) => !p.is_bankrupt);
+    if (game.room.status === 'finished' && activePlayers.length === 1) {
+      const winner = activePlayers[0] as any;
+      setGameWinner({
+        name: winner.name,
+        isWinner: winner.id === myId
+      });
+
+      const standings = calculateStandings(players, game);
+      setGameStandings(standings);
+      setShowGameOverModal(true);
+    }
+  }, [game, myId, setBankruptPlayer, setShowBankruptModal, setGameWinner, setGameStandings, setShowGameOverModal]);
+}
+
+// 1. Connection Loading Screen
+function ConnectionScreen({ error }: { error: string | null }) {
+  return (
+    <div className="flex h-screen items-center justify-center bg-background mesh-gradient">
+      <motion.div
+        className="text-center"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <motion.div
+          className="text-7xl mb-6"
+          animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.1, 1] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          🌐
+        </motion.div>
+        <h1 className="text-3xl font-bold text-primary-300 mb-3 font-cyber">Connecting to Server</h1>
+        {error ? (
+          <p className="text-danger-400 font-cyber mb-2">{error}</p>
+        ) : (
+          <p className="text-text-muted font-cyber">Establishing secure connection...</p>
+        )}
+        <div className="mt-6 flex justify-center">
+          <div className="w-48 h-1 bg-surface rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full"
+              animate={{ x: ['-100%', '100%'] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+              style={{ width: '50%' }}
+            />
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// 2. Lobby Screen
+function LobbyScreen({
+  error,
+  name,
+  setName,
+  roomCode,
+  setRoomCode,
+  createRoom,
+  joinRoom
+}: {
+  error: string | null;
+  name: string;
+  setName: (n: string) => void;
+  roomCode: string;
+  setRoomCode: (r: string) => void;
+  createRoom: (name: string) => void;
+  joinRoom: (code: string, name: string) => void;
+}) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background mesh-gradient p-4">
+      <motion.div
+        className="glass-panel-dark p-8 rounded-3xl w-full max-w-md border-2 border-primary-500/30 shadow-2xl"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+      >
+        <div className="text-center mb-8">
+          <motion.div
+            className="text-6xl mb-4"
+            animate={{ y: [0, -8, 0] }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            🦕
+          </motion.div>
+          <h1 className="heading-cyber text-3xl sm:text-4xl lg:text-5xl font-bold text-primary-300 neon-glow mb-2">
+            DINO-RICHUP
+          </h1>
+          <p className="text-text-muted font-cyber tracking-widest text-sm">PAN-INDIA EDITION</p>
+        </div>
+        
+        {error && (
+          <motion.div 
+            className="bg-danger-500/20 border border-danger-500 text-danger-300 p-4 rounded-xl mb-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            {error}
+          </motion.div>
+        )}
+
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm text-text-muted mb-2 font-cyber">YOUR NAME</label>
+            <input
+              className="w-full bg-surface/50 border-2 border-primary-500/30 rounded-xl p-4 text-white placeholder:text-text-muted focus:border-primary-500 focus:outline-none"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="Enter your name"
+            />
+          </div>
+
+          <p className="text-xs text-text-muted text-center">
+            Color will be assigned automatically (unique per player)
+          </p>
+
+          <motion.button
+            className="w-full btn-primary py-4 text-lg font-bold rounded-xl flex items-center justify-center gap-3 min-h-[56px]"
+            onClick={() => {
+              soundManager.playButtonClick();
+              soundManager.playGameStart();
+              createRoom(name || getRandomName());
+            }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <span className="text-2xl">🚀</span>
+            CREATE NEW ROOM
+          </motion.button>
+
+          <div className="flex items-center gap-3 my-4">
+            <div className="h-px bg-white/10 flex-1"></div>
+            <span className="text-text-muted text-sm font-cyber">OR</span>
+            <div className="h-px bg-white/10 flex-1"></div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm text-text-muted mb-2 font-cyber">ROOM CODE</label>
+              <input
+                className="w-full bg-surface/50 border-2 border-accent-500/30 rounded-xl p-4 text-white placeholder:text-text-muted uppercase tracking-widest focus:border-accent-500 focus:outline-none"
+                value={roomCode}
+                onChange={e => setRoomCode(e.target.value.toUpperCase())}
+                placeholder="ABCDEF"
+                maxLength={6}
+              />
+            </div>
+            
+            <motion.button
+              className="w-full btn-accent py-4 text-lg font-bold rounded-xl flex items-center justify-center gap-3 min-h-[56px]"
+              onClick={() => {
+                soundManager.playButtonClick();
+                joinRoom(roomCode, name || getRandomName());
+              }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <span className="text-2xl">🔗</span>
+              JOIN ROOM
+            </motion.button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// 3. Waiting Room Screen
+function WaitingRoomScreen({
+  room,
+  myId,
+  setShowRoomSettings,
+  showRoomSettings
+}: {
+  room: any;
+  myId: string | null;
+  setShowRoomSettings: (show: boolean) => void;
+  showRoomSettings: boolean;
+}) {
+  const isHost = room.host_id === myId;
+  const leaveGame = useGameStore(s => s.leaveGame);
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-background mesh-gradient">
+      <motion.div
+        className="glass-panel-dark p-8 rounded-3xl w-full max-w-2xl border-2 border-primary-500/30 shadow-2xl"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+      >
+        <div className="text-center mb-8">
+          <motion.div
+            className="text-5xl mb-4"
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            🎮
+          </motion.div>
+          <h2 className="heading-cyber text-2xl sm:text-3xl lg:text-4xl font-bold text-primary-300 mb-2">WAITING ROOM</h2>
+          <p className="text-text-muted font-cyber">Share this code with friends:</p>
+          <div className="inline-block mt-4">
+            <motion.div
+              className="text-3xl sm:text-5xl font-bold tracking-[0.15em] sm:tracking-[0.3em] text-accent-400 bg-surface/50 px-6 sm:px-10 py-3 sm:py-5 rounded-2xl border-2 border-accent-500/30 neon-glow-accent font-mono"
+              animate={{ boxShadow: ['0 0 15px rgba(168, 85, 247, 0.3)', '0 0 30px rgba(168, 85, 247, 0.5)', '0 0 15px rgba(168, 85, 247, 0.3)'] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              {room.room_id}
+            </motion.div>
+            <p className="text-sm text-text-muted mt-3 font-cyber">Room will start when all players join</p>
+          </div>
+
+          {/* Network Share Link */}
+          <div className="mt-6 glass-panel p-4 rounded-xl border border-primary-500/20 max-w-sm mx-auto">
+            <p className="text-primary-300 text-sm font-bold mb-2">LAN Play</p>
+            <p className="text-text-muted text-xs mb-3">Friends on same WiFi open this link, then enter room code:</p>
+            <div className="flex items-center gap-2 bg-surface/50 rounded-lg p-2">
+              <code className="text-primary-400 text-sm flex-1 font-mono">
+                {`http://${window.location.host}`}
+              </code>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`http://${window.location.host}`);
+                  showToast('Link copied!', 'success');
+                }}
+                className="glass-button px-3 py-1.5 rounded-lg text-xs min-h-[32px]"
+              >
+                📋 Copy
+              </button>
+            </div>
+            <p className="text-text-muted/50 text-[10px] mt-2">Room code: {room.room_id}</p>
+          </div>
+        </div>
+        
+        <div className="mb-8">
+          <h3 className="text-xl font-bold text-primary-300 mb-4 flex items-center gap-2">
+            <span className="text-2xl">👥</span>
+            PLAYERS ({Object.values(room.players).length}/6)
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {Object.values(room.players).map((p: any, index) => (
+              <motion.div
+                key={p.id}
+                className="glass-panel p-4 rounded-xl border border-white/10 flex items-center justify-between"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ scale: 1.02, borderColor: 'rgba(34, 211, 238, 0.3)' }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-full border-2 shadow-lg"
+                    style={{
+                      backgroundColor: p.color,
+                      borderColor: p.color,
+                      boxShadow: `0 0 12px ${p.color}40`
+                    }}
+                  ></div>
+                  <div>
+                    <p className="font-bold text-text-main text-sm">{p.name}</p>
+                    <p className="text-xs text-text-muted font-cyber">
+                      {p.id === room.host_id ? '👑 Host' : 'Player'}
+                    </p>
+                  </div>
+                </div>
+                <div className={`w-3 h-3 rounded-full ${p.connected ? 'bg-success-500 animate-pulse' : 'bg-danger-500'}`}
+                  style={{ boxShadow: p.connected ? '0 0 8px rgba(34, 197, 94, 0.5)' : '0 0 8px rgba(239, 68, 68, 0.5)' }}
+                ></div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-4">
+          <motion.button
+            onClick={() => {
+              soundManager.playButtonClick();
+              leaveGame();
+            }}
+            className="btn-ghost flex-1 py-4 rounded-xl border border-danger-500/30 text-danger-400 hover:bg-danger-500/10 min-h-[56px]"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            🚪 Leave Room
+          </motion.button>
+
+          <motion.button
+            onClick={() => {
+              soundManager.playButtonClick();
+              setShowRoomSettings(true);
+            }}
+            className="btn-ghost flex-1 py-4 rounded-xl min-h-[56px]"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            ⚙️ Room Settings
+          </motion.button>
+          
+          {isHost && (
+            <motion.button
+              className="btn-primary flex-1 py-4 text-lg font-bold rounded-xl min-h-[56px]"
+              onClick={() => {
+                soundManager.playButtonClick();
+                soundManager.playGameStart();
+                useGameStore.getState().startGame();
+              }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              🚀 START GAME
+            </motion.button>
+          )}
+        </div>
+      </motion.div>
+
+      <RoomSettings 
+        isOpen={showRoomSettings} 
+        onClose={() => setShowRoomSettings(false)} 
+      />
+    </div>
+  );
+}
+
 function App() {
   const connected = useGameStore(s => s.connected);
   const room = useGameStore(s => s.room);
@@ -34,6 +441,7 @@ function App() {
   const myId = useGameStore(s => s.myId);
   const incomingTrade = useGameStore(s => s.incomingTrade);
   const leaveGame = useGameStore(s => s.leaveGame);
+  
   const [name, setName] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [showRoomSettings, setShowRoomSettings] = useState(false);
@@ -46,7 +454,6 @@ function App() {
   const [gameStandings, setGameStandings] = useState<any[]>([]);
   const [showTradeModal, setShowTradeModal] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
-  const prevBankruptStatus = useRef<Record<string, boolean>>({});
 
   useEffect(() => {
     connect();
@@ -62,340 +469,47 @@ function App() {
     return () => clearTimeout(timer);
   }, [room, game]);
 
-  // Detect bankruptcy and game over
-  useEffect(() => {
-    if (!game) return;
-
-    const players = game.room.players;
-
-    // Check for newly bankrupt players
-    for (const [id, player] of Object.entries(players)) {
-      const wasBankrupt = prevBankruptStatus.current[id] || false;
-      if (player.is_bankrupt && !wasBankrupt) {
-        // Find creditor (player who received assets)
-        const creditorId = game.turn_order.find(tid => tid !== id && !players[tid]?.is_bankrupt);
-        setBankruptPlayer({
-          name: player.name,
-          creditorName: creditorId ? players[creditorId]?.name : undefined
-        });
-        setShowBankruptModal(true);
-      }
-      prevBankruptStatus.current[id] = player.is_bankrupt;
-    }
-
-    // Check for game over
-    const activePlayers = Object.values(players).filter(p => !p.is_bankrupt);
-    if (game.room.status === 'finished' && activePlayers.length === 1) {
-      const winner = activePlayers[0];
-      setGameWinner({
-        name: winner.name,
-        isWinner: winner.id === myId
-      });
-
-      // Compute final standings
-      const HOUSE_PRICES: Record<string, number> = {
-        brown: 50000, light_blue: 50000, pink: 100000, orange: 100000,
-        red: 150000, yellow: 150000, green: 200000, dark_blue: 200000
-      };
-      const allPlayers = Object.values(players);
-      const standings = allPlayers.map(p => {
-        const props = (p.properties_owned || []).map((id: number) => game.properties?.[id]).filter(Boolean);
-        const propValue = props.reduce((sum: number, prop: any) => {
-          const config = boardData.tiles.find((t: any) => t.id === prop.tile_id);
-          const price = config?.price || 0;
-          const housePrice = HOUSE_PRICES[config?.color || ''] || 50000;
-          return sum + price + (prop.houses || 0) * housePrice + (prop.hotels || 0) * housePrice * 5;
-        }, 0);
-        return {
-          id: p.id,
-          name: p.name,
-          color: p.color,
-          money: p.money,
-          properties: props.length,
-          netWorth: p.money + propValue,
-          isBankrupt: p.is_bankrupt
-        };
-      }).sort((a, b) => {
-        if (a.isBankrupt && !b.isBankrupt) return 1;
-        if (!a.isBankrupt && b.isBankrupt) return -1;
-        return b.netWorth - a.netWorth;
-      }).map((p, i) => ({ ...p, rank: i + 1 }));
-
-      setGameStandings(standings);
-      setShowGameOverModal(true);
-    }
-  }, [game, myId]);
+  // Handle bankruptcy and game over logic via hook
+  useBankruptcyAndGameOver(
+    game,
+    myId,
+    setBankruptPlayer,
+    setShowBankruptModal,
+    setGameWinner,
+    setGameStandings,
+    setShowGameOverModal
+  );
 
   if (!connected) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background mesh-gradient">
-        <motion.div
-          className="text-center"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <motion.div
-            className="text-7xl mb-6"
-            animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.1, 1] }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            🌐
-          </motion.div>
-          <h1 className="text-3xl font-bold text-primary-300 mb-3 font-cyber">Connecting to Server</h1>
-          {error ? (
-            <p className="text-danger-400 font-cyber mb-2">{error}</p>
-          ) : (
-            <p className="text-text-muted font-cyber">Establishing secure connection...</p>
-          )}
-          <div className="mt-6 flex justify-center">
-            <div className="w-48 h-1 bg-surface rounded-full overflow-hidden">
-              <motion.div
-                className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full"
-                animate={{ x: ['-100%', '100%'] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-                style={{ width: '50%' }}
-              />
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    );
+    return <ConnectionScreen error={error} />;
   }
 
-  // Lobby
   if (!room) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background mesh-gradient p-4">
-        <motion.div
-          className="glass-panel-dark p-8 rounded-3xl w-full max-w-md border-2 border-primary-500/30 shadow-2xl"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-        >
-          <div className="text-center mb-8">
-            <motion.div
-              className="text-6xl mb-4"
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              🦕
-            </motion.div>
-            <h1 className="heading-cyber text-3xl sm:text-4xl lg:text-5xl font-bold text-primary-300 neon-glow mb-2">
-              DINO-RICHUP
-            </h1>
-            <p className="text-text-muted font-cyber tracking-widest text-sm">PAN-INDIA EDITION</p>
-          </div>
-          
-          {error && (
-            <motion.div 
-              className="bg-danger-500/20 border border-danger-500 text-danger-300 p-4 rounded-xl mb-6"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              {error}
-            </motion.div>
-          )}
-
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm text-text-muted mb-2 font-cyber">YOUR NAME</label>
-              <input
-                className="w-full bg-surface/50 border-2 border-primary-500/30 rounded-xl p-4 text-white placeholder:text-text-muted focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="Enter your name"
-              />
-            </div>
-
-            <p className="text-xs text-text-muted text-center">
-              Color will be assigned automatically (unique per player)
-            </p>
-
-            <motion.button
-              className="w-full btn-primary py-4 text-lg font-bold rounded-xl flex items-center justify-center gap-3"
-              onClick={() => {
-                soundManager.playButtonClick();
-                soundManager.playGameStart();
-                createRoom(name || getRandomName());
-              }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <span className="text-2xl">🚀</span>
-              CREATE NEW ROOM
-            </motion.button>
-
-            <div className="flex items-center gap-3 my-4">
-              <div className="h-px bg-white/10 flex-1"></div>
-              <span className="text-text-muted text-sm font-cyber">OR</span>
-              <div className="h-px bg-white/10 flex-1"></div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm text-text-muted mb-2 font-cyber">ROOM CODE</label>
-                <input
-                  className="w-full bg-surface/50 border-2 border-accent-500/30 rounded-xl p-4 text-white placeholder:text-text-muted uppercase tracking-widest focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-500/50"
-                  value={roomCode}
-                  onChange={e => setRoomCode(e.target.value.toUpperCase())}
-                  placeholder="ABCDEF"
-                  maxLength={6}
-                />
-              </div>
-              
-              <motion.button
-                className="w-full btn-accent py-4 text-lg font-bold rounded-xl flex items-center justify-center gap-3"
-                onClick={() => {
-                  soundManager.playButtonClick();
-                  joinRoom(roomCode, name || getRandomName());
-                }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <span className="text-2xl">🔗</span>
-                JOIN ROOM
-              </motion.button>
-            </div>
-          </div>
-        </motion.div>
-      </div>
+      <LobbyScreen 
+        error={error}
+        name={name}
+        setName={setName}
+        roomCode={roomCode}
+        setRoomCode={setRoomCode}
+        createRoom={createRoom}
+        joinRoom={joinRoom}
+      />
     );
   }
 
-  // Waiting Room
   if (room.status === 'waiting') {
-    const isHost = room.host_id === myId;
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-background mesh-gradient">
-        <motion.div
-          className="glass-panel-dark p-8 rounded-3xl w-full max-w-2xl border-2 border-primary-500/30 shadow-2xl"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-        >
-          <div className="text-center mb-8">
-            <motion.div
-              className="text-5xl mb-4"
-              animate={{ scale: [1, 1.05, 1] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              🎮
-            </motion.div>
-            <h2 className="heading-cyber text-2xl sm:text-3xl lg:text-4xl font-bold text-primary-300 mb-2">WAITING ROOM</h2>
-            <p className="text-text-muted font-cyber">Share this code with friends:</p>
-            <div className="inline-block mt-4">
-              <motion.div
-                className="text-3xl sm:text-5xl font-bold tracking-[0.15em] sm:tracking-[0.3em] text-accent-400 bg-surface/50 px-6 sm:px-10 py-3 sm:py-5 rounded-2xl border-2 border-accent-500/30 neon-glow-accent font-mono"
-                animate={{ boxShadow: ['0 0 15px rgba(168, 85, 247, 0.3)', '0 0 30px rgba(168, 85, 247, 0.5)', '0 0 15px rgba(168, 85, 247, 0.3)'] }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-              >
-                {room.room_id}
-              </motion.div>
-              <p className="text-sm text-text-muted mt-3 font-cyber">Room will start when all players join</p>
-            </div>
-
-            {/* Network Share Link */}
-            <div className="mt-6 glass-panel p-4 rounded-xl border border-primary-500/20 max-w-sm mx-auto">
-              <p className="text-primary-300 text-sm font-bold mb-2">LAN Play</p>
-              <p className="text-text-muted text-xs mb-3">Friends on same WiFi open this link, then enter room code:</p>
-              <div className="flex items-center gap-2 bg-surface/50 rounded-lg p-2">
-                <code className="text-primary-400 text-sm flex-1 font-mono">
-                  {`http://${window.location.hostname}:8000`}
-                </code>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(`http://${window.location.hostname}:8000`);
-                    showToast('Link copied!', 'success');
-                  }}
-                  className="glass-button px-3 py-1.5 rounded-lg text-xs"
-                >
-                  📋 Copy
-                </button>
-              </div>
-              <p className="text-text-muted/50 text-[10px] mt-2">Room code: {room.room_id}</p>
-            </div>
-          </div>
-          
-          <div className="mb-8">
-            <h3 className="text-xl font-bold text-primary-300 mb-4 flex items-center gap-2">
-              <span className="text-2xl">👥</span>
-              PLAYERS ({Object.values(room.players).length}/6)
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {Object.values(room.players).map((p, index) => (
-                <motion.div
-                  key={p.id}
-                  className="glass-panel p-4 rounded-xl border border-white/10 flex items-center justify-between"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  whileHover={{ scale: 1.02, borderColor: 'rgba(34, 211, 238, 0.3)' }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-full border-2 shadow-lg"
-                      style={{
-                        backgroundColor: p.color,
-                        borderColor: p.color,
-                        boxShadow: `0 0 12px ${p.color}40`
-                      }}
-                    ></div>
-                    <div>
-                      <p className="font-bold text-text-main">{p.name}</p>
-                      <p className="text-xs text-text-muted font-cyber">
-                        {p.id === room.host_id ? '👑 Host' : 'Player'}
-                      </p>
-                    </div>
-                  </div>
-                  <div className={`w-3 h-3 rounded-full ${p.connected ? 'bg-success-500 animate-pulse' : 'bg-danger-500'}`}
-                    style={{ boxShadow: p.connected ? '0 0 8px rgba(34, 197, 94, 0.5)' : '0 0 8px rgba(239, 68, 68, 0.5)' }}
-                  ></div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4">
-            <motion.button
-              onClick={() => {
-                soundManager.playButtonClick();
-                setShowRoomSettings(true);
-              }}
-              className="btn-ghost flex-1 py-4 rounded-xl"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              ⚙️ Room Settings
-            </motion.button>
-            
-            {isHost && (
-              <motion.button
-                className="btn-primary flex-1 py-4 text-lg font-bold rounded-xl"
-                onClick={() => {
-                  soundManager.playButtonClick();
-                  soundManager.playGameStart();
-                  useGameStore.getState().startGame();
-                }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                🚀 START GAME
-              </motion.button>
-            )}
-          </div>
-        </motion.div>
-
-        <RoomSettings 
-          isOpen={showRoomSettings} 
-          onClose={() => setShowRoomSettings(false)} 
-        />
-      </div>
+      <WaitingRoomScreen 
+        room={room}
+        myId={myId}
+        setShowRoomSettings={setShowRoomSettings}
+        showRoomSettings={showRoomSettings}
+      />
     );
   }
 
-  if (!game) {
+  if (!game || !game.turn_order) {
     return (
       <div className="flex h-screen items-center justify-center bg-background mesh-gradient">
         <motion.div
@@ -434,17 +548,10 @@ function App() {
     );
   }
 
-  // Game Board
-  if (!game || !game.turn_order) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="text-text-muted text-lg">Loading game...</div>
-      </div>
-    );
-  }
   const activePlayerId = game.turn_order[game.current_turn_index];
   const activePlayerName = activePlayerId ? game.room.players?.[activePlayerId]?.name : 'Unknown';
   const myMoney = myId ? game.room.players?.[myId]?.money : undefined;
+  const sidebarPlayers = mapPlayersForSidebar(room, game, activePlayerId);
 
   return (
     <ErrorBoundary>
@@ -453,7 +560,7 @@ function App() {
       <div className="lg:hidden flex items-center justify-between p-3 border-b border-white/10 bg-surface/50 backdrop-blur-sm">
         <button
           onClick={() => setShowMobileMenu(!showMobileMenu)}
-          className="glass-button p-2 rounded-lg"
+          className="glass-button p-2 rounded-lg min-h-[36px]"
         >
           <span className="text-xl">☰</span>
         </button>
@@ -492,8 +599,9 @@ function App() {
             onClick={() => {
               soundManager.playButtonClick();
               navigator.clipboard.writeText(room?.room_id || '');
+              showToast('Room code copied to clipboard!', 'success');
             }}
-            className="glass-button px-3 py-2 rounded-xl text-xs flex items-center gap-1.5"
+            className="glass-button px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 min-h-[36px]"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             title="Copy Room Code"
@@ -506,7 +614,7 @@ function App() {
               soundManager.playButtonClick();
               setShowTradeModal(true);
             }}
-            className="glass-button px-3 py-2 rounded-xl text-xs flex items-center gap-1.5"
+            className="glass-button px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 min-h-[36px]"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             title="Trade"
@@ -519,7 +627,7 @@ function App() {
               soundManager.playButtonClick();
               setShowAudioSettings(true);
             }}
-            className="glass-button px-3 py-2 rounded-xl"
+            className="glass-button px-3 py-2 rounded-xl min-h-[36px]"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -531,7 +639,7 @@ function App() {
               soundManager.playButtonClick();
               setShowRoomSettings(true);
             }}
-            className="glass-button px-3 py-2 rounded-xl"
+            className="glass-button px-3 py-2 rounded-xl min-h-[36px]"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -574,7 +682,7 @@ function App() {
                       setShowAudioSettings(true);
                       setShowMobileMenu(false);
                     }}
-                    className="w-full glass-button p-4 rounded-xl flex items-center gap-3"
+                    className="w-full glass-button p-4 rounded-xl flex items-center gap-3 min-h-[52px]"
                   >
                     <span className="text-xl">🔊</span>
                     <span className="font-medium">Audio Settings</span>
@@ -586,7 +694,7 @@ function App() {
                       setShowRoomSettings(true);
                       setShowMobileMenu(false);
                     }}
-                    className="w-full glass-button p-4 rounded-xl flex items-center gap-3"
+                    className="w-full glass-button p-4 rounded-xl flex items-center gap-3 min-h-[52px]"
                   >
                     <span className="text-xl">⚙️</span>
                     <span className="font-medium">Room Settings</span>
@@ -594,19 +702,7 @@ function App() {
                 </div>
 
                 <PlayerSidebar
-                  players={Object.values(room.players).map((p: any) => ({
-                    id: p.id,
-                    name: p.name,
-                    color: p.color,
-                    money: p.money,
-                    position: p.position,
-                    connected: p.connected,
-                    isHost: p.id === room.host_id,
-                    isCurrentTurn: p.id === activePlayerId,
-                    is_in_jail: p.is_in_jail,
-                    jail_turns: p.jail_turns,
-                    properties: game?.properties ? Object.values(game.properties).filter((prop: any) => prop.owner_id === p.id) : []
-                  }))}
+                  players={sidebarPlayers}
                   currentPlayerId={myId || undefined}
                   activePlayerId={activePlayerId}
                   compact
@@ -633,19 +729,7 @@ function App() {
           <div className="h-full overflow-y-auto scrollbar-hide">
             <ErrorBoundary>
             <PlayerSidebar
-              players={Object.values(room.players).map((p: any) => ({
-                id: p.id,
-                name: p.name,
-                color: p.color,
-                money: p.money,
-                position: p.position,
-                connected: p.connected,
-                isHost: p.id === room.host_id,
-                isCurrentTurn: p.id === activePlayerId,
-                is_in_jail: p.is_in_jail,
-                jail_turns: p.jail_turns,
-                properties: game?.properties ? Object.values(game.properties).filter((prop: any) => prop.owner_id === p.id) : []
-              }))}
+              players={sidebarPlayers}
               currentPlayerId={myId || undefined}
               activePlayerId={activePlayerId}
               compact
@@ -653,7 +737,6 @@ function App() {
             </ErrorBoundary>
           </div>
         </motion.div>
-
 
         {/* Mobile Bottom Bar */}
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface/90 backdrop-blur-xl border-t border-white/10 p-3 safe-bottom z-30">
@@ -668,8 +751,9 @@ function App() {
                 onClick={() => {
                   soundManager.playButtonClick();
                   navigator.clipboard.writeText(room?.room_id || '');
+                  showToast('Room code copied!', 'success');
                 }}
-                className="glass-button p-3 rounded-lg text-xs"
+                className="glass-button p-3 rounded-lg text-xs min-h-[44px]"
                 title="Copy Room Code"
               >
                 📋
@@ -684,7 +768,7 @@ function App() {
                     });
                   }
                 }}
-                className="glass-button p-3 rounded-lg text-xs"
+                className="glass-button p-3 rounded-lg text-xs min-h-[44px]"
                 title="Share Room"
               >
                 📤
@@ -694,7 +778,7 @@ function App() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowMobileMenu(true)}
-                className="glass-button p-3 rounded-xl"
+                className="glass-button p-3 rounded-xl min-h-[44px]"
               >
                 <span className="text-lg">👥</span>
               </button>
@@ -704,7 +788,7 @@ function App() {
                   soundManager.playButtonClick();
                   setShowTradeModal(true);
                 }}
-                className="glass-button p-3 rounded-xl"
+                className="glass-button p-3 rounded-xl min-h-[44px]"
                 title="Trade"
               >
                 <span className="text-lg">🤝</span>
@@ -715,7 +799,7 @@ function App() {
                   soundManager.playButtonClick();
                   setShowAudioSettings(true);
                 }}
-                className="glass-button p-3 rounded-xl"
+                className="glass-button p-3 rounded-xl min-h-[44px]"
               >
                 <span className="text-lg">🔊</span>
               </button>
@@ -725,7 +809,7 @@ function App() {
                   soundManager.playButtonClick();
                   setShowRoomSettings(true);
                 }}
-                className="glass-button p-3 rounded-xl"
+                className="glass-button p-3 rounded-xl min-h-[44px]"
               >
                 <span className="text-lg">⚙️</span>
               </button>
@@ -771,6 +855,7 @@ function App() {
 
       {/* Card Draw Modal */}
       <CardDrawModal />
+      <ReconnectOverlay connected={connected} hasRoom={!!room} />
     </div>
     </ErrorBoundary>
   );

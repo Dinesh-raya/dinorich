@@ -73,8 +73,14 @@ def calculate_rent(game_state: GameState, property_id: int, dice_total: int = 0)
 
     elif config["type"] == "utility":
         owned_utilities = sum(1 for p in owner.properties_owned if get_board_config()[p]["type"] == "utility")
-        multiplier = 100 if owned_utilities >= 2 else 40
-        return dice_total * multiplier
+        if property_id == 12:  # NTPC Power — exponential surge pricing
+            multiplier = 10 if owned_utilities >= 2 else 5
+            return dice_total * dice_total * multiplier
+        elif property_id == 28:  # Jal Jeevan Water — scarcity pricing tied to alive players
+            alive_players = sum(1 for p in game_state.room.players.values() if not p.is_bankrupt)
+            if owned_utilities >= 2:
+                return dice_total * 60 + 40 * alive_players
+            return dice_total * 30 + 20 * alive_players
 
     return 0
 
@@ -128,6 +134,9 @@ def unmortgage_property(game_state: GameState, player_id: str, property_id: int)
     game_state.add_log(f"{player.name} unmortgaged {config['name']} for ₹{unmortgage_cost}")
     return True, "Unmortgaged successfully"
 
+def _get_effective_houses(prop_state) -> int:
+    return prop_state.houses + 5 * prop_state.hotels
+
 def can_build_house(game_state: GameState, player_id: str, property_id: int) -> tuple[bool, str]:
     """Check if a player can build a house on a property."""
     prop_state = game_state.properties.get(property_id)
@@ -154,9 +163,10 @@ def can_build_house(game_state: GameState, player_id: str, property_id: int) -> 
     
     # Check even building rule (cannot have more than 1 house difference between properties in same color group)
     other_props_in_group = [game_state.properties[p_id] for p_id in color_group_ids if p_id != property_id]
-    current_houses = prop_state.houses
+    current_effective = _get_effective_houses(prop_state)
     for other_prop in other_props_in_group:
-        if current_houses - other_prop.houses > GameRules.MAX_HOUSE_DIFFERENCE:
+        other_effective = _get_effective_houses(other_prop)
+        if (current_effective + 1) - other_effective > GameRules.MAX_HOUSE_DIFFERENCE:
             return False, "Must build evenly across properties in color group"
     
     # Check if player has enough money
@@ -226,7 +236,7 @@ def can_build_hotel(game_state: GameState, player_id: str, property_id: int) -> 
     # Check even building rule for hotels (all properties in group must have at least HOUSES_BEFORE_HOTEL houses)
     other_props_in_group = [game_state.properties[p_id] for p_id in color_group_ids if p_id != property_id]
     for other_prop in other_props_in_group:
-        if other_prop.houses < GameRules.HOUSES_BEFORE_HOTEL:
+        if other_prop.hotels == 0 and other_prop.houses < GameRules.HOUSES_BEFORE_HOTEL:
             return False, f"All properties in color group must have at least {GameRules.HOUSES_BEFORE_HOTEL} houses before building hotel"
     
     # Check bank hotel supply
@@ -287,9 +297,10 @@ def sell_house(game_state: GameState, player_id: str, property_id: int) -> tuple
     # Check even building rule (cannot create >1 house difference)
     color_group_ids = [k for k, v in get_board_config().items() if v.get("color") == color]
     other_props_in_group = [game_state.properties[p_id] for p_id in color_group_ids if p_id != property_id]
-    current_houses = prop_state.houses
+    current_effective = _get_effective_houses(prop_state)
     for other_prop in other_props_in_group:
-        if (current_houses - 1) < other_prop.houses - GameRules.MAX_HOUSE_DIFFERENCE:
+        other_effective = _get_effective_houses(other_prop)
+        if (current_effective - 1) < other_effective - GameRules.MAX_HOUSE_DIFFERENCE:
             return False, "Cannot sell house - would create uneven development"
     
     player = game_state.room.players[player_id]
@@ -320,7 +331,8 @@ def sell_hotel(game_state: GameState, player_id: str, property_id: int) -> tuple
     color_group_ids = [k for k, v in get_board_config().items() if v.get("color") == color]
     other_props_in_group = [game_state.properties[p_id] for p_id in color_group_ids if p_id != property_id]
     for other_prop in other_props_in_group:
-        if other_prop.hotels == 0 and other_prop.houses < (4 - GameRules.MAX_HOUSE_DIFFERENCE):
+        other_effective = _get_effective_houses(other_prop)
+        if other_effective < (4 - GameRules.MAX_HOUSE_DIFFERENCE):
             return False, "Cannot sell hotel - would create uneven development (other properties need at least 3 houses)"
 
     house_price = GameRules.HOUSE_PRICES.get(color, 0)

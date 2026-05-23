@@ -22,7 +22,7 @@ timeout /t 3 /nobreak >nul
 
 :: Start frontend in new window
 echo Starting Frontend Server (port 3000)...
-start "DINO-RICHUP Frontend" cmd /c "cd frontend && npm run dev -- --port 3000"
+start "DINO-RICHUP Frontend" /d "%~dp0frontend" cmd /c "npm run dev -- --port 3000"
 
 echo.
 echo ========================================

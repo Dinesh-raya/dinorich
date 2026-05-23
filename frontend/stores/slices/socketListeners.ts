@@ -12,6 +12,28 @@ let moneyChangeTimer: ReturnType<typeof setTimeout> | null = null;
 export function setupSocketListeners(get: () => StoreState, set: (partial: Partial<StoreState>) => void) {
   socket.on('connect', () => {
     set({ connected: true, myId: socket.id, error: null });
+    
+    // Auto-rejoin room if credentials are in localStorage
+    const roomCode = localStorage.getItem('dino_room_code');
+    const reconnectToken = localStorage.getItem('dino_reconnect_token');
+    const playerName = localStorage.getItem('dino_player_name');
+    if (roomCode && reconnectToken && playerName) {
+      socket.emit('room:join', {
+        room_code: roomCode,
+        name: playerName,
+        reconnect_token: reconnectToken
+      }, (response: any) => {
+        if (response.status === 'success') {
+          set({ room: response.room, error: null });
+          if (response.reconnectToken) {
+            localStorage.setItem('dino_reconnect_token', response.reconnectToken);
+          }
+        } else {
+          localStorage.removeItem('dino_room_code');
+          localStorage.removeItem('dino_reconnect_token');
+        }
+      });
+    }
   });
 
   socket.on('disconnect', () => {

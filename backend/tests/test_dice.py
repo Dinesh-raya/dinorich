@@ -71,12 +71,12 @@ class TestHandleJailRoll:
         assert player.is_in_jail is True
         assert player.jail_turns == 1
 
-    def test_force_release_after_max_turns_non_strict(self):
+    def test_non_strict_allows_indefinite_stay(self):
         player = self._make_player(jail_turns=GameRules.MAX_JAIL_TURNS - 1)
         dice = self._make_dice(3, 4)  # Non-doubles
         result = handle_jail_roll(player, dice, strict_mode=False)
-        assert result is True  # Forced release
-        assert player.is_in_jail is False
+        assert result is False  # No forced release — player stays
+        assert player.is_in_jail is True
 
     def test_strict_mode_force_release_on_third_turn(self):
         player = self._make_player(jail_turns=GameRules.MAX_JAIL_TURNS - 1)

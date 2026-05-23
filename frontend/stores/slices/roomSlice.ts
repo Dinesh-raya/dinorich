@@ -29,6 +29,9 @@ export const createRoomSlice: StateCreator<StoreState, [], [], RoomSlice> = (set
         if (response.reconnectToken) {
           localStorage.setItem('dino_reconnect_token', response.reconnectToken);
         }
+        if (response.room && response.room.room_id) {
+          localStorage.setItem('dino_room_code', response.room.room_id);
+        }
         set({ room: response.room, error: null });
       }
     });
@@ -45,6 +48,9 @@ export const createRoomSlice: StateCreator<StoreState, [], [], RoomSlice> = (set
       } else {
         if (response.reconnectToken) {
           localStorage.setItem('dino_reconnect_token', response.reconnectToken);
+        }
+        if (response.room && response.room.room_id) {
+          localStorage.setItem('dino_room_code', response.room.room_id);
         }
         set({ room: response.room, error: null });
       }
@@ -81,6 +87,7 @@ export const createRoomSlice: StateCreator<StoreState, [], [], RoomSlice> = (set
 
   leaveGame: () => {
     localStorage.removeItem('dino_reconnect_token');
+    localStorage.removeItem('dino_room_code');
     socket.emit('room:leave');
     set({
       room: null,

@@ -101,11 +101,10 @@ class TurnManager:
                     # Official rules: forced release on 3rd turn — charge fine
                     fine = GameRules.JAIL_FINE
                     player.money -= fine
+                    if game.room.settings.free_parking_jackpot:
+                        game.free_parking_pool += fine
                     game.add_log(f"{player.name} served maximum jail time, paid ₹{fine:,} fine and is released")
-                    turn.can_roll = False
-                    turn.can_end_turn = True
-                    turn.phase = TurnPhase.END
-                    return {"dice": dice.model_dump(), "game": game, "turn": turn}
+                    # Fall through to normal movement + tile evaluation
             else:
                 # Turn ends if they fail to roll doubles
                 turn.can_roll = False
@@ -146,8 +145,8 @@ class TurnManager:
         # Track creditor for bankruptcy
         creditor_id = None
 
-        # Initialize result (will be overridden if card is drawn)
-        result = None
+        # Collect card draws for chained cards (e.g. card moves to another card tile)
+        card_draws: list[dict] = []
 
         # Helper to evaluate tile effects at current position
         def evaluate_tile(tile_pos, _depth=0):
@@ -155,7 +154,7 @@ class TurnManager:
                 game.add_log(f"[WARN] Tile evaluation depth exceeded at position {tile_pos}")
                 turn.phase = TurnPhase.ACTION
                 return
-            nonlocal creditor_id, result
+            nonlocal creditor_id, card_draws
             config = get_board_config().get(tile_pos)
             if config and config["type"] in ["property", "airport", "utility"]:
                 prop_state = game.properties.get(tile_pos)
@@ -184,7 +183,7 @@ class TurnManager:
             elif config and config["type"] == "treasury":
                 card = card_engine.draw_treasury(game, player_id)
                 turn.phase = TurnPhase.ACTION
-                result = {"dice": dice.model_dump(), "game": game, "turn": turn, "card_drawn": card, "card_type": "treasury"}
+                card_draws.append({"card_drawn": card, "card_type": "treasury"})
                 # If card sent player to jail, end the turn
                 if player.is_in_jail:
                     turn.can_roll = False
@@ -196,7 +195,7 @@ class TurnManager:
             elif config and config["type"] == "surprise":
                 card = card_engine.draw_surprise(game, player_id)
                 turn.phase = TurnPhase.ACTION
-                result = {"dice": dice.model_dump(), "game": game, "turn": turn, "card_drawn": card, "card_type": "surprise"}
+                card_draws.append({"card_drawn": card, "card_type": "surprise"})
                 # If card sent player to jail, end the turn
                 if player.is_in_jail:
                     turn.can_roll = False
@@ -234,9 +233,12 @@ class TurnManager:
         elif turn.phase == TurnPhase.BUY:
             turn.can_end_turn = False
 
-        # Return result (may include card info if card was drawn)
-        if result is None:
-            result = {"dice": dice.model_dump(), "game": game, "turn": turn}
+        # Build return result (may include card info if cards were drawn)
+        result: dict = {"dice": dice.model_dump(), "game": game, "turn": turn}
+        if card_draws:
+            result["card_draws"] = card_draws
+            result["card_drawn"] = card_draws[0]["card_drawn"]
+            result["card_type"] = card_draws[0]["card_type"]
         return result
 
     def check_debt_resolved(self, room_code: str, player_id: str) -> Optional[TurnState]:
@@ -355,26 +357,38 @@ class TurnManager:
 
         if use_percentage:
             total_worth = player.money
+            property_worth = 0
+            building_worth = 0
             for prop_id in player.properties_owned:
                 prop_state = game.properties.get(prop_id)
                 if prop_state:
+                    if prop_state.is_mortgaged:
+                        continue
                     config = get_board_config().get(prop_id)
                     if config:
-                        total_worth += config.get("price", 0)
+                        prop_price = config.get("price", 0)
+                        property_worth += prop_price
+                        total_worth += prop_price
                         color = config.get("color")
                         if color:
                             house_price = GameRules.HOUSE_PRICES.get(color, 0)
-                            total_worth += prop_state.houses * house_price
-                            total_worth += prop_state.hotels * house_price * 5
+                            b_worth = prop_state.houses * house_price + prop_state.hotels * house_price * GameRules.HOTEL_PRICE_MULTIPLIER
+                            building_worth += b_worth
+                            total_worth += b_worth
             tax_amount = int(total_worth * 0.1)
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"TAX CALC for {player.name}: cash={player.money}, "
+                        f"property_worth={property_worth}, building_worth={building_worth}, "
+                        f"total_worth={total_worth}, tax_10pct={tax_amount}")
             if tax_amount <= 0:
                 tax_amount = flat_amount
-                game.add_log(f"{player.name} has negligible worth — paying flat amount ₹{tax_amount}")
+                game.add_log(f"{player.name} has negligible worth — paying flat amount ₹{tax_amount:,}")
             else:
-                game.add_log(f"{player.name} chose to pay 10% of worth (₹{tax_amount})")
+                game.add_log(f"{player.name} chose to pay 10% of worth (worth ₹{total_worth:,} → tax ₹{tax_amount:,})")
         else:
             tax_amount = flat_amount
-            game.add_log(f"{player.name} paid ₹{tax_amount} for {turn.pending_tax['name']}")
+            game.add_log(f"{player.name} paid ₹{tax_amount:,} for {turn.pending_tax['name']}")
 
         player.money -= tax_amount
 
@@ -428,7 +442,10 @@ class TurnManager:
                     config = get_board_config().get(prop_id)
                     name = config["name"] if config else f"Property {prop_id}"
                     game.add_log(f"Buy timer expired — {name} goes to auction")
-                turn.phase = TurnPhase.AUCTION
+                if game.room.settings.auction_enabled:
+                    turn.phase = TurnPhase.AUCTION
+                else:
+                    turn.phase = TurnPhase.ACTION
                 return turn, None, prop_id
             else:
                 self._buy_timers[room_code] = (timer, prop_id)

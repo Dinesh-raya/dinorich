@@ -151,13 +151,13 @@ export const PlayerSidebar = ({
             return (
               <motion.div
                 key={player.id}
-                className={`border-b border-white/10 ${isActive ? 'bg-primary-900/30 border-l-2 border-l-primary-500' : isCurrent ? 'bg-primary-900/15' : 'hover:bg-surface/30'} transition-colors cursor-pointer`}
+                className={`border-b border-white/10 ${isActive ? 'bg-primary-900/30 border-l-2 border-l-primary-500' : isCurrent ? 'bg-primary-900/15' : 'hover:bg-surface/30'} ${!player.connected ? 'opacity-50' : ''} transition-colors cursor-pointer`}
                 variants={animations.fadeIn}
                 initial="hidden"
                 animate="visible"
                 transition={{ delay: index * 0.05 }}
                 onClick={() => togglePlayerExpansion(player.id)}
-                whileHover={{ x: 3 }}
+                whileHover={player.connected ? { x: 3 } : undefined}
               >
                 <div className="p-2">
                   <div className="flex items-center justify-between">
@@ -170,26 +170,33 @@ export const PlayerSidebar = ({
                       {/* Player color indicator with icon */}
                       <div className="relative">
                         <div
-                          className="w-10 h-10 rounded-full border-2 border-white/50 shadow-lg flex items-center justify-center text-xl"
+                          className={`w-10 h-10 rounded-full border-2 border-white/50 shadow-lg flex items-center justify-center text-xl ${!player.connected ? 'filter grayscale brightness-50' : ''}`}
                           style={{ backgroundColor: player.color + '40' }}
                         >
                           {getColorIcon(player.color)}
-                          {isCurrent && (
+                          {isCurrent && player.connected && (
                             <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary-500 rounded-full border border-white animate-pulse"></div>
                           )}
                         </div>
                         {!player.connected && (
-                          <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-danger-500 rounded-full border border-white"></div>
+                          <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-danger-500 rounded-full border border-white animate-pulse flex items-center justify-center text-[9px] font-bold text-white shadow-md" title="Offline">
+                            !
+                          </div>
                         )}
                       </div>
 
                       {/* Player info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-text-main truncate" title={player.name}>
-                            {player.name}
-                            {player.isHost && <span className="ml-1 text-xs text-accent-400">👑</span>}
-                            {isActive && <span className="ml-1 text-xs text-primary-400 animate-pulse">▶</span>}
+                          <h3 className="font-bold text-text-main truncate flex items-center gap-1.5" title={player.name}>
+                            <span className={!player.connected ? 'line-through text-text-muted' : ''}>{player.name}</span>
+                            {player.isHost && <span className="text-xs text-accent-400">👑</span>}
+                            {isActive && player.connected && <span className="text-xs text-primary-400 animate-pulse">▶</span>}
+                            {!player.connected && (
+                              <span className="px-1.5 py-0.5 bg-danger-500/20 text-danger-400 border border-danger-500/30 rounded text-[9px] font-cyber tracking-wide uppercase animate-pulse">
+                                Offline
+                              </span>
+                            )}
                           </h3>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-text-muted">

@@ -9,6 +9,13 @@ class RoomStatus(str, Enum):
     PLAYING = "playing"
     FINISHED = "finished"
 
+class GameMode(str, Enum):
+    CLASSIC = "classic"
+    CASUAL = "casual"
+    COMPETITIVE = "competitive"
+    TURBO = "turbo"
+    CHAOS = "chaos"
+
 class RoomSettings(BaseModel):
     max_players: int = Field(6, ge=1, le=6, description="Maximum players allowed (1-6)")
     starting_cash: int = Field(15000, ge=5000, le=100000, description="Initial money for each player")
@@ -21,6 +28,38 @@ class RoomSettings(BaseModel):
     jail_strict_mode: bool = Field(True, description="Apply strict jail handling rules")
     bot_enabled: bool = Field(False, description="Auto-fill empty player slots with AI bots")
     board_theme: str = Field("pan_india", description="Board theme placeholder")
+    mode: GameMode = Field(GameMode.CLASSIC, description="Game mode preset (descriptive only — does not auto-override settings)")
+    disconnect_timeout_seconds: int = Field(120, ge=30, le=300, description="Seconds before disconnected player is bankrupted")
+
+    @staticmethod
+    def get_mode_preset(mode: GameMode) -> dict:
+        return {
+            GameMode.CLASSIC: {},
+            GameMode.CASUAL: dict(
+                double_rent_enabled=False,
+                free_parking_jackpot=True,
+                jail_strict_mode=False,
+                turn_timer_seconds=90,
+            ),
+            GameMode.COMPETITIVE: dict(
+                double_rent_enabled=True,
+                turn_timer_seconds=45,
+                bot_enabled=True,
+            ),
+            GameMode.TURBO: dict(
+                starting_cash=10000,
+                turn_timer_seconds=30,
+                bot_enabled=True,
+            ),
+            GameMode.CHAOS: dict(
+                starting_cash=50000,
+                free_parking_jackpot=True,
+                double_rent_enabled=False,
+                turn_timer_seconds=120,
+                auction_enabled=False,
+                jail_strict_mode=False,
+            ),
+        }.get(mode, {})
 
 class RoomState(BaseModel):
     room_id: str = Field(..., description="Unique 4-6 character invite code")

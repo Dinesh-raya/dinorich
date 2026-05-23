@@ -1,176 +1,233 @@
-# DINO-RICHUP: Pan-India Edition - Run Guide
+# DINO-RICHUP: Pan-India Edition — Run Guide
 
 ## Prerequisites
-- Python 3.11+ (tested with 3.13.13)
-- Node.js 18+ and npm
-- Git (for cloning)
 
-## Step 1: Clone and Setup
-```bash
-# Clone the repository (if not already done)
-git clone <repository-url>
-cd dino-wolf-BT-main
+- **Python 3.11+** (tested with 3.13)
+- **Node.js 18+** and npm
+- Windows OS (Linux/macOS also supported via `setup.sh` / `start.sh`)
+
+---
+
+## Quick Start (Windows — Recommended)
+
+### First-time setup
+
+Run the setup script once to create the backend virtual environment and install all dependencies:
+
+```bat
+setup.bat
 ```
 
-## Step 2: Backend Setup
+### Start both servers
+
+```bat
+start.bat
+```
+
+This launches:
+- **Backend** at `http://localhost:8000` (FastAPI + Socket.IO)
+- **Frontend** at `http://localhost:3000` (Vite dev server)
+
+A browser tab opens automatically after 5 seconds.
+
+---
+
+## Manual Setup (All Platforms)
+
+### Step 1: Backend
+
 ```bash
-# Navigate to backend directory
 cd backend
 
-# Create virtual environment (recommended)
+# Create and activate virtual environment
 python -m venv .venv
 
-# Activate virtual environment
-# On Windows:
+# Windows
 .venv\Scripts\activate
-# On macOS/Linux:
+# macOS/Linux
 source .venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Set up environment variables
-# Copy the example .env file
+# Copy environment config (defaults work for local dev)
 cp ../.env.example ../.env
-# Edit .env if needed (defaults should work for local development)
 ```
 
-## Step 3: Frontend Setup
-```bash
-# Navigate to frontend directory
-cd ../frontend
+### Step 2: Frontend
 
-# Install dependencies
+```bash
+cd frontend
 npm install
 ```
 
-## Step 4: Start the Backend Server
+### Step 3: Start Backend
+
 ```bash
-# From the backend directory
+cd backend
+# Windows (uses venv python)
+.venv\Scripts\python.exe -m uvicorn main:socket_app --host 0.0.0.0 --port 8000 --reload
+# macOS/Linux
+.venv/bin/python -m uvicorn main:socket_app --host 0.0.0.0 --port 8000 --reload
+```
+
+### Step 4: Start Frontend (new terminal)
+
+```bash
+cd frontend
+npm run dev -- --port 3000
+```
+
+---
+
+## Verify the Installation
+
+**Backend health check:**
+```bash
+curl http://localhost:8000/health
+# Returns: {"status":"ok","checks":{"database":"ok","rooms":"ok (0 active)","games":"ok (0 active)"}}
+```
+
+**Frontend:** Open `http://localhost:3000` — you should see the DINO-RICHUP lobby.
+
+---
+
+## Running Tests
+
+### Backend tests
+```bash
+cd backend
+.venv\Scripts\python.exe -m pytest -q
+# Expected: 221+ passed, 2 skipped
+```
+
+### Frontend type check + tests
+```bash
+cd frontend
+npx tsc --noEmit          # TypeScript type check
+npx vitest run            # Unit tests (45+ tests)
+```
+
+### Full CI check (build validation)
+```bash
+cd frontend
+npm run build             # Runs codegen + tsc + vite build
+```
+
+---
+
+## LAN Multiplayer
+
+1. All players must be on the **same WiFi/LAN network**
+2. The host starts both servers via `start.bat`
+3. The Waiting Room shows the LAN link automatically — players on the same network open it and enter the room code
+4. If players can't connect, run `setup-firewall.bat` (requires Administrator) to open port 8000
+
+---
+
+## Production Build
+
+```bash
+cd frontend
+npm run build    # Creates frontend/dist/
+
+# Then start backend — it will serve the built frontend statically
 cd ../backend
-
-# Start the FastAPI + Socket.IO server
-uvicorn main:socket_app --host 0.0.0.0 --port 8000 --reload
-
-# The server will start on http://localhost:8000
-# You should see: "Application startup complete"
+.venv\Scripts\python.exe -m uvicorn main:socket_app --host 0.0.0.0 --port 8000
+# Access at http://localhost:8000
 ```
 
-## Step 5: Start the Frontend Dev Server
-```bash
-# Open a new terminal
-cd frontend
-
-# Start the Vite dev server
-npm run dev
-
-# The frontend will start on http://localhost:3000
-# It proxies socket.io requests to the backend
+Or use the production script:
+```bat
+start-prod.bat
 ```
 
-## Step 6: Verify Installation
-1. **Backend Health Check**: Open http://localhost:8000/health in browser or use curl:
-   ```bash
-   curl http://localhost:8000/health
-   # Should return: {"status":"ok","message":"Server is running"}
-   ```
+---
 
-2. **Frontend Access**: Open http://localhost:3000 in your browser
-   - You should see the DINO-RICHUP lobby screen
-   - Enter your name and create a room or join an existing one
+## Troubleshooting
 
-## Step 7: Testing Socket Connectivity
-If you encounter connection issues, test with the provided Python scripts:
+### "Connecting to Server..." indefinitely
+- Ensure the backend is running on port 8000
+- Check browser console (F12 → Console) for errors
+- Verify `frontend/.env` or `frontend/vite.config.ts` proxy target matches backend port
 
+### Port already in use
 ```bash
-# Test direct backend connection
-python test_socket.py
-
-# Test through proxy (like frontend)
-python test_proxy_socket.py
-```
-
-## Step 8: Running Tests
-```bash
-# Backend tests
-cd backend
-pytest
-
-# Frontend tests
-cd ../frontend
-npm test
-```
-
-## Troubleshooting Common Issues
-
-### 1. Socket Connection Issues
-If the frontend shows "Connecting to server..." indefinitely:
-- Check that both servers are running
-- Verify CORS configuration in `.env` includes `http://localhost:3000`
-- Check browser console for errors (F12 → Console)
-
-### 2. Port Already in Use
-If port 8000 or 3000 is occupied:
-```bash
-# For backend (change port)
+# Change backend port
 uvicorn main:socket_app --host 0.0.0.0 --port 8001 --reload
-# Then update VITE_API_URL in .env to http://localhost:8001
 
-# For frontend (change port)
-npm run dev -- --port 3001
+# Change frontend port
+cd frontend && npm run dev -- --port 3001
 ```
 
-### 3. Python Dependencies Issues
+### Backend startup errors (stale DB data)
+The DB migration system handles legacy data automatically on startup.  
+If you want a clean slate:
 ```bash
-# Ensure you're in the virtual environment
-cd backend
-.venv\Scripts\activate  # Windows
-# or source .venv/bin/activate  # Linux/macOS
-
-# Reinstall dependencies
-pip install --upgrade -r requirements.txt
+del backend\persistence\game_data.sqlite
 ```
 
-### 4. Node.js Dependencies Issues
+### Python not found / wrong version
+```bash
+python --version   # Should be 3.11+
+# If using Microsoft Store Python shim, prefer the venv path:
+backend\.venv\Scripts\python.exe --version
+```
+
+### Node dependencies broken
 ```bash
 cd frontend
-# Clear node_modules and reinstall
-rm -rf node_modules package-lock.json
+rmdir /s /q node_modules
+del package-lock.json
 npm install
 ```
+
+---
 
 ## Project Structure
+
 ```
-dino-wolf-BT-main/
-├── backend/           # FastAPI + Socket.IO server
-│   ├── engine/       # Game logic (turn, property, auction, dice)
-│   ├── sockets/      # Socket event handlers
-│   ├── persistence/  # Database and snapshot storage
-│   └── main.py       # Entry point
-├── frontend/         # React + TypeScript frontend
-│   ├── src/          # React components
-│   ├── stores/       # Zustand state management
-│   └── services/     # Socket client
-└── shared/           # Shared configurations and contracts
+dino-wolf-BT-v2-organized/
+├── backend/                  # Python FastAPI + Socket.IO server
+│   ├── constants/            # Game rules (starting cash, house prices)
+│   ├── engine/               # Core game logic
+│   │   ├── turn_manager.py   # Turn loop, tax, jail, dice
+│   │   ├── property.py       # Rent calc, buy/build/mortgage
+│   │   ├── auction.py        # Auction state machine
+│   │   ├── trade_manager.py  # Trade offer system
+│   │   ├── bot.py            # Bot AI brain
+│   │   └── cards.py          # Treasury + Surprise card decks
+│   ├── persistence/          # SQLite snapshot system
+│   │   ├── db.py             # Schema + migrations
+│   │   └── repository.py     # Save/load snapshots
+│   ├── schemas/              # Pydantic models
+│   ├── services/             # Session manager
+│   ├── sockets/              # Socket.IO event handlers
+│   ├── tests/                # pytest test suite
+│   └── main.py               # App entry point + background loop
+├── frontend/                 # React 18 + Vite + TypeScript
+│   ├── src/
+│   │   ├── App.tsx           # Root with screen routing
+│   │   └── index.css         # Design system + Tailwind config
+│   ├── components/           # UI components
+│   ├── stores/               # Zustand state + socket listeners
+│   ├── services/             # Socket.IO client
+│   └── types/generated/      # Auto-generated schemas (npm run codegen)
+├── shared/
+│   └── configs/
+│       └── board_config.json # All tile definitions, prices, rents
+├── start.bat                 # One-click dev launcher (Windows)
+├── start-prod.bat            # Production launcher (Windows)
+├── setup.bat                 # First-time setup (Windows)
+└── setup-firewall.bat        # Open port 8000 for LAN (run as Admin)
 ```
+
+---
 
 ## Development Notes
-- The backend uses SQLite for persistence (game_data.sqlite)
-- Game state is automatically saved every 10 seconds
-- Socket.IO enables real-time multiplayer gameplay
-- Frontend uses Tailwind CSS for styling and Framer Motion for animations
 
-## Production Deployment
-For production, build the frontend and serve it statically:
-```bash
-cd frontend
-npm run build  # Creates dist/ folder
-
-# The backend will automatically serve the built frontend
-# from the ../frontend/dist directory when it exists
-```
-
-## Additional Resources
-- Check `README.md` for original project documentation
-- Review `shared/events/socket_events.json` for all socket events
-- Examine `shared/configs/board_config.json` for game board configuration
+- Game state auto-saves to `backend/persistence/game_data.sqlite` every 10 seconds
+- Schema migrations run automatically on startup — no manual DB management needed
+- Pydantic schemas are the source of truth; regenerate TS types after changes: `cd frontend && npm run codegen`
+- Economy uses ÷100 scale: starting cash ₹15,000, properties ₹600–₹4,000
+- See `docs/GAME_DATA_proposed.md` for full economy reference

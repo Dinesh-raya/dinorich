@@ -153,12 +153,23 @@ Each airport price: **₹2,000** | Mortgage: **₹1,000** | Unmortgage: **₹1,1
 
 ## 4. Utility Rent
 
-| Utilities Owned | Rent Formula | Example (dice=7) |
-|-----------------|-------------|------------------|
-| 1 | Dice × ₹40 | ₹280 |
-| 2 | Dice × ₹100 | ₹700 |
-
 Each utility price: **₹1,500** | Mortgage: **₹750** | Unmortgage: **₹825**
+
+### NTPC Power (tile 12) — Exponential Surge Pricing
+Electricity consumption scales quadratically with usage (dice roll).
+
+| Utilities Owned | Rent Formula | dice=2 | dice=7 | dice=12 |
+|-----------------|-------------|--------|--------|---------|
+| 1 | Dice² × ₹5 | ₹20 | ₹245 | ₹720 |
+| 2 | Dice² × ₹10 | ₹40 | ₹490 | ₹1,440 |
+
+### Jal Jeevan Water (tile 28) — Scarcity Pricing
+Water demand tied to how many players are still alive in the game. More players = more competition = higher rates.
+
+| Utilities Owned | Rent Formula | 4 alive, dice=7 | 2 alive, dice=7 |
+|-----------------|-------------|-----------------|-----------------|
+| 1 | Dice × ₹30 + ₹20 × alive | ₹290 | ₹250 |
+| 2 | Dice × ₹60 + ₹40 × alive | ₹580 | ₹500 |
 
 ---
 
@@ -226,25 +237,25 @@ Each utility price: **₹1,500** | Mortgage: **₹750** | Unmortgage: **₹825**
 | # | Card Text | Action | Backend Notes |
 |---|-----------|--------|---------------|
 | 1 | Advance to GO. Collect ₹1,500 | Move to 0 | +₹1,500 GO reward |
-| 2 | Bank error in your favor. Collect ₹2,000 | +₹2,000 | Direct cash adjustment |
-| 3 | Doctor's fees. Pay ₹500 | −₹500 | Adds to Free Parking pool if setting ON |
+| 2 | Bank error in your favor. Collect ₹200 | +₹200 | Direct cash adjustment |
+| 3 | Doctor's fees. Pay ₹50 | −₹50 | Adds to Free Parking pool if setting ON |
 | 4 | Get Out of Jail Free card | GOOJF | Player flag set to true; card is **popped from the deck** to prevent duplication on reshuffle |
 | 5 | Go directly to Jail. Do not pass GO. | Go to Jail | Teleport to tile 10; no GO reward |
-| 6 | Income tax refund. Collect ₹200 | +₹200 | |
-| 7 | Pay hospital fees of ₹1,000 | −₹1,000 | Adds to Free Parking pool if setting ON |
+| 6 | Income tax refund. Collect ₹20 | +₹20 | |
+| 7 | Pay hospital fees of ₹100 | −₹100 | Adds to Free Parking pool if setting ON |
 | 8 | Advance to Bengaluru. If you pass GO, collect ₹1,500 | Move to 29 | +₹1,500 if passing GO |
-| 9 | Life insurance matures. Collect ₹1,500 | +₹1,500 | |
-| 10 | Pay school fees of ₹500 | −₹500 | Adds to Free Parking pool if setting ON |
-| 11 | Received dividend on shares. Collect ₹800 | +₹800 | |
+| 9 | Life insurance matures. Collect ₹150 | +₹150 | |
+| 10 | Pay school fees of ₹50 | −₹50 | Adds to Free Parking pool if setting ON |
+| 11 | Received dividend on shares. Collect ₹80 | +₹80 | |
 | 12 | Advance to Mumbai Airport. If you pass GO, collect ₹1,500 | Move to 15 | +₹1,500 if passing GO |
-| 13 | Pay your insurance premium of ₹500 | −₹500 | Adds to Free Parking pool if setting ON |
-| 14 | You have won second prize in a beauty contest. Collect ₹1,000 | +₹1,000 | |
-| 15 | Pay electricity bill of ₹750 | −₹750 | Adds to Free Parking pool if setting ON |
-| 16 | Consultancy fee. Collect ₹500 | +₹500 | |
-| 17 | It's your birthday. Collect ₹200 from each player | Peer payment | Loops through non-bankrupt opponents; each pays ₹200 |
-| 18 | Property tax due. Pay ₹1,500 | −₹1,500 | Adds to Free Parking pool if setting ON |
+| 13 | Pay your insurance premium of ₹50 | −₹50 | Adds to Free Parking pool if setting ON |
+| 14 | You have won second prize in a beauty contest. Collect ₹100 | +₹100 | |
+| 15 | Pay electricity bill of ₹75 | −₹75 | Adds to Free Parking pool if setting ON |
+| 16 | Consultancy fee. Collect ₹50 | +₹50 | |
+| 17 | It's your birthday. Collect ₹20 from each player | Peer payment | Loops through non-bankrupt opponents; each pays ₹20 |
+| 18 | Property tax due. Pay ₹150 | −₹150 | Adds to Free Parking pool if setting ON |
 | 19 | Advance to Jaipur. If you pass GO, collect ₹1,500 | Move to 11 | +₹1,500 if passing GO |
-| 20 | Toothpaste advertisement royalty. Collect ₹300 | +₹300 | |
+| 20 | Toothpaste advertisement royalty. Collect ₹30 | +₹30 | |
 
 ---
 
@@ -254,24 +265,24 @@ Each utility price: **₹1,500** | Mortgage: **₹750** | Unmortgage: **₹825**
 |---|-----------|--------|---------------|
 | 1 | Advance to GO. Collect ₹1,500 | Move to 0 | +₹1,500 GO reward |
 | 2 | Advance to Delhi. If you pass GO, collect ₹1,500 | Move to 39 | +₹1,500 if passing GO |
-| 3 | Bank pays you dividend of ₹500 | +₹500 | |
+| 3 | Bank pays you dividend of ₹50 | +₹50 | |
 | 4 | Get Out of Jail Free card | GOOJF | Same deck-pop safeguard as Treasury GOOJF |
 | 5 | Go back 3 spaces | Move −3 | Board wrap; tile events re-evaluated on landing |
 | 6 | Go directly to Jail. Do not pass GO. | Go to Jail | Teleport to tile 10 |
-| 7 | Speeding fine. Pay ₹150 | −₹150 | Adds to Free Parking pool if setting ON |
+| 7 | Speeding fine. Pay ₹15 | −₹15 | Adds to Free Parking pool if setting ON |
 | 8 | Advance to Chennai. If you pass GO, collect ₹1,500 | Move to 19 | +₹1,500 if passing GO |
-| 9 | Bank gives you a loan repayment. Collect ₹1,200 | +₹1,200 | |
+| 9 | Bank gives you a loan repayment. Collect ₹120 | +₹120 | |
 | 10 | Go to Kolkata. If you pass GO, collect ₹1,500 | Move to 26 | +₹1,500 if passing GO |
-| 11 | Pay road tax of ₹400 | −₹400 | Adds to Free Parking pool if setting ON |
-| 12 | Advance to the nearest Utility. If unowned, you may buy it | Move to utility | Nearest of tiles 12 or 28; buy option if unowned; if owned, rent = dice × ₹100 (2-utility rate) |
-| 13 | You are assessed for street repairs. ₹400 per house, ₹2,000 per hotel | Building tax | Iterates over all owned buildings; adds to Free Parking pool if setting ON |
-| 14 | Your building loan matures. Collect ₹1,500 | +₹1,500 | |
-| 15 | Go back to Goa | Move to 3 | Board wrap with wrap-index fallback |
-| 16 | Pay lawyer fees of ₹300 | −₹300 | Adds to Free Parking pool if setting ON |
+| 11 | Pay road tax of ₹40 | −₹40 | Adds to Free Parking pool if setting ON |
+| 12 | Advance to the nearest Utility. If unowned, you may buy it | Move to utility | Nearest of tiles 12 or 28; buy option if unowned; if owned, rent = dice² × ₹10 / dice × ₹60 + ₹40×alive (see Utility Rent §4) |
+| 13 | You are assessed for street repairs. ₹40 per house, ₹200 per hotel | Building tax | Iterates over all owned buildings; adds to Free Parking pool if setting ON |
+| 14 | Your building loan matures. Collect ₹150 | +₹150 | |
+| 15 | Go back to Goa | Move to 3 | Board wrap — does NOT award GO reward (backward move) |
+| 16 | Pay lawyer fees of ₹30 | −₹30 | Adds to Free Parking pool if setting ON |
 | 17 | Advance to Free Parking | Move to 20 | Bypasses GO tracking — no reward |
-| 18 | Collect ₹500 consultancy fee | +₹500 | |
-| 19 | Holiday bonus. Collect ₹300 | +₹300 | |
-| 20 | Pay entertainment tax of ₹200 | −₹200 | Adds to Free Parking pool if setting ON |
+| 18 | Collect ₹50 consultancy fee | +₹50 | |
+| 19 | Holiday bonus. Collect ₹30 | +₹30 | |
+| 20 | Pay entertainment tax of ₹20 | −₹20 | Adds to Free Parking pool if setting ON |
 
 ---
 
@@ -361,8 +372,8 @@ The accumulated pool is **collected by the first player** who lands on Free Park
 | doubleRent | true | toggle |
 | mortgageEnabled | true | toggle |
 | freeParkingJackpot | false | toggle |
-| randomTurnOrder | false | toggle |
-| jailStrictMode | false | toggle |
+| randomTurnOrder | true | toggle |
+| jailStrictMode | true | toggle |
 | botFillTarget | 4 | — |
 
 ---

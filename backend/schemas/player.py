@@ -7,7 +7,7 @@ class PlayerState(BaseModel):
     reconnect_token: Optional[str] = Field(None, exclude=True, description="Rotating token used for secure reconnect")
     name: str = Field(..., min_length=1, max_length=30, description="Display name of the player")
     position: int = Field(0, ge=0, le=39, description="Current tile index 0-39")
-    money: int = Field(500000, ge=-10_000_000, le=100_000_000, description="Current balance in ₹")
+    money: int = Field(15000, ge=-10_000_000, le=100_000_000, description="Current balance in ₹")
     is_in_jail: bool = Field(False, description="Whether the player is currently in jail")
     jail_turns: int = Field(0, ge=0, le=100, description="Number of turns spent in jail")
     get_out_of_jail_cards: int = Field(0, description="Number of Get Out of Jail Free cards owned")

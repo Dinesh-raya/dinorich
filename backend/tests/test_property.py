@@ -190,6 +190,17 @@ class TestCanBuildHouse:
         ok, msg = can_build_house(game, "p1", 1)
         assert ok is False
 
+    def test_allows_building_when_other_property_has_hotel(self):
+        game = make_test_game()
+        # Brown group: Guwahati (1) and Goa (3)
+        add_property(game, 1, owner_id="p1", houses=3)
+        add_property(game, 3, owner_id="p1", houses=0, hotels=1) # Goa has a hotel (effective 5)
+        game.room.players["p1"].money = 5000
+        # Building a house on Guwahati (going from 3 to 4 houses, effective 4) is allowed
+        # because the difference with Goa (5) is 1.
+        ok, msg = can_build_house(game, "p1", 1)
+        assert ok is True
+
 
 # ---------------------------------------------------------------------------
 # Tests: sell_house
@@ -221,6 +232,17 @@ class TestSellHouse:
         ok, msg = sell_house(game, "p1", 1)
         assert ok is False
         assert "hotel" in msg.lower()
+
+    def test_fails_selling_house_when_other_property_has_hotel(self):
+        game = make_test_game()
+        # Brown group: Guwahati (1) and Goa (3)
+        add_property(game, 1, owner_id="p1", houses=4)
+        add_property(game, 3, owner_id="p1", houses=0, hotels=1) # Goa has a hotel (effective 5)
+        # Selling a house on Guwahati (going from 4 to 3 houses, effective 3) is NOT allowed
+        # because the difference with Goa (5) would be 2.
+        ok, msg = sell_house(game, "p1", 1)
+        assert ok is False
+        assert "uneven" in msg.lower()
 
 
 # ---------------------------------------------------------------------------

@@ -43,7 +43,7 @@ SURPRISE_CARDS_TEMPLATE = [
     {"text": "Advance to the nearest Utility. If unowned, you may buy it", "action": "move_to_nearest_utility"},
     {"text": "You are assessed for street repairs. ₹40 per house, ₹200 per hotel", "action": "pay_per_building", "per_house": 40, "per_hotel": 200},
     {"text": "Your building loan matures. Collect ₹150", "action": "add_money", "amount": 150},
-    {"text": "Go back to Goa", "action": "move_to", "target": 3},
+    {"text": "Go back to Goa", "action": "move_to", "target": 3, "passes_go": False},
     {"text": "Pay lawyer fees of ₹30", "action": "pay_money", "amount": 30},
     {"text": "Advance to Free Parking", "action": "move_to", "target": 20},
     {"text": "Collect ₹50 consultancy fee", "action": "add_money", "amount": 50},
@@ -115,7 +115,7 @@ class CardEngine:
         elif action == "move_to":
             target = card["target"]
             current = player.position
-            if target < current and target != GameRules.JAIL_TILE:
+            if target < current and target != GameRules.JAIL_TILE and card.get("passes_go", True):
                 player.money += GameRules.GO_REWARD
                 game_state.add_log(f"{player.name} passed GO and collected ₹{GameRules.GO_REWARD}")
             player.position = target

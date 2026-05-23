@@ -12,6 +12,20 @@ interface TradeModalProps {
   onClose: () => void;
 }
 
+const getPropertySubInfo = (tile: any) => {
+  if (!tile) return '';
+  if (tile.type === 'property' && tile.rent) {
+    return `Rent: ₹${tile.rent[0]}`;
+  }
+  if (tile.type === 'airport') {
+    return 'Airport';
+  }
+  if (tile.type === 'utility') {
+    return 'Utility';
+  }
+  return '';
+};
+
 export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
   const { game, myId, outgoingTradeId, cancelTrade } = useGameStore();
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
@@ -91,6 +105,17 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
     };
     return colors[color] || '#475569';
   };
+
+  // Compute total property values for summary
+  const offeringPropertiesValue = offeringProperties.reduce((sum, propId) => {
+    const tile = boardData.tiles.find((t: any) => t.id === propId);
+    return sum + (tile?.price || 0);
+  }, 0);
+
+  const requestingPropertiesValue = requestingProperties.reduce((sum, propId) => {
+    const tile = boardData.tiles.find((t: any) => t.id === propId);
+    return sum + (tile?.price || 0);
+  }, 0);
 
   if (!game || !myPlayer) return null;
 
@@ -221,22 +246,29 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                     <div className="space-y-3">
                       <h4 className="text-sm font-bold text-success-400 pb-1 border-b border-white/5 font-cyber">You Offer</h4>
                       
-                      {/* Money */}
+                      {/* Money input (typed + click adjusts) */}
                       <div className="flex items-center justify-between p-3 rounded-lg bg-surface/30 border border-white/10">
                         <span className="text-xs sm:text-sm text-text-main">Money</span>
                         <div className="flex items-center gap-1.5">
                           <button
+                            type="button"
                             onClick={() => setOfferingMoney(Math.max(0, offeringMoney - 1000))}
-                            className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
+                            className="w-8 h-8 rounded bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[32px]"
                           >
                             -
                           </button>
-                          <span className="w-16 sm:w-20 text-center font-bold text-success-400 text-xs sm:text-sm">
-                            {formatMoney(offeringMoney)}
-                          </span>
+                          <input
+                            type="number"
+                            value={offeringMoney || ''}
+                            onChange={(e) => setOfferingMoney(Math.min(myPlayer.money, Math.max(0, Number(e.target.value))))}
+                            className="w-20 sm:w-24 bg-surface/50 border border-white/10 rounded px-2 py-1 text-center font-bold text-success-400 text-xs sm:text-sm focus:border-success-500 focus:outline-none"
+                            min={0}
+                            max={myPlayer.money}
+                          />
                           <button
+                            type="button"
                             onClick={() => setOfferingMoney(Math.min(myPlayer.money, offeringMoney + 1000))}
-                            className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
+                            className="w-8 h-8 rounded bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[32px]"
                           >
                             +
                           </button>
@@ -251,7 +283,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                             No properties owned
                           </div>
                         ) : (
-                          <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
+                          <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto pr-1">
                             {myPlayer.properties_owned.map(propId => {
                               const prop = game.properties[propId];
                               if (!prop) return null;
@@ -260,7 +292,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                                 <button
                                   key={propId}
                                   onClick={() => handleToggleOfferingProperty(propId)}
-                                  className={`p-2 rounded-lg border text-left text-[11px] transition-all ${
+                                  className={`p-2.5 rounded-lg border text-left text-[11px] transition-all flex flex-col justify-between ${
                                     offeringProperties.includes(propId)
                                       ? 'border-success-500 bg-success-500/10'
                                       : 'border-white/10 bg-surface/30 hover:border-white/20'
@@ -269,10 +301,17 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                                   <div className="flex items-center gap-1.5 min-w-0">
                                     <div
                                       className="w-2.5 h-2.5 rounded-sm shrink-0"
-                                      style={{ backgroundColor: getPropertyColor(boardTile?.color || '') }}
+                                      style={{ backgroundColor: getPropertyColor(boardTile?.color || boardTile?.type || '') }}
                                     />
-                                    <span className="text-text-main truncate">{boardTile?.name || `Property ${propId}`}</span>
+                                    <span className="text-text-main truncate font-bold">{boardTile?.name}</span>
                                   </div>
+                                  <div className="text-[10px] text-text-muted mt-1 flex justify-between items-center w-full">
+                                    <span>₹{boardTile?.price || 0}</span>
+                                    <span>{getPropertySubInfo(boardTile)}</span>
+                                  </div>
+                                  {prop.is_mortgaged && (
+                                    <div className="text-[9px] text-danger-400 font-bold mt-0.5">⚠ MORTGAGED</div>
+                                  )}
                                 </button>
                               );
                             })}
@@ -287,7 +326,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => setOfferingJailCards(Math.max(0, offeringJailCards - 1))}
-                              className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
+                              className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[44px]"
                             >
                               -
                             </button>
@@ -296,7 +335,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                             </span>
                             <button
                               onClick={() => setOfferingJailCards(Math.min(myPlayer.get_out_of_jail_cards, offeringJailCards + 1))}
-                              className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
+                              className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[44px]"
                             >
                               +
                             </button>
@@ -309,22 +348,29 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                     <div className="space-y-3">
                       <h4 className="text-sm font-bold text-accent-400 pb-1 border-b border-white/5 font-cyber">You Request</h4>
                       
-                      {/* Money */}
+                      {/* Money input (typed + click adjusts) */}
                       <div className="flex items-center justify-between p-3 rounded-lg bg-surface/30 border border-white/10">
                         <span className="text-xs sm:text-sm text-text-main">Money</span>
                         <div className="flex items-center gap-1.5">
                           <button
+                            type="button"
                             onClick={() => setRequestingMoney(Math.max(0, requestingMoney - 1000))}
-                            className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
+                            className="w-8 h-8 rounded bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[32px]"
                           >
                             -
                           </button>
-                          <span className="w-16 sm:w-20 text-center font-bold text-accent-400 text-xs sm:text-sm">
-                            {formatMoney(requestingMoney)}
-                          </span>
+                          <input
+                            type="number"
+                            value={requestingMoney || ''}
+                            onChange={(e) => setRequestingMoney(Math.min(selectedPlayerData.money, Math.max(0, Number(e.target.value))))}
+                            className="w-20 sm:w-24 bg-surface/50 border border-white/10 rounded px-2 py-1 text-center font-bold text-accent-400 text-xs sm:text-sm focus:border-accent-500 focus:outline-none"
+                            min={0}
+                            max={selectedPlayerData.money}
+                          />
                           <button
+                            type="button"
                             onClick={() => setRequestingMoney(Math.min(selectedPlayerData.money, requestingMoney + 1000))}
-                            className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
+                            className="w-8 h-8 rounded bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[32px]"
                           >
                             +
                           </button>
@@ -339,7 +385,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                             No properties owned
                           </div>
                         ) : (
-                          <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
+                          <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto pr-1">
                             {selectedPlayerData.properties_owned.map(propId => {
                               const prop = game.properties[propId];
                               if (!prop) return null;
@@ -348,7 +394,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                                 <button
                                   key={propId}
                                   onClick={() => handleToggleRequestingProperty(propId)}
-                                  className={`p-2 rounded-lg border text-left text-[11px] transition-all ${
+                                  className={`p-2.5 rounded-lg border text-left text-[11px] transition-all flex flex-col justify-between ${
                                     requestingProperties.includes(propId)
                                       ? 'border-accent-500 bg-accent-500/10'
                                       : 'border-white/10 bg-surface/30 hover:border-white/20'
@@ -357,10 +403,17 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                                   <div className="flex items-center gap-1.5 min-w-0">
                                     <div
                                       className="w-2.5 h-2.5 rounded-sm shrink-0"
-                                      style={{ backgroundColor: getPropertyColor(boardTile?.color || '') }}
+                                      style={{ backgroundColor: getPropertyColor(boardTile?.color || boardTile?.type || '') }}
                                     />
-                                    <span className="text-text-main truncate">{boardTile?.name || `Property ${propId}`}</span>
+                                    <span className="text-text-main truncate font-bold">{boardTile?.name}</span>
                                   </div>
+                                  <div className="text-[10px] text-text-muted mt-1 flex justify-between items-center w-full">
+                                    <span>₹{boardTile?.price || 0}</span>
+                                    <span>{getPropertySubInfo(boardTile)}</span>
+                                  </div>
+                                  {prop.is_mortgaged && (
+                                    <div className="text-[9px] text-danger-400 font-bold mt-0.5">⚠ MORTGAGED</div>
+                                  )}
                                 </button>
                               );
                             })}
@@ -375,7 +428,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => setRequestingJailCards(Math.max(0, requestingJailCards - 1))}
-                              className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
+                              className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[44px]"
                             >
                               -
                             </button>
@@ -384,13 +437,29 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                             </span>
                             <button
                               onClick={() => setRequestingJailCards(Math.min(selectedPlayerData.get_out_of_jail_cards, requestingJailCards + 1))}
-                              className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
+                              className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[44px]"
                             >
                               +
                             </button>
                           </div>
                         </div>
                       )}
+                    </div>
+                  </div>
+
+                  {/* Trade Valuation Summary */}
+                  <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-surface/20 border border-white/10">
+                    <div className="text-center">
+                      <p className="text-[10px] text-text-muted font-cyber">TOTAL OFFER VALUE</p>
+                      <p className="text-base sm:text-lg font-bold text-success-400">
+                        {formatMoney(offeringMoney + offeringPropertiesValue)}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-[10px] text-text-muted font-cyber">TOTAL REQUEST VALUE</p>
+                      <p className="text-base sm:text-lg font-bold text-accent-400">
+                        {formatMoney(requestingMoney + requestingPropertiesValue)}
+                      </p>
                     </div>
                   </div>
 
@@ -435,7 +504,7 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
                     {outgoingTradeId && (
                       <motion.button
                         onClick={() => cancelTrade(outgoingTradeId)}
-                        className="w-full py-2 rounded-lg text-xs sm:text-sm text-danger-400 border border-danger-500/30 hover:bg-danger-500/10 transition-all font-semibold font-cyber"
+                        className="w-full py-2 rounded-lg text-xs sm:text-sm text-danger-400 border border-danger-500/30 hover:bg-danger-500/10 transition-all font-semibold font-cyber min-h-[36px]"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                       >
@@ -473,6 +542,30 @@ export const TradeNotification = ({ trade, onAccept, onReject }: TradeNotificati
 
   if (!fromPlayer || !game) return null;
 
+  // Resolve property names and total values for the notification card
+  const offeringPropNames = trade.offering_properties.map(propId => {
+    const tile = boardData.tiles.find((t: any) => t.id === propId);
+    return tile?.name || `#${propId}`;
+  });
+
+  const requestingPropNames = trade.requesting_properties.map(propId => {
+    const tile = boardData.tiles.find((t: any) => t.id === propId);
+    return tile?.name || `#${propId}`;
+  });
+
+  const offeringPropsValue = trade.offering_properties.reduce((sum, propId) => {
+    const tile = boardData.tiles.find((t: any) => t.id === propId);
+    return sum + (tile?.price || 0);
+  }, 0);
+
+  const requestingPropsValue = trade.requesting_properties.reduce((sum, propId) => {
+    const tile = boardData.tiles.find((t: any) => t.id === propId);
+    return sum + (tile?.price || 0);
+  }, 0);
+
+  const totalOffer = trade.offering_money + offeringPropsValue;
+  const totalRequest = trade.requesting_money + requestingPropsValue;
+
   return (
     <motion.div
       className="fixed bottom-24 right-4 z-40 w-72 sm:w-80 max-w-[calc(100vw-2rem)]"
@@ -501,25 +594,30 @@ export const TradeNotification = ({ trade, onAccept, onReject }: TradeNotificati
           </div>
         </div>
 
-        <div className="text-xs text-text-muted mb-3 space-y-1">
+        <div className="text-xs text-text-muted mb-3 space-y-1.5">
           {trade.offering_money > 0 && (
-            <p>Offers: <span className="text-success-400">{formatMoney(trade.offering_money)}</span></p>
+            <p>Offers Cash: <span className="text-success-400 font-bold">{formatMoney(trade.offering_money)}</span></p>
           )}
-          {trade.offering_properties.length > 0 && (
-            <p>Properties: <span className="text-text-main">{trade.offering_properties.length} properties</span></p>
+          {offeringPropNames.length > 0 && (
+            <p>Offers Properties: <span className="text-text-main font-semibold">{offeringPropNames.join(', ')}</span></p>
           )}
+          <div className="h-px bg-white/5 my-1" />
           {trade.requesting_money > 0 && (
-            <p>Wants: <span className="text-accent-400">{formatMoney(trade.requesting_money)}</span></p>
+            <p>Wants Cash: <span className="text-accent-400 font-bold">{formatMoney(trade.requesting_money)}</span></p>
           )}
-          {trade.requesting_properties.length > 0 && (
-            <p>Your properties: <span className="text-text-main">{trade.requesting_properties.length} properties</span></p>
+          {requestingPropNames.length > 0 && (
+            <p>Wants Properties: <span className="text-text-main font-semibold">{requestingPropNames.join(', ')}</span></p>
           )}
+          <div className="h-px bg-white/10 my-1 pt-1.5 flex justify-between font-bold">
+            <span className="text-success-400">Total Offer: {formatMoney(totalOffer)}</span>
+            <span className="text-accent-400">Total Request: {formatMoney(totalRequest)}</span>
+          </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 mt-4">
           <motion.button
             onClick={onAccept}
-            className="flex-1 py-2 rounded-lg bg-success-500/20 text-success-400 font-bold text-sm border border-success-500/30"
+            className="flex-1 py-2 rounded-lg bg-success-500/20 text-success-400 font-bold text-sm border border-success-500/30 min-h-[36px]"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
@@ -527,7 +625,7 @@ export const TradeNotification = ({ trade, onAccept, onReject }: TradeNotificati
           </motion.button>
           <motion.button
             onClick={onReject}
-            className="flex-1 py-2 rounded-lg bg-danger-500/20 text-danger-400 font-bold text-sm border border-danger-500/30"
+            className="flex-1 py-2 rounded-lg bg-danger-500/20 text-danger-400 font-bold text-sm border border-danger-500/30 min-h-[36px]"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >

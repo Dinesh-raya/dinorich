@@ -23,7 +23,7 @@ import sockets.property_events
 import sockets.auction_events
 import sockets.trade_events
 from persistence.db import init_db
-from persistence.repository import save_snapshot, load_snapshot
+from persistence.repository import save_snapshot, load_snapshot, purge_invalid_snapshots
 from rooms.manager import room_manager
 from services.session_manager import session_manager
 from engine.turn_manager import turn_manager
@@ -32,6 +32,168 @@ from engine.trade_manager import trade_manager, TradeOffer
 from engine.bot import BotBrain, is_bot
 from engine.property import buy_property, get_board_config
 from schemas.action import TurnPhase, AuctionState
+
+async def tick_room_turn_and_bot(room_code: str, tick_count: int, bot_brains: dict[str, BotBrain],
+                                 last_emitted_version: dict[str, int], cached_game_dump: dict[str, dict],
+                                 last_turn_time: dict[str, int]):
+    try:
+        turn, auto_roll_dice, buy_timeout_property = turn_manager.tick_turn_timer(room_code)
+        game = turn_manager.get_game(room_code)
+        if not game:
+            return
+
+        if turn and is_bot(turn.active_player_id):
+            if turn.active_player_id not in bot_brains:
+                bot_brains[turn.active_player_id] = BotBrain()
+            brain = bot_brains[turn.active_player_id]
+
+            # Bot: pay taxes immediately
+            if turn.pending_tax:
+                brain.decide_tick(game, turn, turn.active_player_id)
+                game.bump_version()
+
+            # Bot: buy property decision (BUY phase, before timer expires)
+            if turn.phase == TurnPhase.BUY:
+                pid = turn.active_player_id
+                player = game.room.players.get(pid)
+                if player and player.position in game.properties:
+                    prop_id = player.position
+                    if not game.properties[prop_id].owner_id:
+                        if brain.decide_buy(game, pid, prop_id):
+                            buy_property(game, pid, prop_id)
+                            turn.phase = TurnPhase.ACTION
+                            turn.can_end_turn = True
+                            turn.time_remaining = min(turn.time_remaining, 5)
+                            game.bump_version()
+                        else:
+                            # Start auction instead
+                            participants = [p for p in game.turn_order
+                                            if not game.room.players[p].is_bankrupt]
+                            auction_manager.start_auction(room_code, prop_id, participants)
+                            turn.phase = TurnPhase.AUCTION
+                            turn.can_roll = False
+                            turn.can_end_turn = False
+                            game.bump_version()
+
+            # Bot: build houses in ACTION phase
+            if turn.phase == TurnPhase.ACTION:
+                brain.decide_build(game, turn.active_player_id)
+                game.bump_version()
+
+            # Bot: end turn when possible
+            if turn.can_end_turn and not turn.in_debt:
+                new_turn = turn_manager.next_turn(room_code)
+                game = turn_manager.get_game(room_code)
+                if game and new_turn:
+                    turn = new_turn
+                    game.bump_version()
+
+        # Process bot auction bids
+        auction = auction_manager.get_auction(room_code)
+        if auction and auction.active and tick_count % 2 == 0:
+            for pid in auction.participants:
+                if is_bot(pid) and pid != auction.highest_bidder_id:
+                    if pid not in bot_brains:
+                        bot_brains[pid] = BotBrain()
+                    brain = bot_brains[pid]
+                    player = game.room.players.get(pid)
+                    if player and not player.is_bankrupt:
+                        bid = brain.decide_bid(game, pid, auction.property_id, auction.current_bid)
+                        if bid is not None:
+                            auction_manager.place_bid(room_code, pid, bid, player.money, player.is_bankrupt)
+                            game.bump_version()
+
+        if turn:
+            game_changed = game.state_version != last_emitted_version.get(room_code)
+            timer_changed = turn.time_remaining != last_turn_time.get(room_code)
+            if game_changed or timer_changed or auto_roll_dice:
+                if game_changed:
+                    cached_game_dump[room_code] = game.model_dump()
+                    last_emitted_version[room_code] = game.state_version
+                await sio.emit(
+                    "game:state_update",
+                    {"game": cached_game_dump.get(room_code, game.model_dump()), "turn": turn.model_dump()},
+                    room=room_code,
+                )
+                last_turn_time[room_code] = turn.time_remaining
+            if auto_roll_dice:
+                await sio.emit("game:dice_result", auto_roll_dice, room=room_code)
+
+        # Auto-start auction if BUY phase timed out
+        if buy_timeout_property is not None and turn:
+            participants = [pid for pid in game.turn_order
+                            if not game.room.players[pid].is_bankrupt]
+            auction_manager.start_auction(room_code, buy_timeout_property, participants)
+            turn.phase = TurnPhase.AUCTION
+            turn.can_roll = False
+            turn.can_end_turn = False
+            game.bump_version()
+            cached_game_dump[room_code] = game.model_dump()
+            last_emitted_version[room_code] = game.state_version
+            await sio.emit(
+                "auction:start",
+                {"auction": auction_manager.get_auction(room_code).model_dump()},
+                room=room_code,
+            )
+            await sio.emit(
+                "game:state_update",
+                {"game": cached_game_dump[room_code], "turn": turn.model_dump()},
+                room=room_code,
+            )
+    except Exception as e:
+        logger.error(f"Error ticking game/bot for room {room_code}: {e}", exc_info=True)
+
+async def tick_room_auctions(room_code: str, last_emitted_version: dict[str, int],
+                             cached_game_dump: dict[str, dict], last_turn_time: dict[str, int]):
+    try:
+        auction = auction_manager.tick(room_code)
+        if not auction:
+            return
+
+        game = turn_manager.get_game(room_code)
+        turn = turn_manager.get_turn_state(room_code)
+
+        if auction.time_remaining == 0 and auction.active:
+            if game:
+                auction_manager.end_auction(room_code, game)
+                await sio.emit("auction:end", {"message": "Auction ended by timer"}, room=room_code)
+                if turn:
+                    turn.phase = TurnPhase.ACTION
+                    turn.can_end_turn = True
+                    turn.time_remaining = game.room.settings.turn_timer_seconds
+                game.bump_version()
+                cached_game_dump[room_code] = game.model_dump()
+                last_emitted_version[room_code] = game.state_version
+                await sio.emit(
+                    "game:state_update",
+                    {"game": cached_game_dump[room_code], "turn": turn.model_dump() if turn else None},
+                    room=room_code,
+                )
+                save_snapshot(room_manager.rooms, turn_manager.games, turn_manager.turn_states,
+                              auctions=auction_manager.auctions, trade_manager_obj=trade_manager)
+        else:
+            await sio.emit("auction:state_update", {"auction": auction.model_dump()}, room=room_code)
+    except Exception as e:
+        logger.error(f"Error ticking auction for room {room_code}: {e}", exc_info=True)
+
+def perform_periodic_maintenance(cached_game_dump: dict[str, dict], last_emitted_version: dict[str, int],
+                                 last_turn_time: dict[str, int]):
+    try:
+        save_snapshot(room_manager.rooms, turn_manager.games, turn_manager.turn_states,
+                      auctions=auction_manager.auctions, trade_manager_obj=trade_manager)
+        # Clean up stale cache entries for rooms that no longer exist
+        stale_keys = set(cached_game_dump) | set(last_emitted_version) | set(last_turn_time)
+        stale_keys = [rc for rc in stale_keys if rc not in room_manager.rooms]
+        for rc in stale_keys:
+            cached_game_dump.pop(rc, None)
+            last_emitted_version.pop(rc, None)
+            last_turn_time.pop(rc, None)
+        # Clean up expired sessions (older than 24h)
+        session_manager.cleanup_expired()
+        # Clean up expired trades
+        trade_manager.cleanup_expired_trades()
+    except Exception as e:
+        logger.error(f"Error performing periodic maintenance: {e}", exc_info=True)
 
 async def background_save_loop():
     tick_count = 0
@@ -43,153 +205,31 @@ async def background_save_loop():
         try:
             await asyncio.sleep(1)
             tick_count += 1
-            for room_code in list(turn_manager.games.keys()):
-                turn, auto_roll_dice, buy_timeout_property = turn_manager.tick_turn_timer(room_code)
-                game = turn_manager.get_game(room_code)
-                if turn and game and is_bot(turn.active_player_id):
-                    if turn.active_player_id not in bot_brains:
-                        bot_brains[turn.active_player_id] = BotBrain()
-                    brain = bot_brains[turn.active_player_id]
-
-                    # Bot: pay taxes immediately
-                    if turn.pending_tax:
-                        brain.decide_tick(game, turn, turn.active_player_id)
-                        game.bump_version()
-
-                    # Bot: buy property decision (BUY phase, before timer expires)
-                    if turn.phase == TurnPhase.BUY:
-                        pid = turn.active_player_id
-                        player = game.room.players.get(pid)
-                        if player and player.position in game.properties:
-                            prop_id = player.position
-                            if is_bot(pid) and not game.properties[prop_id].owner_id:
-                                if brain.decide_buy(game, pid, prop_id):
-                                    buy_property(game, pid, prop_id)
-                                    turn.phase = TurnPhase.ACTION
-                                    turn.can_end_turn = True
-                                    turn.time_remaining = min(turn.time_remaining, 5)
-                                    game.bump_version()
-                                else:
-                                    # Start auction instead
-                                    participants = [p for p in game.turn_order
-                                                    if not game.room.players[p].is_bankrupt]
-                                    auction_manager.start_auction(room_code, prop_id, participants)
-                                    turn.phase = TurnPhase.AUCTION
-                                    turn.can_roll = False
-                                    turn.can_end_turn = False
-                                    game.bump_version()
-
-                    # Bot: build houses in ACTION phase
-                    if turn.phase == TurnPhase.ACTION and turn.active_player_id == turn.active_player_id:
-                        brain.decide_build(game, turn.active_player_id)
-                        game.bump_version()
-
-                    # Bot: end turn when possible
-                    if turn.can_end_turn and not turn.in_debt:
-                        new_turn = turn_manager.next_turn(room_code)
-                        game = turn_manager.get_game(room_code)
-                        if game and new_turn:
-                            turn = new_turn
-                            game.bump_version()
-
-                # Process bot auction bids
-                auction = auction_manager.get_auction(room_code)
-                if auction and auction.active and tick_count % 2 == 0:
-                    for pid in auction.participants:
-                        if is_bot(pid) and pid != auction.highest_bidder_id:
-                            if pid not in bot_brains:
-                                bot_brains[pid] = BotBrain()
-                            brain = bot_brains[pid]
-                            player = game.room.players.get(pid) if game else None
-                            if player and not player.is_bankrupt:
-                                bid = brain.decide_bid(game, pid, auction.property_id, auction.current_bid)
-                                if bid is not None:
-                                    auction_manager.place_bid(room_code, pid, bid, player.money, player.is_bankrupt)
-                                    game.bump_version() if game else None
-
-                if turn and game:
-                    game_changed = game.state_version != last_emitted_version.get(room_code)
-                    timer_changed = turn.time_remaining != last_turn_time.get(room_code)
-                    # Only emit if game state changed, timer changed, or auto-roll happened
-                    if game_changed or timer_changed or auto_roll_dice:
-                        if game_changed:
-                            cached_game_dump[room_code] = game.model_dump()
-                            last_emitted_version[room_code] = game.state_version
-                        await sio.emit(
-                            "game:state_update",
-                            {"game": cached_game_dump.get(room_code, game.model_dump()), "turn": turn.model_dump()},
-                            room=room_code,
-                        )
-                        last_turn_time[room_code] = turn.time_remaining
-                    # Emit dice result if auto-roll happened
-                    if auto_roll_dice:
-                        await sio.emit("game:dice_result", auto_roll_dice, room=room_code)
-
-                # Auto-start auction if BUY phase timed out
-                if buy_timeout_property is not None and game and turn:
-                    participants = [pid for pid in game.turn_order
-                                    if not game.room.players[pid].is_bankrupt]
-                    auction_manager.start_auction(room_code, buy_timeout_property, participants)
-                    turn.phase = TurnPhase.AUCTION
-                    turn.can_roll = False
-                    turn.can_end_turn = False
-                    game.bump_version()
-                    cached_game_dump[room_code] = game.model_dump()
-                    last_emitted_version[room_code] = game.state_version
-                    await sio.emit(
-                        "auction:start",
-                        {"auction": auction_manager.get_auction(room_code).model_dump()},
-                        room=room_code,
-                    )
-                    continue
-
-                auction = auction_manager.tick(room_code)
-                if not auction:
-                    continue
-                if auction.time_remaining == 0 and auction.active:
-                    if game:
-                        auction_manager.end_auction(room_code, game)
-                        await sio.emit("auction:end", {"message": "Auction ended by timer"}, room=room_code)
-                        if turn:
-                            turn.phase = TurnPhase.ACTION
-                            turn.can_end_turn = True
-                            turn.time_remaining = game.room.settings.turn_timer_seconds
-                        game.bump_version()
-                        cached_game_dump[room_code] = game.model_dump()
-                        last_emitted_version[room_code] = game.state_version
-                        await sio.emit(
-                            "game:state_update",
-                            {"game": cached_game_dump[room_code], "turn": turn.model_dump() if turn else None},
-                            room=room_code,
-                        )
-                        save_snapshot(room_manager.rooms, turn_manager.games, turn_manager.turn_states,
-                                      auctions=auction_manager.auctions, trade_manager_obj=trade_manager)
-                else:
-                    await sio.emit("auction:state_update", {"auction": auction.model_dump()}, room=room_code)
-
+            rooms = list(turn_manager.games.keys())
+            
+            # 1. Tick game state and bots for each room
+            for room_code in rooms:
+                await tick_room_turn_and_bot(room_code, tick_count, bot_brains, last_emitted_version,
+                                             cached_game_dump, last_turn_time)
+                
+            # 2. Tick auctions for each room
+            for room_code in rooms:
+                await tick_room_auctions(room_code, last_emitted_version, cached_game_dump, last_turn_time)
+                
+            # 3. Periodic maintenance
             if tick_count % 10 == 0:
-                save_snapshot(room_manager.rooms, turn_manager.games, turn_manager.turn_states,
-                              auctions=auction_manager.auctions, trade_manager_obj=trade_manager)
-                # Clean up stale cache entries for rooms that no longer exist
-                stale_keys = set(cached_game_dump) | set(last_emitted_version) | set(last_turn_time)
-                stale_keys = [rc for rc in stale_keys if rc not in room_manager.rooms]
-                for rc in stale_keys:
-                    cached_game_dump.pop(rc, None)
-                    last_emitted_version.pop(rc, None)
-                    last_turn_time.pop(rc, None)
-                # Clean up expired sessions (older than 24h)
-                session_manager.cleanup_expired()
-                # Clean up expired trades
-                trade_manager.cleanup_expired_trades()
+                perform_periodic_maintenance(cached_game_dump, last_emitted_version, last_turn_time)
+                
         except asyncio.CancelledError:
             break
         except Exception as e:
-            logger.error(f"Background save error: {e}", exc_info=True)
+            logger.error(f"Background save loop outer error: {e}", exc_info=True)
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     init_db()
+    purge_invalid_snapshots()
     loaded_rooms, loaded_games, loaded_turns, loaded_auctions, loaded_trades = load_snapshot()
     loaded_sessions = session_manager.load_from_db()
     

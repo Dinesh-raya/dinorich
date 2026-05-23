@@ -38,8 +38,16 @@ echo.
 :: Open browser
 start http://localhost:8000
 
+:: Resolve Python — prefer venv, then resolve system path (avoids Microsoft Store shim mismatch)
+if exist "%~dp0backend\.venv\Scripts\python.exe" (
+    set "PYTHON_PATH=%~dp0backend\.venv\Scripts\python.exe"
+) else (
+    for /f "delims=" %%i in ('python -c "import sys; print(sys.executable)" 2^>nul') do set "PYTHON_PATH=%%i"
+    if not defined PYTHON_PATH set "PYTHON_PATH=python"
+)
+
 :: Start backend (serves frontend + backend on port 8000)
 cd backend
-"C:\Users\dines\AppData\Local\Programs\Python\Python313\python.exe" -m uvicorn main:socket_app --host 0.0.0.0 --port 8000
+"%PYTHON_PATH%" -m uvicorn main:socket_app --host 0.0.0.0 --port 8000
 
 pause

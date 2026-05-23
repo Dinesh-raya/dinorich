@@ -26,6 +26,7 @@ export interface RoomSettings {
   jail_strict_mode: boolean;
   bot_enabled: boolean;
   board_theme: string;
+  mode: string;
 }
 
 export interface RoomState {

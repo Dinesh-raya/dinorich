@@ -29,7 +29,7 @@ def handle_jail_roll(player: PlayerState, dice: DiceState, strict_mode: bool = F
     player.jail_turns += 1
 
     # Official rules: forced release on 3rd turn (pay fine + move)
-    if player.jail_turns >= GameRules.MAX_JAIL_TURNS:
+    if strict_mode and player.jail_turns >= GameRules.MAX_JAIL_TURNS:
         player.is_in_jail = False
         player.jail_turns = 0
         return True

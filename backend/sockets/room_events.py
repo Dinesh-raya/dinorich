@@ -81,6 +81,7 @@ async def room_join(sid, data):
                 from engine.turn_manager import turn_manager
                 game = turn_manager.get_game(room_code)
                 if game:
+                    game.add_log(f"✅ {player.name} reconnected!")
                     if pid in game.turn_order:
                         game.turn_order = [sid if p == pid else p for p in game.turn_order]
                     turn = turn_manager.get_turn_state(room_code)
