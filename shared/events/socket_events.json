@@ -11,7 +11,8 @@
     "LEAVE": "room:leave",
     "UPDATE_SETTINGS": "room:update_settings",
     "STATE_UPDATE": "room:state_update",
-    "KICK_PLAYER": "room:kick_player"
+    "KICK_PLAYER": "room:kick_player",
+    "KICKED": "room:kicked"
   },
   "GAME": {
     "START": "game:start",
@@ -19,18 +20,20 @@
     "DICE_ROLL": "game:dice_roll",
     "DICE_RESULT": "game:dice_result",
     "END_TURN": "game:end_turn",
-    "BANKRUPTCY": "game:bankruptcy",
+    "DECLARE_BANKRUPTCY": "game:declare_bankruptcy",
     "GAME_OVER": "game:over",
     "PAY_JAIL_FINE": "game:pay_jail_fine",
     "USE_JAIL_CARD": "game:use_jail_card",
-    "PAY_TAX": "game:pay_tax",
-    "COLLECT_RENT": "game:collect_rent"
+    "PAY_TAX": "game:pay_tax"
   },
   "PROPERTY": {
     "BUY": "property:buy",
     "MORTGAGE": "property:mortgage",
     "UNMORTGAGE": "property:unmortgage",
-    "PAY_RENT": "property:pay_rent"
+    "BUILD_HOUSE": "property:build_house",
+    "BUILD_HOTEL": "property:build_hotel",
+    "SELL_HOUSE": "property:sell_house",
+    "SELL_HOTEL": "property:sell_hotel"
   },
   "AUCTION": {
     "START": "auction:start",
@@ -39,7 +42,6 @@
     "END": "auction:end"
   },
   "CARD": {
-    "DRAW": "card:draw",
     "RESULT": "card:result"
   },
   "TRADE": {
