@@ -18,12 +18,13 @@ async def game_start(sid, data):
     try:
         if not rate_limiter.allow(f"{sid}:game_start"):
             return {"status": "error", "message": "Too many requests"}
-        room_code = room_manager.get_player_room_code(sid)
+        session_id = room_manager.get_session_id(sid)
+        room_code = room_manager.get_player_room_code(session_id)
         if not room_code:
             return {"status": "error", "message": "Not in a room"}
             
         room = room_manager.get_room(room_code)
-        if not room or room.host_id != sid:
+        if not room or room.host_id != session_id:
             return {"status": "error", "message": "Only host can start game"}
             
         if room.status != "waiting":
@@ -78,7 +79,8 @@ async def game_dice_roll(sid, data):
         if err:
             return err
 
-        result = turn_manager.process_roll(room_code, sid)
+        session_id = room_manager.get_session_id(sid)
+        result = turn_manager.process_roll(room_code, session_id)
         if not result:
             return {"status": "error", "message": "Not your turn or cannot roll"}
 
@@ -91,7 +93,7 @@ async def game_dice_roll(sid, data):
                 {
                     "card": draw["card_drawn"],
                     "card_type": draw.get("card_type", "unknown"),
-                    "player_id": sid
+                    "player_id": session_id
                 },
                 room=room_code
             )
@@ -111,8 +113,9 @@ async def game_end_turn(sid, data):
         if err:
             return err
 
+        session_id = room_manager.get_session_id(sid)
         turn = turn_manager.get_turn_state(room_code)
-        if not turn or turn.active_player_id != sid or not turn.can_end_turn:
+        if not turn or turn.active_player_id != session_id or not turn.can_end_turn:
             return {"status": "error", "message": "Cannot end turn right now"}
 
         new_turn = turn_manager.next_turn(room_code)
@@ -133,7 +136,8 @@ async def game_declare_bankruptcy(sid, data):
         if err:
             return err
 
-        result = turn_manager.declare_voluntary_bankruptcy(room_code, sid)
+        session_id = room_manager.get_session_id(sid)
+        result = turn_manager.declare_voluntary_bankruptcy(room_code, session_id)
         if not result:
             return {"status": "error", "message": "Cannot declare bankruptcy right now"}
 
@@ -167,7 +171,8 @@ async def game_pay_jail_fine(sid, data):
         if err:
             return err
 
-        result = turn_manager.pay_jail_fine(room_code, sid)
+        session_id = room_manager.get_session_id(sid)
+        result = turn_manager.pay_jail_fine(room_code, session_id)
         if not result:
             return {"status": "error", "message": "Cannot pay jail fine right now"}
 
@@ -186,7 +191,8 @@ async def game_use_jail_card(sid, data):
         if err:
             return err
 
-        result = turn_manager.use_jail_card(room_code, sid)
+        session_id = room_manager.get_session_id(sid)
+        result = turn_manager.use_jail_card(room_code, session_id)
         if not result:
             return {"status": "error", "message": "Cannot use jail card right now"}
 
@@ -206,7 +212,8 @@ async def game_pay_tax(sid, data):
             return err
 
         use_percentage = data.get("use_percentage", False) if data else False
-        result = turn_manager.pay_tax(room_code, sid, use_percentage)
+        session_id = room_manager.get_session_id(sid)
+        result = turn_manager.pay_tax(room_code, session_id, use_percentage)
         if not result:
             return {"status": "error", "message": "No pending tax to pay"}
 
@@ -215,3 +222,51 @@ async def game_pay_tax(sid, data):
         return {"status": "success"}
     except Exception as exc:
         return {"status": "error", "message": f"Tax payment failed: {exc}"}
+
+@sio.on("game:rematch")
+async def game_rematch(sid, data):
+    try:
+        if not rate_limiter.allow(f"{sid}:game_rematch"):
+            return {"status": "error", "message": "Too many requests"}
+        room_code, err = get_room_code_or_error(sid)
+        if err:
+            return err
+
+        room = room_manager.get_room(room_code)
+        session_id = room_manager.get_session_id(sid)
+        if not room or room.host_id != session_id:
+            return {"status": "error", "message": "Only host can restart game"}
+
+        # Reset room status
+        room.status = RoomStatus.WAITING
+
+        # Clear active games in engine managers
+        from engine.trade_manager import trade_manager
+        from persistence import repository
+        turn_manager.games.pop(room_code, None)
+        turn_manager.turn_states.pop(room_code, None)
+        auction_manager.auctions.pop(room_code, None)
+        trade_manager.cleanup_room(room_code)
+
+        # Reset player properties/money/state
+        for player in list(room.players.values()):
+            player.properties_owned = []
+            player.money = room.settings.starting_cash
+            player.position = 0
+            player.is_bankrupt = False
+            player.is_in_jail = False
+            player.jail_turns = 0
+            player.get_out_of_jail_cards = 0
+            player.goojf_sources = []
+
+        # Broadcast state update to all players
+        await sio.emit(
+            ROOM_EVENTS["STATE_UPDATE"],
+            room.model_dump(),
+            room=room_code
+        )
+        persist_room(room_code)
+        repository.delete_game(room_code)  # Delete game snapshot from DB
+        return {"status": "success"}
+    except Exception as exc:
+        return {"status": "error", "message": f"Rematch failed: {exc}"}

@@ -39,7 +39,45 @@ def buy_property(game_state: GameState, player_id: str, property_id: int) -> tup
     return True, "Property bought successfully"
 
 def calculate_rent(game_state: GameState, property_id: int, dice_total: int = 0) -> int:
-    """Calculate rent for a property. dice_total is required for utility rent."""
+    """Calculate rent owed when a player lands on an owned property.
+
+    Rent varies by property type:
+
+    **Standard Properties** (color groups):
+        - Base rent from board_config rent[0].
+        - If owner has a monopoly (all tiles in color group) and double_rent
+          is enabled in room settings, base rent is doubled.
+        - With houses/hotels, rent is taken from the rent[] array by index
+          (1–4 for houses, 5 for hotel).
+
+    **Airports** (Indian railway-station equivalents):
+        - ₹250 × 2^(airports_owned − 1).
+        - Owning 1 → ₹250, 2 → ₹500, 3 → ₹1,000, 4 → ₹2,000.
+
+    **Utilities** — CUSTOM THEMATIC FORMULAS (not standard Monopoly):
+        These are intentional game-design decisions, documented here
+        to prevent accidental "fixes":
+
+        *NTPC Power (tile 12)* — Exponential surge pricing:
+            - 1 utility owned: dice² × 5
+            - 2 utilities owned: dice² × 10
+            Represents the exponential nature of electricity demand pricing.
+            High rolls hurt much more than low rolls.
+
+        *Jal Jeevan Water (tile 28)* — Scarcity pricing tied to alive players:
+            - 1 utility owned: dice × 30 + 20 × alive_players
+            - 2 utilities owned: dice × 60 + 40 × alive_players
+            Represents water scarcity — rent increases as fewer players go
+            bankrupt (more demand), but scales linearly with dice roll.
+
+    Args:
+        game_state: Current game state with player/property data.
+        property_id: The board tile ID of the property landed on.
+        dice_total: Sum of both dice (required for utility rent calculation).
+
+    Returns:
+        Rent amount in ₹. Returns 0 if unowned, mortgaged, or invalid.
+    """
     prop_state = game_state.properties.get(property_id)
     if not prop_state or prop_state.owner_id is None or prop_state.is_mortgaged:
         return 0
@@ -68,15 +106,22 @@ def calculate_rent(game_state: GameState, property_id: int, dice_total: int = 0)
             return config["rent"][rent_index]
 
     elif config["type"] == "airport":
+        # Airport rent: ₹250 × 2^(owned − 1), same as standard Monopoly railroad formula
         owned_airports = sum(1 for p in owner.properties_owned if get_board_config()[p]["type"] == "airport")
         return 250 * (2 ** (owned_airports - 1))
 
     elif config["type"] == "utility":
         owned_utilities = sum(1 for p in owner.properties_owned if get_board_config()[p]["type"] == "utility")
-        if property_id == 12:  # NTPC Power — exponential surge pricing
+
+        if property_id == 12:
+            # NTPC Power — Exponential surge pricing (THEMATIC, see docstring)
+            # Formula: dice² × multiplier   (5 if solo, 10 if both owned)
             multiplier = 10 if owned_utilities >= 2 else 5
             return dice_total * dice_total * multiplier
-        elif property_id == 28:  # Jal Jeevan Water — scarcity pricing tied to alive players
+
+        elif property_id == 28:
+            # Jal Jeevan Water — Scarcity pricing (THEMATIC, see docstring)
+            # Formula: dice × base + per_player × alive_players
             alive_players = sum(1 for p in game_state.room.players.values() if not p.is_bankrupt)
             if owned_utilities >= 2:
                 return dice_total * 60 + 40 * alive_players

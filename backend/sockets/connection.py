@@ -23,19 +23,25 @@ async def connect(sid, environ, auth):
     signed_session_token = auth.get("sessionToken", "")
     session = session_manager.resolve_session(signed_session_token, requested_name)
     session.player_socket_id = sid
+    session_id = session.session_id
+    
     await sio.save_session(
         sid,
         {
-            "session_id": session.session_id,
+            "session_id": session_id,
             "player_name": session.player_name,
         },
     )
+
+    # Register the socket with RoomManager
+    room_manager.register_socket(sid, session_id)
+    # Join a private room for this session to allow direct messaging
+    await sio.enter_room(sid, session_id)
 
     # Cancel any disconnect timeout for reconnecting players
     # Check if this session was previously in a room
     # NOTE: Do NOT set player.connected = True here — let room:join handle the full reconnect
     # (sid remap, socket room join, connected flag). Premature setting breaks the reconnect gate.
-    session_id = session.session_id
     room_code = session.room_code
     if room_code:
         room = room_manager.get_room(room_code)
@@ -62,14 +68,14 @@ async def disconnect(sid):
         _disconnect_tasks[session_id].cancel()
         del _disconnect_tasks[session_id]
 
-    # Check if player is in a room and remove them
-    room_code = room_manager.get_player_room_code(sid)
+    # Check if player is in a room and remove them (using session_id)
+    room_code = room_manager.get_player_room_code(session_id)
     if room_code:
         room = room_manager.get_room(room_code)
         if room:
             if room.status == RoomStatus.WAITING:
                 # If waiting, just remove them
-                updated_room = room_manager.leave_room(sid)
+                updated_room = room_manager.leave_room(session_id)
                 # Clean up session room mapping
                 session_manager.set_room_code(session_id, None)
                 if updated_room:
@@ -82,8 +88,8 @@ async def disconnect(sid):
                 persist_room(room_code)
             else:
                 # If playing, mark as disconnected and skip turn if active
-                if sid in room.players:
-                    player = room.players[sid]
+                if session_id in room.players:
+                    player = room.players[session_id]
                     player.connected = False
                     # Remove disconnected socket from room to stop broadcasts
                     sio.leave_room(sid, room_code)
@@ -102,7 +108,7 @@ async def disconnect(sid):
                         
                         # Skip turn if it's the disconnected player's turn
                         turn = turn_manager.get_turn_state(room_code)
-                        if turn and turn.active_player_id == sid:
+                        if turn and turn.active_player_id == session_id:
                             new_turn = turn_manager.next_turn(room_code)
                             if new_turn:
                                 game.add_log(f"{player.name} disconnected, turn skipped")
@@ -115,6 +121,9 @@ async def disconnect(sid):
                     # Start disconnect timeout task keyed by session_id
                     task = asyncio.create_task(handle_disconnect_timeout(sid, session_id, room_code))
                     _disconnect_tasks[session_id] = task
+
+    # Clean up mappings
+    room_manager.deregister_socket(sid)
 
 async def handle_disconnect_timeout(sid: str, session_id: str, room_code: str):
     """Handle prolonged disconnect: skip turns, then declare bankruptcy after grace period."""
@@ -132,12 +141,12 @@ async def handle_disconnect_timeout(sid: str, session_id: str, room_code: str):
         return
 
     # Check if player still in room
-    if sid not in room.players:
+    if session_id not in room.players:
         session_manager.set_room_code(session_id, None)
         return
 
     # Check if still disconnected or already bankrupt
-    if room.players[sid].connected or room.players[sid].is_bankrupt:
+    if room.players[session_id].connected or room.players[session_id].is_bankrupt:
         session_manager.set_room_code(session_id, None)
         return
 
@@ -150,15 +159,15 @@ async def handle_disconnect_timeout(sid: str, session_id: str, room_code: str):
 
     # Skip turn if it's the disconnected player's turn
     turn = turn_manager.get_turn_state(room_code)
-    if turn and turn.active_player_id == sid:
+    if turn and turn.active_player_id == session_id:
         new_turn = turn_manager.next_turn(room_code)
         if new_turn:
-            game.add_log(f"{room.players[sid].name} disconnected too long, turn skipped")
+            game.add_log(f"{room.players[session_id].name} disconnected too long, turn skipped")
             await emit_game_state(room_code, game, new_turn)
 
-    # Declare bankruptcy for the disconnected player (use direct API, not voluntary — player isn't active or in debt)
-    player_name = room.players[sid].name
-    declare_bankruptcy(game, sid, None)
+    # Declare bankruptcy for the disconnected player
+    player_name = room.players[session_id].name
+    declare_bankruptcy(game, session_id, None)
     game.add_log(f"{player_name} declared bankrupt (disconnected too long)")
 
     # Check if game is over (only 1 player remaining)
@@ -183,7 +192,7 @@ async def handle_disconnect_timeout(sid: str, session_id: str, room_code: str):
         for p in room.players.values()
     )
     if all_gone:
-        room_manager.leave_room(sid)
+        room_manager.leave_room(session_id)
         turn_manager.cleanup_room(room_code)
         from engine.auction import auction_manager
         auction_manager.auctions.pop(room_code, None)

@@ -2,9 +2,10 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 
 class PlayerState(BaseModel):
-    id: str = Field(..., description="Unique socket ID or session ID for the player")
+    id: str = Field(..., description="Stable session ID for the player")
     session_id: Optional[str] = Field(None, description="Stable session identity for reconnect")
     reconnect_token: Optional[str] = Field(None, exclude=True, description="Rotating token used for secure reconnect")
+    socket_id: str = Field("", description="Current transport socket ID")
     name: str = Field(..., min_length=1, max_length=30, description="Display name of the player")
     position: int = Field(0, ge=0, le=39, description="Current tile index 0-39")
     money: int = Field(15000, ge=-10_000_000, le=100_000_000, description="Current balance in ₹")

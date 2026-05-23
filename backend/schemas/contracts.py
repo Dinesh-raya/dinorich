@@ -42,6 +42,16 @@ class TradeActionPayload(BaseModel):
     trade_id: str = Field(min_length=1)
 
 
+class TradeCounterPayload(BaseModel):
+    trade_id: str = Field(min_length=1)
+    offering_money: int = Field(default=0, ge=0)
+    requesting_money: int = Field(default=0, ge=0)
+    offering_properties: list[int] = Field(default_factory=list)
+    requesting_properties: list[int] = Field(default_factory=list)
+    offering_get_out_of_jail_cards: int = Field(default=0, ge=0)
+    requesting_get_out_of_jail_cards: int = Field(default=0, ge=0)
+
+
 class KickPlayerPayload(BaseModel):
     target_player_id: str = Field(min_length=1)
 

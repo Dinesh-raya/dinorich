@@ -6,10 +6,13 @@ import { socket } from '../services/socket';
 import { showToast } from './Toast';
 import { formatMoney } from '../utils/format';
 import boardData from '../../shared/configs/board_config.json';
+import type { TradeOffer } from '../stores/slices/types';
 
 interface TradeModalProps {
   isOpen: boolean;
   onClose: () => void;
+  counterOffer?: TradeOffer | null;
+  onClearCounterOffer?: () => void;
 }
 
 const getPropertySubInfo = (tile: any) => {
@@ -26,7 +29,7 @@ const getPropertySubInfo = (tile: any) => {
   return '';
 };
 
-export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
+export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer }: TradeModalProps) => {
   const { game, myId, outgoingTradeId, cancelTrade } = useGameStore();
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [offeringMoney, setOfferingMoney] = useState(0);
@@ -43,16 +46,27 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
-      setSelectedPlayer(null);
-      setOfferingMoney(0);
-      setRequestingMoney(0);
-      setOfferingProperties([]);
-      setRequestingProperties([]);
-      setOfferingJailCards(0);
-      setRequestingJailCards(0);
-      setStep('select-player');
+      if (counterOffer) {
+        setSelectedPlayer(counterOffer.from_player_id);
+        setOfferingMoney(counterOffer.requesting_money);
+        setRequestingMoney(counterOffer.offering_money);
+        setOfferingProperties(counterOffer.requesting_properties || []);
+        setRequestingProperties(counterOffer.offering_properties || []);
+        setOfferingJailCards(counterOffer.requesting_get_out_of_jail_cards || 0);
+        setRequestingJailCards(counterOffer.offering_get_out_of_jail_cards || 0);
+        setStep('configure-trade');
+      } else {
+        setSelectedPlayer(null);
+        setOfferingMoney(0);
+        setRequestingMoney(0);
+        setOfferingProperties([]);
+        setRequestingProperties([]);
+        setOfferingJailCards(0);
+        setRequestingJailCards(0);
+        setStep('select-player');
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, counterOffer]);
 
   const selectedPlayerData = selectedPlayer ? game?.room.players[selectedPlayer] : null;
 
@@ -73,21 +87,40 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
 
     soundManager.playButtonClick();
 
-    socket.emit('trade:create', {
-      to_player_id: selectedPlayer,
-      offering_money: offeringMoney,
-      requesting_money: requestingMoney,
-      offering_properties: offeringProperties,
-      requesting_properties: requestingProperties,
-      offering_get_out_of_jail_cards: offeringJailCards,
-      requesting_get_out_of_jail_cards: requestingJailCards
-    }, (response: any) => {
-      if (response.status === 'success') {
-        onClose();
-      } else {
-        showToast(response.message || 'Failed to create trade', 'error');
-      }
-    });
+    if (counterOffer) {
+      socket.emit('trade:counter', {
+        trade_id: counterOffer.trade_id,
+        offering_money: offeringMoney,
+        requesting_money: requestingMoney,
+        offering_properties: offeringProperties,
+        requesting_properties: requestingProperties,
+        offering_get_out_of_jail_cards: offeringJailCards,
+        requesting_get_out_of_jail_cards: requestingJailCards
+      }, (response: any) => {
+        if (response.status === 'success') {
+          if (onClearCounterOffer) onClearCounterOffer();
+          onClose();
+        } else {
+          showToast(response.message || 'Failed to counter trade', 'error');
+        }
+      });
+    } else {
+      socket.emit('trade:create', {
+        to_player_id: selectedPlayer,
+        offering_money: offeringMoney,
+        requesting_money: requestingMoney,
+        offering_properties: offeringProperties,
+        requesting_properties: requestingProperties,
+        offering_get_out_of_jail_cards: offeringJailCards,
+        requesting_get_out_of_jail_cards: requestingJailCards
+      }, (response: any) => {
+        if (response.status === 'success') {
+          onClose();
+        } else {
+          showToast(response.message || 'Failed to create trade', 'error');
+        }
+      });
+    }
   };
 
   const getPropertyColor = (color: string) => {
@@ -524,19 +557,13 @@ export const TradeModal = ({ isOpen, onClose }: TradeModalProps) => {
 
 // Incoming Trade Notification
 interface TradeNotificationProps {
-  trade: {
-    trade_id: string;
-    from_player_id: string;
-    offering_money: number;
-    requesting_money: number;
-    offering_properties: number[];
-    requesting_properties: number[];
-  };
+  trade: TradeOffer;
   onAccept: () => void;
   onReject: () => void;
+  onCounter: () => void;
 }
 
-export const TradeNotification = ({ trade, onAccept, onReject }: TradeNotificationProps) => {
+export const TradeNotification = ({ trade, onAccept, onReject, onCounter }: TradeNotificationProps) => {
   const { game } = useGameStore();
   const fromPlayer = game?.room.players[trade.from_player_id];
 
@@ -601,12 +628,18 @@ export const TradeNotification = ({ trade, onAccept, onReject }: TradeNotificati
           {offeringPropNames.length > 0 && (
             <p>Offers Properties: <span className="text-text-main font-semibold">{offeringPropNames.join(', ')}</span></p>
           )}
+          {trade.offering_get_out_of_jail_cards > 0 && (
+            <p>Offers Jail Cards: <span className="text-success-400 font-bold">{trade.offering_get_out_of_jail_cards}</span></p>
+          )}
           <div className="h-px bg-white/5 my-1" />
           {trade.requesting_money > 0 && (
             <p>Wants Cash: <span className="text-accent-400 font-bold">{formatMoney(trade.requesting_money)}</span></p>
           )}
           {requestingPropNames.length > 0 && (
             <p>Wants Properties: <span className="text-text-main font-semibold">{requestingPropNames.join(', ')}</span></p>
+          )}
+          {trade.requesting_get_out_of_jail_cards > 0 && (
+            <p>Wants Jail Cards: <span className="text-accent-400 font-bold">{trade.requesting_get_out_of_jail_cards}</span></p>
           )}
           <div className="h-px bg-white/10 my-1 pt-1.5 flex justify-between font-bold">
             <span className="text-success-400">Total Offer: {formatMoney(totalOffer)}</span>
@@ -622,6 +655,14 @@ export const TradeNotification = ({ trade, onAccept, onReject }: TradeNotificati
             whileTap={{ scale: 0.98 }}
           >
             Accept
+          </motion.button>
+          <motion.button
+            onClick={onCounter}
+            className="flex-1 py-2 rounded-lg bg-purple-500/20 text-purple-400 font-bold text-sm border border-purple-500/30 min-h-[36px]"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            Counter
           </motion.button>
           <motion.button
             onClick={onReject}

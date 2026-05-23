@@ -21,14 +21,15 @@ class TestCreateRoom:
         code = rm.create_room("host1", "Host", "sess1", "token1")
         room = rm.get_room(code)
         assert room is not None
-        assert room.host_id == "host1"
-        assert "host1" in room.players
-        assert room.players["host1"].name == "Host"
+        assert room.host_id == "sess1"
+        assert "sess1" in room.players
+        assert room.players["sess1"].name == "Host"
 
     def test_create_room_tracks_player_room(self):
         rm = RoomManager()
         code = rm.create_room("host1", "Host", "sess1", "token1")
         assert rm.get_player_room_code("host1") == code
+        assert rm.get_player_room_code("sess1") == code
 
     def test_create_room_unique_codes(self):
         rm = RoomManager()
@@ -53,14 +54,15 @@ class TestJoinRoom:
         code = rm.create_room("host1", "Host", "s1", "t1")
         room = rm.join_room(code, "p2", "Player2", "s2", "t2")
         assert room is not None
-        assert "p2" in room.players
-        assert room.players["p2"].name == "Player2"
+        assert "s2" in room.players
+        assert room.players["s2"].name == "Player2"
 
     def test_join_room_tracks_player(self):
         rm = RoomManager()
         code = rm.create_room("host1", "Host", "s1", "t1")
         rm.join_room(code, "p2", "Player2", "s2", "t2")
         assert rm.get_player_room_code("p2") == code
+        assert rm.get_player_room_code("s2") == code
 
     def test_join_room_returns_none_for_invalid_code(self):
         rm = RoomManager()
@@ -109,7 +111,7 @@ class TestLeaveRoom:
         rm.join_room(code, "p2", "Player2", "s2", "t2")
         room = rm.leave_room("p2")
         assert room is not None
-        assert "p2" not in room.players
+        assert "s2" not in room.players
 
     def test_leave_room_cleans_player_tracking(self):
         rm = RoomManager()
@@ -117,6 +119,7 @@ class TestLeaveRoom:
         rm.join_room(code, "p2", "Player2", "s2", "t2")
         rm.leave_room("p2")
         assert rm.get_player_room_code("p2") is None
+        assert rm.get_player_room_code("s2") is None
 
     def test_leave_room_host_reassigns(self):
         rm = RoomManager()
@@ -124,7 +127,7 @@ class TestLeaveRoom:
         rm.join_room(code, "p2", "Player2", "s2", "t2")
         room = rm.leave_room("host1")
         assert room is not None
-        assert room.host_id == "p2"
+        assert room.host_id == "s2"
 
     def test_leave_room_last_player_destroys_room(self):
         rm = RoomManager()
@@ -150,7 +153,7 @@ class TestKickPlayer:
         rm.join_room(code, "p2", "Player2", "s2", "t2")
         room = rm.kick_player(code, "host1", "p2")
         assert room is not None
-        assert "p2" not in room.players
+        assert "s2" not in room.players
 
     def test_kick_cleans_player_tracking(self):
         rm = RoomManager()
@@ -158,6 +161,7 @@ class TestKickPlayer:
         rm.join_room(code, "p2", "Player2", "s2", "t2")
         rm.kick_player(code, "host1", "p2")
         assert rm.get_player_room_code("p2") is None
+        assert rm.get_player_room_code("s2") is None
 
     def test_non_host_cannot_kick(self):
         rm = RoomManager()

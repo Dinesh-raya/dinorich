@@ -25,6 +25,9 @@ export function setupSocketListeners(get: () => StoreState, set: (partial: Parti
       }, (response: any) => {
         if (response.status === 'success') {
           set({ room: response.room, error: null });
+          if (response.game) {
+            set({ game: response.game, turn: response.turn });
+          }
           if (response.reconnectToken) {
             localStorage.setItem('dino_reconnect_token', response.reconnectToken);
           }
@@ -53,6 +56,9 @@ export function setupSocketListeners(get: () => StoreState, set: (partial: Parti
 
   socket.on('room:state_update', (room: any) => {
     set({ room });
+    if (room && room.status === 'waiting') {
+      set({ game: null, turn: null, gameOver: null });
+    }
   });
 
   socket.on('game:start', (data: { game: any; turn: any }) => {

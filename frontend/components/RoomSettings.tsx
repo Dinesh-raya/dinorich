@@ -57,6 +57,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
   }, [room?.settings]);
 
   const isHost = room?.host_id === myId;
+  const isLocked = room?.status === 'playing';
 
   const MODE_PRESETS: Record<string, Partial<RoomSettingsType>> = {
     classic: {},
@@ -67,7 +68,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
   };
 
   const handleSettingChange = (key: keyof RoomSettingsType, value: any) => {
-    if (!isHost) return;
+    if (!isHost || isLocked) return;
     if (key === 'mode') {
       const preset = MODE_PRESETS[value as string] || {};
       setSettings({ ...defaultSettings, ...preset, mode: value as string });
@@ -77,12 +78,13 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
   };
 
   const handleSave = () => {
-    if (!isHost) return;
+    if (!isHost || isLocked) return;
     updateRoomSettings(settings);
     onClose();
   };
 
   const handleReset = () => {
+    if (isLocked) return;
     setSettings(defaultSettings);
   };
 
@@ -144,7 +146,20 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
               </div>
             </div>
 
-            {!isHost && (
+            {isLocked ? (
+              <motion.div
+                className="mx-6 mt-4 p-4 rounded-xl border border-danger-500/20 bg-danger-500/5 animate-pulse"
+                variants={animations.fadeIn}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">🔒</span>
+                  <div>
+                    <p className="text-danger-400 font-bold text-sm font-cyber">Settings Locked — Game In Progress</p>
+                    <p className="text-text-muted text-xs font-cyber">Settings cannot be modified while a game is active.</p>
+                  </div>
+                </div>
+              </motion.div>
+            ) : !isHost ? (
               <motion.div
                 className="mx-6 mt-4 p-4 rounded-xl border border-warning-500/20 bg-warning-500/5"
                 variants={animations.fadeIn}
@@ -152,12 +167,12 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                 <div className="flex items-center gap-3">
                   <span className="text-xl">🔒</span>
                   <div>
-                    <p className="text-warning-400 font-bold text-sm">Settings Locked</p>
-                    <p className="text-text-muted text-xs">Only the room host can modify game settings.</p>
+                    <p className="text-warning-400 font-bold text-sm font-cyber">Settings Locked</p>
+                    <p className="text-text-muted text-xs font-cyber">Only the room host can modify game settings.</p>
                   </div>
                 </div>
               </motion.div>
-            )}
+            ) : null}
 
             {/* Settings Grid */}
             <div className="p-6 space-y-4">
@@ -190,9 +205,9 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                           ? 'border-purple-500 bg-purple-500/20 shadow-lg shadow-purple-500/20'
                           : 'border-white/10 bg-surface/30 hover:border-purple-500/30'
                       }`}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      disabled={!isHost}
+                      whileHover={isHost && !isLocked ? { scale: 1.05 } : undefined}
+                      whileTap={isHost && !isLocked ? { scale: 0.95 } : undefined}
+                      disabled={!isHost || isLocked}
                     >
                       <div className="text-2xl mb-1">{icon}</div>
                       <div className="text-sm font-bold text-text-main">{label}</div>
@@ -236,9 +251,9 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                               ? 'bg-purple-500/30 border border-purple-500 text-purple-300 shadow-lg shadow-purple-500/20'
                               : 'bg-surface/50 border border-white/10 text-text-muted hover:border-purple-500/30'
                           }`}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          disabled={!isHost}
+                          whileHover={isHost && !isLocked ? { scale: 1.05 } : undefined}
+                          whileTap={isHost && !isLocked ? { scale: 0.95 } : undefined}
+                          disabled={!isHost || isLocked}
                         >
                           {num}
                         </motion.button>
@@ -259,9 +274,9 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                       <motion.button
                         onClick={() => handleSettingChange('starting_cash', Math.max(5000, settings.starting_cash - 500))}
                         className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-purple-300 hover:bg-purple-500/20 hover:border-purple-500/30 transition-all"
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        disabled={!isHost || settings.starting_cash <= 5000}
+                        whileHover={isHost && !isLocked ? { scale: 1.1 } : undefined}
+                        whileTap={isHost && !isLocked ? { scale: 0.9 } : undefined}
+                        disabled={!isHost || isLocked || settings.starting_cash <= 5000}
                       >
                         −
                       </motion.button>
@@ -273,9 +288,9 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                       <motion.button
                         onClick={() => handleSettingChange('starting_cash', Math.min(100000, settings.starting_cash + 500))}
                         className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-purple-300 hover:bg-purple-500/20 hover:border-purple-500/30 transition-all"
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        disabled={!isHost || settings.starting_cash >= 100000}
+                        whileHover={isHost && !isLocked ? { scale: 1.1 } : undefined}
+                        whileTap={isHost && !isLocked ? { scale: 0.9 } : undefined}
+                        disabled={!isHost || isLocked || settings.starting_cash >= 100000}
                       >
                         +
                       </motion.button>
@@ -301,9 +316,9 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                               ? 'bg-purple-500/30 border border-purple-500 text-purple-300 shadow-lg shadow-purple-500/20'
                               : 'bg-surface/50 border border-white/10 text-text-muted hover:border-purple-500/30'
                           }`}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          disabled={!isHost}
+                          whileHover={isHost && !isLocked ? { scale: 1.05 } : undefined}
+                          whileTap={isHost && !isLocked ? { scale: 0.95 } : undefined}
+                          disabled={!isHost || isLocked}
                         >
                           {seconds}s
                         </motion.button>
@@ -352,8 +367,8 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                             ? 'bg-purple-500 shadow-lg shadow-purple-500/30'
                             : 'bg-surface border border-white/20'
                         }`}
-                        whileTap={{ scale: 0.95 }}
-                        disabled={!isHost}
+                        whileTap={isHost && !isLocked ? { scale: 0.95 } : undefined}
+                        disabled={!isHost || isLocked}
                       >
                         <span
                           className={`inline-block h-7 w-7 rounded-full bg-white shadow-md transition-transform duration-200 ${
@@ -408,8 +423,9 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                             <motion.button
                               onClick={() => kickPlayer(player.id)}
                               className="px-3 py-1.5 bg-danger-500/10 text-danger-400 text-xs rounded-lg hover:bg-danger-500/20 transition-colors border border-danger-500/20"
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
+                              whileHover={!isLocked ? { scale: 1.05 } : undefined}
+                              whileTap={!isLocked ? { scale: 0.95 } : undefined}
+                              disabled={isLocked}
                             >
                               Kick
                             </motion.button>
@@ -429,33 +445,47 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
             {/* Action Buttons */}
             <div className="flex justify-between items-center p-6 border-t border-purple-500/20">
               <p className="text-xs text-text-muted">
-                Settings affect all players. Changes take effect immediately.
+                {isLocked ? 'Settings are read-only during gameplay.' : 'Settings affect all players. Changes take effect immediately.'}
               </p>
 
               <div className="flex gap-3">
-                <motion.button
-                  onClick={handleReset}
-                  className="px-5 py-2.5 rounded-xl bg-surface/50 border border-white/10 text-text-muted hover:bg-white/10 hover:border-white/20 transition-all text-sm"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  disabled={!isHost}
-                >
-                  Reset
-                </motion.button>
+                {!isLocked && (
+                  <>
+                    <motion.button
+                      onClick={handleReset}
+                      className="px-5 py-2.5 rounded-xl bg-surface/50 border border-white/10 text-text-muted hover:bg-white/10 hover:border-white/20 transition-all text-sm"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      disabled={!isHost}
+                    >
+                      Reset
+                    </motion.button>
 
-                <motion.button
-                  onClick={handleSave}
-                  className="px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  style={{
-                    background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
-                    boxShadow: '0 4px 14px rgba(168, 85, 247, 0.3)'
-                  }}
-                  whileHover={{ scale: 1.02, boxShadow: '0 6px 20px rgba(168, 85, 247, 0.4)' }}
-                  whileTap={{ scale: 0.98 }}
-                  disabled={!isHost}
-                >
-                  💾 Save
-                </motion.button>
+                    <motion.button
+                      onClick={handleSave}
+                      className="px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      style={{
+                        background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                        boxShadow: '0 4px 14px rgba(168, 85, 247, 0.3)'
+                      }}
+                      whileHover={{ scale: 1.02, boxShadow: '0 6px 20px rgba(168, 85, 247, 0.4)' }}
+                      whileTap={{ scale: 0.98 }}
+                      disabled={!isHost}
+                    >
+                      💾 Save
+                    </motion.button>
+                  </>
+                )}
+                {isLocked && (
+                  <motion.button
+                    onClick={onClose}
+                    className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-purple-500/20 border border-purple-500 text-purple-300 shadow-lg shadow-purple-500/20"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Close
+                  </motion.button>
+                )}
               </div>
             </div>
           </motion.div>

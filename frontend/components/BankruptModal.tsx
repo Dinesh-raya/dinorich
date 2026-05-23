@@ -1,5 +1,9 @@
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatMoney } from '../utils/format';
+import { useGameStore } from '../stores/gameStore';
+import { socket } from '../services/socket';
+import { showToast } from './Toast';
 
 interface BankruptModalProps {
   isOpen: boolean;
@@ -110,6 +114,23 @@ interface GameOverModalProps {
 }
 
 export const GameOverModal = ({ isOpen, winnerName, isWinner, standings, onClose }: GameOverModalProps) => {
+  const { room, myId } = useGameStore();
+  const isHost = room?.host_id === myId;
+  const [loadingRematch, setLoadingRematch] = useState(false);
+
+  const handleRematch = () => {
+    setLoadingRematch(true);
+    socket.emit('game:rematch', {}, (response: any) => {
+      setLoadingRematch(false);
+      if (response.status === 'success') {
+        showToast('Rematch started! Back to lobby.', 'success');
+        onClose(); // Close the game over overlay
+      } else {
+        showToast(response.message || 'Failed to start rematch', 'error');
+      }
+    });
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -235,19 +256,37 @@ export const GameOverModal = ({ isOpen, winnerName, isWinner, standings, onClose
               </div>
             )}
 
-            {/* Close Button */}
-            <motion.button
-              onClick={onClose}
-              className="w-full py-3 rounded-xl font-bold text-lg"
-              style={{
-                background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
-                boxShadow: '0 4px 20px rgba(168, 85, 247, 0.3)'
-              }}
-              whileHover={{ scale: 1.02, boxShadow: '0 6px 30px rgba(168, 85, 247, 0.4)' }}
-              whileTap={{ scale: 0.98 }}
-            >
-              Play Again
-            </motion.button>
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              {isHost ? (
+                <motion.button
+                  onClick={handleRematch}
+                  disabled={loadingRematch}
+                  className="w-full py-3 rounded-xl font-bold text-lg text-white disabled:opacity-50 min-h-[48px]"
+                  style={{
+                    background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                    boxShadow: '0 4px 20px rgba(168, 85, 247, 0.3)'
+                  }}
+                  whileHover={loadingRematch ? {} : { scale: 1.02, boxShadow: '0 6px 30px rgba(168, 85, 247, 0.4)' }}
+                  whileTap={loadingRematch ? {} : { scale: 0.98 }}
+                >
+                  {loadingRematch ? 'Starting Rematch...' : '🔄 Play Again / Rematch'}
+                </motion.button>
+              ) : (
+                <div className="p-3 text-sm text-purple-300 bg-purple-500/10 border border-purple-500/20 rounded-xl font-cyber mb-4 animate-pulse">
+                  ⏳ Waiting for the Host to initiate a rematch...
+                </div>
+              )}
+
+              <motion.button
+                onClick={onClose}
+                className="w-full py-2.5 rounded-xl bg-surface/50 border border-white/10 text-text-muted hover:text-danger-400 hover:border-danger-500/30 hover:bg-danger-500/5 transition-all text-sm font-bold min-h-[44px]"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                🚪 Leave Room & Exit
+              </motion.button>
+            </div>
           </motion.div>
         </motion.div>
       )}

@@ -63,8 +63,8 @@ class RoomSettings(BaseModel):
 
 class RoomState(BaseModel):
     room_id: str = Field(..., description="Unique 4-6 character invite code")
-    host_id: str = Field(..., description="Socket ID of the room host")
+    host_id: str = Field(..., description="Session ID of the room host")
     is_private: bool = Field(False, description="If true, room should not be listed publicly")
     settings: RoomSettings = Field(default_factory=RoomSettings)
-    players: Dict[str, PlayerState] = Field(default_factory=dict, description="Map of socket IDs to PlayerState")
+    players: Dict[str, PlayerState] = Field(default_factory=dict, description="Map of session IDs to PlayerState")
     status: RoomStatus = Field(RoomStatus.WAITING, description="Room status")

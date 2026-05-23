@@ -226,6 +226,35 @@ class TradeManager:
 
         return True
 
+    def counter_trade(self, game: GameState, trade_id: str, player_id: str,
+                      counter_money_offer: int, counter_money_request: int,
+                      counter_properties_offer: List[int],
+                      counter_properties_request: List[int],
+                      counter_jail_cards_offer: int = 0,
+                      counter_jail_cards_request: int = 0) -> Optional[TradeOffer]:
+        """Create a counter-offer: rejects original trade and creates a new one in reverse."""
+        original = self.active_trades.get(trade_id)
+        if not original or original.status != "pending":
+            return None
+        if original.to_player_id != player_id:
+            return None
+
+        # Reject original trade
+        self.reject_trade(trade_id, player_id)
+
+        # Create new trade with swapped from/to
+        return self.create_trade(
+            game=game,
+            from_player_id=player_id,           # Counter-offerer becomes initiator
+            to_player_id=original.from_player_id,
+            offering_money=counter_money_offer,
+            requesting_money=counter_money_request,
+            offering_properties=counter_properties_offer,
+            requesting_properties=counter_properties_request,
+            offering_get_out_of_jail_cards=counter_jail_cards_offer,
+            requesting_get_out_of_jail_cards=counter_jail_cards_request,
+        )
+
     def _cleanup_trade(self, trade_id: str):
         """Remove trade from tracking."""
         trade = self.active_trades.get(trade_id)

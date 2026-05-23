@@ -8,6 +8,7 @@ import { AudioSettings } from '../components/AudioSettings';
 import { ToastContainer, showToast } from '../components/Toast';
 import { BankruptModal, GameOverModal } from '../components/BankruptModal';
 import { TradeModal, TradeNotification } from '../components/TradeModal';
+import type { TradeOffer } from '../stores/slices/types';
 import { CardDrawModal } from '../components/CardDrawModal';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { ReconnectOverlay } from '../components/ReconnectOverlay';
@@ -453,6 +454,7 @@ function App() {
   const [gameWinner, setGameWinner] = useState<{ name: string; isWinner: boolean } | null>(null);
   const [gameStandings, setGameStandings] = useState<any[]>([]);
   const [showTradeModal, setShowTradeModal] = useState(false);
+  const [activeCounterOffer, setActiveCounterOffer] = useState<TradeOffer | null>(null);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
 
   useEffect(() => {
@@ -841,7 +843,12 @@ function App() {
       />
       <ErrorBoundary><TradeModal
         isOpen={showTradeModal}
-        onClose={() => setShowTradeModal(false)}
+        onClose={() => {
+          setShowTradeModal(false);
+          setActiveCounterOffer(null);
+        }}
+        counterOffer={activeCounterOffer}
+        onClearCounterOffer={() => setActiveCounterOffer(null)}
       /></ErrorBoundary>
 
       {/* Incoming Trade Notification */}
@@ -850,6 +857,10 @@ function App() {
           trade={incomingTrade}
           onAccept={() => useGameStore.getState().acceptTrade(incomingTrade.trade_id)}
           onReject={() => useGameStore.getState().rejectTrade(incomingTrade.trade_id)}
+          onCounter={() => {
+            setActiveCounterOffer(incomingTrade);
+            setShowTradeModal(true);
+          }}
         />
       )}
 

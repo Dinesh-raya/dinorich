@@ -21,49 +21,51 @@ def _make_property_handler(action_fn: Callable, event_name: str, require_buy_pha
         if err:
             return err
 
-        turn = turn_manager.get_turn_state(room_code)
-        if require_buy_phase:
-            if not turn or turn.active_player_id != sid or turn.phase != TurnPhase.BUY:
-                return {"status": "error", "message": "Not the time to buy"}
-        else:
-            # Non-buy actions (mortgage, build, sell) require it to be your turn
-            if turn and turn.active_player_id != sid:
-                return {"status": "error", "message": "Not your turn"}
-            # Official rules: players CAN do property actions while in jail (ROLL phase)
-            # Only block during BUY, AUCTION phases
-            if turn and turn.phase not in (TurnPhase.ACTION, TurnPhase.DEBT, TurnPhase.ROLL):
-                return {"status": "error", "message": "Cannot do property actions in this phase"}
-
-        try:
-            payload = PropertyActionPayload.model_validate(data or {})
-        except ValidationError as exc:
-            return {"status": "error", "message": exc.errors()[0]["msg"]}
-
-        property_id = payload.property_id
-        game = turn_manager.get_game(room_code)
-        if not game:
-            return {"status": "error", "message": "No active game"}
-
-        try:
-            success, msg = action_fn(game, sid, property_id)
-        except Exception as exc:
-            return {"status": "error", "message": f"Action failed: {exc}"}
-
-        if not success:
-            return {"status": "error", "message": msg}
-
-        # Check if debt was resolved by this action (mortgage/sell gives money)
-        turn_manager.check_debt_resolved(room_code, sid)
-
-        turn = turn_manager.get_turn_state(room_code)
-        if turn:
+        async with room_manager.get_lock(room_code):
+            session_id = room_manager.get_session_id(sid)
+            turn = turn_manager.get_turn_state(room_code)
             if require_buy_phase:
-                turn.phase = TurnPhase.ACTION
-                turn.can_end_turn = True
-                turn.time_remaining = game.room.settings.turn_timer_seconds
-            await emit_game_state(room_code, game, turn)
-            persist_game(room_code)
-        return {"status": "success"}
+                if not turn or turn.active_player_id != session_id or turn.phase != TurnPhase.BUY:
+                    return {"status": "error", "message": "Not the time to buy"}
+            else:
+                # Non-buy actions (mortgage, build, sell) require it to be your turn
+                if turn and turn.active_player_id != session_id:
+                    return {"status": "error", "message": "Not your turn"}
+                # Official rules: players CAN do property actions while in jail (ROLL phase)
+                # Only block during BUY, AUCTION phases
+                if turn and turn.phase not in (TurnPhase.ACTION, TurnPhase.DEBT, TurnPhase.ROLL):
+                    return {"status": "error", "message": "Cannot do property actions in this phase"}
+
+            try:
+                payload = PropertyActionPayload.model_validate(data or {})
+            except ValidationError as exc:
+                return {"status": "error", "message": exc.errors()[0]["msg"]}
+
+            property_id = payload.property_id
+            game = turn_manager.get_game(room_code)
+            if not game:
+                return {"status": "error", "message": "No active game"}
+
+            try:
+                success, msg = action_fn(game, session_id, property_id)
+            except Exception as exc:
+                return {"status": "error", "message": f"Action failed: {exc}"}
+
+            if not success:
+                return {"status": "error", "message": msg}
+
+            # Check if debt was resolved by this action (mortgage/sell gives money)
+            turn_manager.check_debt_resolved(room_code, session_id)
+
+            turn = turn_manager.get_turn_state(room_code)
+            if turn:
+                if require_buy_phase:
+                    turn.phase = TurnPhase.ACTION
+                    turn.can_end_turn = True
+                    turn.time_remaining = game.room.settings.turn_timer_seconds
+                await emit_game_state(room_code, game, turn)
+                persist_game(room_code)
+            return {"status": "success"}
 
     return handler
 

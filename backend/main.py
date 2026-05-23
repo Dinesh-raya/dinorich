@@ -36,11 +36,12 @@ from schemas.action import TurnPhase, AuctionState
 async def tick_room_turn_and_bot(room_code: str, tick_count: int, bot_brains: dict[str, BotBrain],
                                  last_emitted_version: dict[str, int], cached_game_dump: dict[str, dict],
                                  last_turn_time: dict[str, int]):
-    try:
-        turn, auto_roll_dice, buy_timeout_property = turn_manager.tick_turn_timer(room_code)
-        game = turn_manager.get_game(room_code)
-        if not game:
-            return
+    async with room_manager.get_lock(room_code):
+        try:
+            turn, auto_roll_dice, buy_timeout_property = turn_manager.tick_turn_timer(room_code)
+            game = turn_manager.get_game(room_code)
+            if not game:
+                return
 
         if turn and is_bot(turn.active_player_id):
             if turn.active_player_id not in bot_brains:
@@ -145,13 +146,14 @@ async def tick_room_turn_and_bot(room_code: str, tick_count: int, bot_brains: di
 
 async def tick_room_auctions(room_code: str, last_emitted_version: dict[str, int],
                              cached_game_dump: dict[str, dict], last_turn_time: dict[str, int]):
-    try:
-        auction = auction_manager.tick(room_code)
-        if not auction:
-            return
+    async with room_manager.get_lock(room_code):
+        try:
+            auction = auction_manager.tick(room_code)
+            if not auction:
+                return
 
-        game = turn_manager.get_game(room_code)
-        turn = turn_manager.get_turn_state(room_code)
+            game = turn_manager.get_game(room_code)
+            turn = turn_manager.get_turn_state(room_code)
 
         if auction.time_remaining == 0 and auction.active:
             if game:
