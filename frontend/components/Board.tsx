@@ -113,21 +113,32 @@ const BoardTile = memo(({
         border: isCorner
           ? '2px solid rgba(34, 211, 238, 0.4)'
           : ownerId
-          ? `2px solid ${playerColor || 'rgba(255, 255, 255, 0.15)'}80`
+          ? `3px solid ${playerColor || 'rgba(255, 255, 255, 0.15)'}`
           : isSide
           ? '1px solid rgba(255, 255, 255, 0.15)'
           : '1px solid rgba(255, 255, 255, 0.08)',
         background: isCorner
           ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.9) 100%)'
+          : ownerId
+          ? `linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.85) 100%)`
           : 'rgba(15, 23, 42, 0.85)',
+        boxShadow: ownerId && !isCorner
+          ? `0 0 12px ${playerColor || 'rgba(255, 255, 255, 0.15)'}40, inset 0 0 8px ${playerColor || 'rgba(255, 255, 255, 0.15)'}15`
+          : undefined,
+        outline: ownerId && !isCorner
+          ? `1px solid ${playerColor || 'rgba(255, 255, 255, 0.15)'}40`
+          : undefined,
+        outlineOffset: '-3px',
         transition: 'all 0.2s ease'
       }}
       variants={animations.fadeIn}
       whileHover={{
         scale: 1.08,
         zIndex: 20,
-        boxShadow: '0 0 20px rgba(34, 211, 238, 0.2)',
-        borderColor: 'rgba(34, 211, 238, 0.5)'
+        boxShadow: ownerId
+          ? `0 0 25px ${playerColor || 'rgba(34, 211, 238, 0.4)'}80, 0 0 10px ${playerColor || 'rgba(34, 211, 238, 0.2)'}`
+          : '0 0 20px rgba(34, 211, 238, 0.2)',
+        borderColor: ownerId ? `${playerColor || '#22d3ee'}` : 'rgba(34, 211, 238, 0.5)'
       }}
       transition={{ duration: 0.15 }}
       onClick={() => onTileClick(tile.id)}
@@ -289,11 +300,40 @@ const BoardTile = memo(({
 });
 BoardTile.displayName = 'BoardTile';
 
-// Center game log — shows all events for transparency
+// Activity feed — shows all game events with categorized icons
+const ACTIVITY_ICONS: [RegExp, string][] = [
+  [/bought/i, '🏪'],
+  [/sold/i, '💸'],
+  [/paid.*rent/i, '💵'],
+  [/collected.*rent/i, '💰'],
+  [/passed GO/i, '🏁'],
+  [/landed on.*tax/i, '🧾'],
+  [/paid.*tax/i, '🧾'],
+  [/bankrupt/i, '💀'],
+  [/won/i, '🏆'],
+  [/jail/i, '🔒'],
+  [/escaped.*jail|released.*jail/i, '🔓'],
+  [/built|hotel/i, '🏗️'],
+  [/mortgaged/i, '🏦'],
+  [/unmortgaged/i, '🏧'],
+  [/traded?/i, '🤝'],
+  [/card|treasury|surprise/i, '🃏'],
+  [/dice/i, '🎲'],
+  [/auction/i, '🔨'],
+  [/started/i, '▶️'],
+  [/ended|game over/i, '⏹️'],
+];
+
+const getActivityIcon = (log: string): string => {
+  for (const [pattern, icon] of ACTIVITY_ICONS) {
+    if (pattern.test(log)) return icon;
+  }
+  return '📌';
+};
+
 const CenterGameLog = ({ historyLog }: { historyLog: string[] }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to latest entry
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -303,34 +343,44 @@ const CenterGameLog = ({ historyLog }: { historyLog: string[] }) => {
   if (historyLog.length === 0) return null;
 
   return (
-    <div className="absolute top-[52%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none w-[70%] max-w-xs">
+    <div className="absolute top-[52%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none w-[75%] max-w-sm">
+      <div className="flex items-center justify-center gap-2 mb-2">
+        <span className="text-[10px] text-text-muted font-cyber tracking-widest uppercase">Activity Feed</span>
+      </div>
       <div
         ref={scrollRef}
         className="flex flex-col gap-1 max-h-40 overflow-y-auto scrollbar-hide px-1"
-        style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)' }}
+        style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 12%, black 85%, transparent 100%)' }}
       >
-        {historyLog.map((log, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: i === historyLog.length - 1 ? 1 : 0.6, x: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div
-              className={`px-3 py-1.5 rounded-lg text-center ${i === historyLog.length - 1 ? 'border border-primary-500/25' : 'border border-transparent'}`}
-              style={i === historyLog.length - 1 ? {
-                background: 'linear-gradient(135deg, rgba(34, 211, 238, 0.1) 0%, rgba(15, 23, 42, 0.85) 100%)',
-                boxShadow: '0 2px 12px rgba(34, 211, 238, 0.1)'
-              } : {
-                background: 'rgba(15, 23, 42, 0.4)'
-              }}
+        {historyLog.map((log, i) => {
+          const isLatest = i === historyLog.length - 1;
+          if (historyLog.length > 15 && i < historyLog.length - 15) return null;
+          return (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: -8, scale: 0.95 }}
+              animate={{ opacity: isLatest ? 1 : 0.55, y: 0, scale: 1 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
             >
-              <p className={`${i === historyLog.length - 1 ? 'text-xs text-text-main font-medium' : 'text-[11px] text-text-muted'} leading-relaxed`}>
-                {log}
-              </p>
-            </div>
-          </motion.div>
-        ))}
+              <div
+                className={`flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg ${isLatest ? 'border border-primary-500/20' : 'border border-transparent'}`}
+                style={isLatest ? {
+                  background: 'linear-gradient(135deg, rgba(34, 211, 238, 0.08) 0%, rgba(15, 23, 42, 0.8) 100%)',
+                  boxShadow: '0 2px 10px rgba(34, 211, 238, 0.08)'
+                } : {
+                  background: 'rgba(15, 23, 42, 0.3)'
+                }}
+              >
+                <span className="text-[10px] leading-relaxed mt-[1px] flex-shrink-0">
+                  {getActivityIcon(log)}
+                </span>
+                <p className={`${isLatest ? 'text-[11px] text-text-main font-medium' : 'text-[10px] text-text-muted'} leading-relaxed`}>
+                  {log}
+                </p>
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
     </div>
   );
@@ -543,7 +593,7 @@ export const Board = () => {
                       whileTap={{ scale: 0.95 }}
                       disabled={!!pendingAction}
                     >
-                      {pendingAction === 'payJailFine' ? 'PAYING...' : 'PAY FINE (₹5,000)'}
+                      {pendingAction === 'payJailFine' ? 'PAYING...' : '                      PAY FINE (₹500)'}
                     </motion.button>
                     {(game.room.players[myId]?.get_out_of_jail_cards ?? 0) > 0 && (
                       <motion.button
