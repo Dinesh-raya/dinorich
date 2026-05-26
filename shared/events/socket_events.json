@@ -24,7 +24,15 @@
     "GAME_OVER": "game:over",
     "PAY_JAIL_FINE": "game:pay_jail_fine",
     "USE_JAIL_CARD": "game:use_jail_card",
-    "PAY_TAX": "game:pay_tax"
+    "PAY_TAX": "game:pay_tax",
+    "PAUSE": "game:pause",
+    "RESUME": "game:resume",
+    "PAUSED": "game:paused",
+    "RESUMED": "game:resumed",
+    "SAVE": "game:save",
+    "LOAD": "game:load",
+    "LIST_SAVES": "game:list_saves",
+    "SAVED": "game:saved"
   },
   "PROPERTY": {
     "BUY": "property:buy",
@@ -52,6 +60,7 @@
     "OFFER": "trade:offer",
     "COMPLETED": "trade:completed",
     "REJECTED": "trade:rejected",
-    "CANCELLED": "trade:cancelled"
+    "CANCELLED": "trade:cancelled",
+    "COUNTER": "trade:counter"
   }
 }

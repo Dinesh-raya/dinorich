@@ -43,10 +43,6 @@ class BotBrain:
             self._pay_tax(game, turn, player_id)
             return None
 
-        if turn.pending_rent:
-            # Bot automatically pays rent (handled by process_roll)
-            return None
-
         return None
 
     def decide_buy(self, game: GameState, player_id: str, property_id: int) -> bool:

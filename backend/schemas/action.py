@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Tuple
 from enum import Enum
 
 class TurnPhase(str, Enum):
@@ -25,8 +25,8 @@ class TurnState(BaseModel):
     time_remaining: int = Field(60, description="Seconds remaining in turn")
     in_debt: bool = Field(False, description="Whether the active player is in negative balance")
     debt_creditor_id: Optional[str] = Field(None, description="Player ID to whom debt is owed (None if bank)")
+    debt_creditors: List[Tuple[str, int]] = Field(default_factory=list, description="List of (creditor_id, amount) tuples tracking all creditors in order")
     pending_tax: Optional[Dict] = Field(None, description="Pending tax info: {amount, name, tile_id}")
-    pending_rent: Optional[Dict] = Field(None, description="Pending rent info: {payer_id, owner_id, amount, property_id, property_name}")
 
 class AuctionState(BaseModel):
     property_id: int = Field(..., description="ID of the tile being auctioned")
