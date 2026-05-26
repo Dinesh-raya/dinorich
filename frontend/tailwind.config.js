@@ -4,98 +4,121 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
     "./components/**/*.{js,ts,jsx,tsx}",
-    "./pages/**/*.{js,ts,jsx,tsx}"
+    "./pages/**/*.{js,ts,jsx,tsx}",
+    "./stores/**/*.{js,ts,jsx,tsx}",
+    "./services/**/*.{js,ts,jsx,tsx}",
+    "./utils/**/*.{js,ts,jsx,tsx}",
+    "./hooks/**/*.{js,ts,jsx,tsx}",
+    "./constants/**/*.{js,ts,jsx,tsx}"
   ],
   theme: {
     extend: {
       colors: {
-        // OLED Dark Mode Core
-        background: '#0a0a0f',
-        surface: '#12121a',
-        'surface-hover': '#1c1c28',
+        // Core backgrounds
+        background: '#0a0e1a',
+        surface: '#111827',
+        'surface-hover': '#1a1f35',
         'surface-light': '#1e293b',
-        
-        // Primary Colors - Cyber/Hacker Theme
+        'bg-elevated': '#1a1f35',
+
+        // Gold primary
+        gold: {
+          50: '#fefce8',
+          100: '#fef9c3',
+          200: '#fef08a',
+          300: '#fde047',
+          400: '#f0c040',
+          500: '#e2b714',
+          600: '#b8960e',
+          700: '#8a7008',
+          800: '#705a08',
+          900: '#4a3b05',
+          DEFAULT: '#e2b714',
+        },
+
+        // Primary = gold (backward compat with existing primary-* classes)
         primary: {
-          50: '#e0f7ff',
-          100: '#b3ebff',
-          200: '#80deff',
-          300: '#4dd0ff',
-          400: '#26c6ff',
-          500: '#00bcd4', // Main cyan
-          600: '#00a8c1',
-          700: '#0093a9',
-          800: '#007f91',
-          900: '#005a6b',
-          DEFAULT: '#22d3ee', // Neon cyan-400
-          glow: 'rgba(34, 211, 238, 0.5)',
+          50: '#fefce8',
+          100: '#fef9c3',
+          200: '#fef08a',
+          300: '#fde047',
+          400: '#f0c040',
+          500: '#e2b714',
+          600: '#b8960e',
+          700: '#8a7008',
+          800: '#705a08',
+          900: '#4a3b05',
+          DEFAULT: '#e2b714',
         },
-        
-        // Accent Colors
+
+        // Accent = muted gold
         accent: {
-          50: '#f5f3ff',
-          100: '#ede9fe',
-          200: '#ddd6fe',
-          300: '#c4b5fd',
-          400: '#a855f7', // Purple accent
-          500: '#9333ea',
-          600: '#7c3aed',
-          700: '#6d28d9',
-          800: '#5b21b6',
-          900: '#4c1d95',
-          DEFAULT: '#a855f7',
-          glow: 'rgba(168, 85, 247, 0.5)',
+          50: '#fefce8',
+          100: '#fef9c3',
+          200: '#fef08a',
+          300: '#fde047',
+          400: '#d4a017',
+          500: '#b8960e',
+          600: '#8a7008',
+          700: '#705a08',
+          800: '#5a4706',
+          900: '#4a3b05',
+          DEFAULT: '#d4a017',
         },
-        
-        // Status Colors
+
+        // Status colors
         success: {
-          DEFAULT: '#10b981',
-          glow: 'rgba(16, 185, 129, 0.3)',
+          DEFAULT: '#22c55e',
+          500: '#22c55e',
+          400: '#4ade80',
         },
         warning: {
           DEFAULT: '#f59e0b',
-          glow: 'rgba(245, 158, 11, 0.3)',
+          500: '#f59e0b',
+          400: '#fbbf24',
         },
         danger: {
           DEFAULT: '#ef4444',
-          glow: 'rgba(239, 68, 68, 0.3)',
+          500: '#ef4444',
+          400: '#f87171',
         },
         info: {
           DEFAULT: '#3b82f6',
-          glow: 'rgba(59, 130, 246, 0.3)',
+          500: '#3b82f6',
+          400: '#60a5fa',
         },
-        
-        // Board Colors
+
+        // Board tile colors (darkened 20% for dark bg)
         board: {
-          brown: '#8B4513',
-          'light-blue': '#87CEFA',
-          pink: '#FF69B4',
-          orange: '#FFA500',
-          red: '#FF0000',
-          yellow: '#FFD700',
-          green: '#008000',
-          'dark-blue': '#00008B',
-          utility: '#E5E7EB',
-          airport: '#9CA3AF',
-          tax: '#EF4444',
-          card: '#F59E0B',
+          brown: '#5a3020',
+          'light-blue': '#6bb8d8',
+          pink: '#c45a7d',
+          orange: '#e06510',
+          red: '#d63031',
+          yellow: '#d4a017',
+          green: '#1da851',
+          'dark-blue': '#2d6cd4',
+          utility: '#9ca3af',
+          airport: '#7c8594',
+          tax: '#dc2626',
+          card: '#b8960e',
         },
-        
-        // Text Colors
+
+        // Text colors — warm white
         text: {
-          main: '#f8fafc',
-          muted: '#94a3b8',
-          inverse: '#020617',
+          main: '#f5f0e1',
+          muted: '#a09880',
+          subtle: '#5a5240',
+          inverse: '#0a0e1a',
         }
       },
-      
+
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
         'cyber': ['Rajdhani', 'Inter', 'sans-serif'],
       },
-      
-      // Animation Extensions
+
       animation: {
         'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
         'float': 'float 3s ease-in-out infinite',
@@ -106,9 +129,8 @@ export default {
         'bounce-in': 'bounce-in 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
         'spin-slow': 'spin 3s linear infinite',
         'pulse-soft': 'pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'neon-flicker': 'neon-flicker 1.5s ease-in-out infinite',
       },
-      
+
       keyframes: {
         'glow-pulse': {
           '0%, 100%': { opacity: 1 },
@@ -144,32 +166,19 @@ export default {
           '0%, 100%': { opacity: 1 },
           '50%': { opacity: 0.5 },
         },
-        'neon-flicker': {
-          '0%, 19%, 21%, 23%, 25%, 54%, 56%, 100%': {
-            opacity: 1,
-          },
-          '20%, 24%, 55%': {
-            opacity: 0.5,
-          },
-        },
       },
-      
-      // Glassmorphism Effects
+
       backdropBlur: {
         xs: '2px',
       },
-      
-      // Box Shadow Extensions
+
       boxShadow: {
-        'neon': '0 0 15px rgba(34, 211, 238, 0.5)',
-        'neon-accent': '0 0 15px rgba(168, 85, 247, 0.5)',
-        'neon-success': '0 0 15px rgba(16, 185, 129, 0.5)',
-        'neon-danger': '0 0 15px rgba(239, 68, 68, 0.5)',
         'glass': '0 8px 32px rgba(0, 0, 0, 0.3)',
-        'inner-glow': 'inset 0 0 20px rgba(34, 211, 238, 0.1)',
+        'inner-glow': 'inset 0 0 20px rgba(226, 183, 20, 0.08)',
+        'gold': '0 0 15px rgba(226, 183, 20, 0.3)',
+        'gold-strong': '0 0 30px rgba(226, 183, 20, 0.4)',
       },
-      
-      // Border Radius Extensions
+
       borderRadius: {
         'glass': '16px',
         'tile': '8px',

@@ -1,40 +1,36 @@
 export const THEME = {
   colors: {
-    // Core theme colors - OLED dark mode with cyber aesthetic
-    background: '#0a0a0f', // Deep slate black
-    surface: '#12121a', // Slightly lighter slate
-    surfaceHover: '#1c1c28',
-    surfaceElevated: '#1e1e2e',
-    
-    // Primary colors - Neon cyan theme
+    background: '#0a0e1a',
+    surface: '#111827',
+    surfaceHover: '#1a1f35',
+    surfaceElevated: '#1a1f35',
+
     primary: {
-      50: '#ecfeff',
-      100: '#cffafe',
-      200: '#a5f3fc',
-      300: '#67e8f9',
-      400: '#22d3ee', // Main primary
-      500: '#06b6d4',
-      600: '#0891b2',
-      700: '#0e7490',
-      800: '#155e75',
-      900: '#164e63',
+      50: '#fefce8',
+      100: '#fef9c3',
+      200: '#fef08a',
+      300: '#fde047',
+      400: '#f0c040',
+      500: '#e2b714',
+      600: '#b8960e',
+      700: '#8a7008',
+      800: '#705a08',
+      900: '#4a3b05',
     },
-    
-    // Accent colors - Purple for highlights
+
     accent: {
-      50: '#faf5ff',
-      100: '#f3e8ff',
-      200: '#e9d5ff',
-      300: '#d8b4fe',
-      400: '#c084fc',
-      500: '#a855f7', // Main accent
-      600: '#9333ea',
-      700: '#7e22ce',
-      800: '#6b21a8',
-      900: '#581c87',
+      50: '#fefce8',
+      100: '#fef9c3',
+      200: '#fef08a',
+      300: '#fde047',
+      400: '#d4a017',
+      500: '#b8960e',
+      600: '#8a7008',
+      700: '#705a08',
+      800: '#5a4706',
+      900: '#4a3b05',
     },
-    
-    // Status colors
+
     success: {
       50: '#f0fdf4',
       100: '#dcfce7',
@@ -47,7 +43,7 @@ export const THEME = {
       800: '#166534',
       900: '#14532d',
     },
-    
+
     warning: {
       50: '#fffbeb',
       100: '#fef3c7',
@@ -60,7 +56,7 @@ export const THEME = {
       800: '#92400e',
       900: '#78350f',
     },
-    
+
     danger: {
       50: '#fef2f2',
       100: '#fee2e2',
@@ -73,7 +69,7 @@ export const THEME = {
       800: '#991b1b',
       900: '#7f1d1d',
     },
-    
+
     info: {
       50: '#eff6ff',
       100: '#dbeafe',
@@ -86,53 +82,50 @@ export const THEME = {
       800: '#1e40af',
       900: '#1e3a8a',
     },
-    
-    // Text colors
+
     text: {
-      main: '#f8fafc', // slate-50
-      muted: '#94a3b8', // slate-400
-      subtle: '#64748b', // slate-500
-      inverse: '#020617', // slate-950
-      onPrimary: '#020617',
-      onAccent: '#ffffff',
+      main: '#f5f0e1',
+      muted: '#a09880',
+      subtle: '#5a5240',
+      inverse: '#0a0e1a',
+      onPrimary: '#0a0e1a',
+      onAccent: '#f5f0e1',
     },
-    
-    // Board property colors (Monopoly standard)
+
     board: {
-      brown: '#8B4513',
-      light_blue: '#87CEFA',
-      pink: '#FF69B4',
-      orange: '#FFA500',
-      red: '#FF0000',
-      yellow: '#FFD700',
-      green: '#008000',
-      dark_blue: '#00008B',
-      utility: '#E5E7EB',
-      airport: '#9CA3AF',
-      tax: '#EF4444',
-      card: '#F59E0B',
+      brown: '#5a3020',
+      light_blue: '#6bb8d8',
+      pink: '#c45a7d',
+      orange: '#e06510',
+      red: '#d63031',
+      yellow: '#d4a017',
+      green: '#1da851',
+      dark_blue: '#2d6cd4',
+      utility: '#9ca3af',
+      airport: '#7c8594',
+      tax: '#dc2626',
+      card: '#b8960e',
       jail: '#374151',
-      free_parking: '#10b981',
+      free_parking: '#1da851',
       go: '#22c55e',
     },
-    
-    // Glow effects
+
     glow: {
-      primary: 'rgba(34, 211, 238, 0.5)',
-      accent: 'rgba(168, 85, 247, 0.5)',
-      success: 'rgba(34, 197, 94, 0.5)',
-      danger: 'rgba(239, 68, 68, 0.5)',
-      white: 'rgba(255, 255, 255, 0.1)',
+      primary: 'rgba(226, 183, 20, 0.3)',
+      accent: 'rgba(212, 160, 23, 0.3)',
+      success: 'rgba(34, 197, 94, 0.3)',
+      danger: 'rgba(239, 68, 68, 0.3)',
+      white: 'rgba(255, 255, 255, 0.08)',
     }
   },
-  
+
   typography: {
     fontFamily: {
       sans: '"Inter", "Segoe UI", system-ui, sans-serif',
       mono: '"JetBrains Mono", "Fira Code", monospace',
-      cyber: '"Orbitron", "Rajdhani", sans-serif',
+      cyber: '"Rajdhani", "Inter", sans-serif',
     },
-    h1: 'text-4xl md:text-5xl font-bold tracking-tighter font-cyber',
+    h1: 'text-4xl md:text-5xl font-bold tracking-tight font-cyber',
     h2: 'text-3xl md:text-4xl font-bold tracking-tight font-cyber',
     h3: 'text-2xl md:text-3xl font-semibold',
     h4: 'text-xl md:text-2xl font-semibold',
@@ -141,29 +134,26 @@ export const THEME = {
     caption: 'text-sm font-medium text-text-muted',
     small: 'text-xs font-medium',
   },
-  
+
   effects: {
-    // Glassmorphism effects
     glass: {
-      light: 'bg-white/10 backdrop-blur-md border border-white/20',
-      medium: 'bg-slate-900/60 backdrop-blur-md border border-white/10',
-      dark: 'bg-black/40 backdrop-blur-lg border border-white/5',
-      primary: 'bg-primary-400/10 backdrop-blur-md border border-primary-400/20',
+      light: 'panel-elevated',
+      medium: 'panel-dark',
+      dark: 'panel-dark',
+      primary: 'panel-dark',
     },
-    
-    // Shadow effects
+
     shadow: {
       sm: 'shadow-sm',
       md: 'shadow-md',
       lg: 'shadow-lg',
       xl: 'shadow-xl',
-      neon: 'shadow-[0_0_15px_rgba(34,211,238,0.5)]',
-      neonAccent: 'shadow-[0_0_15px_rgba(168,85,247,0.5)]',
-      glow: 'shadow-[0_0_30px_rgba(34,211,238,0.3)]',
+      neon: 'gold-glow',
+      neonAccent: 'gold-glow',
+      glow: 'gold-glow-strong',
       inner: 'shadow-inner',
     },
-    
-    // Border radius
+
     borderRadius: {
       sm: 'rounded-sm',
       md: 'rounded-md',
@@ -172,8 +162,7 @@ export const THEME = {
       '2xl': 'rounded-2xl',
       full: 'rounded-full',
     },
-    
-    // Transitions
+
     transition: {
       fast: 'transition-all duration-150 ease-in-out',
       normal: 'transition-all duration-300 ease-in-out',
@@ -181,10 +170,9 @@ export const THEME = {
       bounce: 'transition-all duration-300 ease-bounce',
     },
   },
-  
+
   animations: {
-    // Animation classes for Tailwind
-    glowPulse: 'animate-glow-pulse',
+    glowPulse: 'animate-pulse-glow',
     float: 'animate-float',
     slideIn: 'animate-slide-in',
     slideOut: 'animate-slide-out',
@@ -192,17 +180,14 @@ export const THEME = {
     fadeOut: 'animate-fade-out',
     bounceIn: 'animate-bounce-in',
     pulseSoft: 'animate-pulse-soft',
-    neonFlicker: 'animate-neon-flicker',
-    
-    // Animation durations
+
     duration: {
       fast: '150ms',
       normal: '300ms',
       slow: '500ms',
       slower: '1000ms',
     },
-    
-    // Animation timing functions
+
     easing: {
       linear: 'linear',
       ease: 'ease',
@@ -212,9 +197,8 @@ export const THEME = {
       bounce: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
     },
   },
-  
+
   spacing: {
-    // Common spacing values
     container: {
       padding: '1rem',
       margin: '0 auto',
@@ -234,9 +218,8 @@ export const THEME = {
       gap: '0.5rem',
     },
   },
-  
+
   zIndex: {
-    // Z-index layers
     base: '0',
     elevated: '10',
     dropdown: '100',
@@ -249,9 +232,7 @@ export const THEME = {
   },
 };
 
-// Helper functions for common theme usage
 export const themeHelpers = {
-  // Color getters
   getColor: (color: string, shade: string = '500') => {
     const colorMap: Record<string, any> = THEME.colors;
     if (colorMap[color] && colorMap[color][shade]) {
@@ -259,31 +240,26 @@ export const themeHelpers = {
     }
     return colorMap.primary[500];
   },
-  
-  // Text color based on background brightness
+
   getTextColor: (bgColor: string) => {
-    return bgColor.includes('primary') || bgColor.includes('accent') 
-      ? THEME.colors.text.onPrimary 
+    return bgColor.includes('primary') || bgColor.includes('accent')
+      ? THEME.colors.text.onPrimary
       : THEME.colors.text.main;
   },
-  
-  // Glass effect generator
+
   glassEffect: (intensity: 'light' | 'medium' | 'dark' | 'primary' = 'medium') => {
     return THEME.effects.glass[intensity];
   },
-  
-  // Shadow effect generator
+
   shadowEffect: (size: keyof typeof THEME.effects.shadow = 'md') => {
     return THEME.effects.shadow[size];
   },
-  
-  // Animation class generator
+
   animate: (animation: keyof typeof THEME.animations) => {
     return THEME.animations[animation];
   },
 };
 
-// Export commonly used values as constants
 export const COLORS = THEME.colors;
 export const TYPOGRAPHY = THEME.typography;
 export const EFFECTS = THEME.effects;

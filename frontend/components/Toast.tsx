@@ -21,7 +21,11 @@ export const ToastContainer = () => {
 
   const addToast = useCallback((toast: Omit<Toast, 'id'>) => {
     const id = Math.random().toString(36).slice(2);
-    setToasts(prev => [...prev, { ...toast, id }]);
+    setToasts(prev => {
+      const next = [...prev, { ...toast, id }];
+      // Max 3 toasts visible at once
+      return next.length > 3 ? next.slice(-3) : next;
+    });
   }, []);
 
   useEffect(() => {
@@ -36,7 +40,7 @@ export const ToastContainer = () => {
   }, []);
 
   return (
-    <div className="fixed top-16 sm:top-4 right-4 z-50 flex flex-col gap-3 max-w-sm">
+    <div className="fixed top-16 sm:top-4 right-2 sm:right-4 z-50 flex flex-col gap-3 w-[calc(100vw-1rem)] sm:w-auto sm:max-w-sm">
       <AnimatePresence>
         {toasts.map(toast => (
           <ToastItem key={toast.id} toast={toast} onRemove={removeToast} />
@@ -53,10 +57,10 @@ const ToastItem = ({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
   }, [toast.id, toast.duration, onRemove]);
 
   const bgColors = {
-    success: 'bg-success-500/90 border-success-400',
-    error: 'bg-danger-500/90 border-danger-400',
-    info: 'bg-primary-500/90 border-primary-400',
-    warning: 'bg-accent-500/90 border-accent-400',
+    success: 'bg-surface border-success-400',
+    error: 'bg-surface border-danger-400',
+    info: 'bg-surface border-gold-500',
+    warning: 'bg-surface border-accent-400',
   };
 
   const icons = {
