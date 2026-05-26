@@ -1,4 +1,4 @@
-import random
+import secrets
 from typing import Dict, Any, List
 from schemas.game import GameState
 from engine.movement import move_player, send_to_jail
@@ -55,7 +55,10 @@ SURPRISE_CARDS_TEMPLATE = [
 def create_shuffled_deck(template: List[Dict]) -> List[Dict]:
     """Create a fresh shuffled copy of a card deck template."""
     deck = [card.copy() for card in template]
-    random.shuffle(deck)
+    # Use cryptographically secure shuffle
+    for i in range(len(deck) - 1, 0, -1):
+        j = secrets.randbelow(i + 1)
+        deck[i], deck[j] = deck[j], deck[i]
     return deck
 
 
@@ -68,6 +71,14 @@ class CardEngine:
             game_state.add_log("Treasury deck is empty, reshuffling...")
             game_state.treasury_deck = create_shuffled_deck(TREASURY_CARDS_TEMPLATE)
             deck = game_state.treasury_deck
+            # Remove GOOJF if any player already holds one from this deck
+            goojf_held = any(
+                "treasury" in (p.goojf_sources or [])
+                for p in game_state.room.players.values()
+                if not p.is_bankrupt
+            )
+            if goojf_held:
+                deck[:] = [c for c in deck if c["action"] != "get_out_of_jail_free"]
         card = deck.pop(0)
         # GOOJF cards are removed from deck when drawn (returned when used)
         if card["action"] != "get_out_of_jail_free":
@@ -83,6 +94,14 @@ class CardEngine:
             game_state.add_log("Surprise deck is empty, reshuffling...")
             game_state.surprise_deck = create_shuffled_deck(SURPRISE_CARDS_TEMPLATE)
             deck = game_state.surprise_deck
+            # Remove GOOJF if any player already holds one from this deck
+            goojf_held = any(
+                "surprise" in (p.goojf_sources or [])
+                for p in game_state.room.players.values()
+                if not p.is_bankrupt
+            )
+            if goojf_held:
+                deck[:] = [c for c in deck if c["action"] != "get_out_of_jail_free"]
         card = deck.pop(0)
         # GOOJF cards are removed from deck when drawn (returned when used)
         if card["action"] != "get_out_of_jail_free":
@@ -155,9 +174,10 @@ class CardEngine:
             collected = 0
             for pid, other in game_state.room.players.items():
                 if pid != player_id and not other.is_bankrupt:
-                    other.money -= amount
-                    player.money += amount
-                    collected += amount
+                    actual = min(amount, max(0, other.money))
+                    other.money -= actual
+                    player.money += actual
+                    collected += actual
             game_state.add_log(f"{player.name} collected ₹{collected} from other players")
         elif action == "go_to_jail":
             send_to_jail(game_state, player_id)

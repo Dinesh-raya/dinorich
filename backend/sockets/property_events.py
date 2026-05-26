@@ -8,13 +8,17 @@ from schemas.contracts import PropertyActionPayload
 from schemas.action import TurnPhase
 from services.rate_limiter import rate_limiter
 from sockets.events import GAME_EVENTS
-from sockets.helpers import get_room_code_or_error, emit_game_state, persist_game
+from sockets.helpers import get_room_code_or_error, emit_game_state, persist_game, require_session
 
 
 def _make_property_handler(action_fn: Callable, event_name: str, require_buy_phase: bool = False):
     """Factory that creates a property socket handler with shared boilerplate."""
     async def handler(sid, data):
-        if not rate_limiter.allow(f"{sid}:{event_name}"):
+        session = await require_session(sid, event_name)
+        if not session:
+            return {"status": "error", "message": "Not authenticated"}
+        session_id = session["session_id"]
+        if not rate_limiter.allow(f"{session_id}:{event_name}"):
             return {"status": "error", "message": "Too many requests"}
 
         room_code, err = get_room_code_or_error(sid)
@@ -22,7 +26,6 @@ def _make_property_handler(action_fn: Callable, event_name: str, require_buy_pha
             return err
 
         async with room_manager.get_lock(room_code):
-            session_id = room_manager.get_session_id(sid)
             turn = turn_manager.get_turn_state(room_code)
             if require_buy_phase:
                 if not turn or turn.active_player_id != session_id or turn.phase != TurnPhase.BUY:
@@ -63,8 +66,9 @@ def _make_property_handler(action_fn: Callable, event_name: str, require_buy_pha
                     turn.phase = TurnPhase.ACTION
                     turn.can_end_turn = True
                     turn.time_remaining = game.room.settings.turn_timer_seconds
+                    turn_manager.clear_buy_timer(room_code)
                 await emit_game_state(room_code, game, turn)
-                persist_game(room_code)
+                await persist_game(room_code)
             return {"status": "success"}
 
     return handler

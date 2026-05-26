@@ -7,7 +7,7 @@ from rooms.manager import room_manager
 from engine.trade_manager import trade_manager
 from engine.turn_manager import turn_manager
 from services.rate_limiter import rate_limiter
-from sockets.helpers import get_room_code_or_error, emit_game_state, persist_game
+from sockets.helpers import get_room_code_or_error, emit_game_state, persist_game, require_session
 from schemas.contracts import TradeCreatePayload, TradeActionPayload, TradeCounterPayload
 
 logger = logging.getLogger(__name__)
@@ -15,10 +15,12 @@ logger = logging.getLogger(__name__)
 @sio.on("trade:create")
 async def trade_create(sid, data):
     """Create a new trade offer."""
-    if not rate_limiter.allow(f"{sid}:trade_create"):
+    session = await require_session(sid, "trade_create")
+    if not session:
+        return {"status": "error", "message": "Not authenticated"}
+    session_id = session["session_id"]
+    if not rate_limiter.allow(f"{session_id}:trade_create"):
         return {"status": "error", "message": "Too many requests"}
-
-    session_id = room_manager.get_session_id(sid)
     room_code, err = get_room_code_or_error(sid)
     if err:
         return err
@@ -73,15 +75,24 @@ async def trade_create(sid, data):
             "status": trade.status
         }
 
+        # Emit to creator (always connected since they sent the request)
         await sio.emit("trade:offer", trade_data, room=session_id)
-        await sio.emit("trade:offer", trade_data, room=to_player_id)
+        # Only emit to recipient if they are connected; they'll see it on reconnect
+        if room_manager.session_to_socket.get(to_player_id):
+            await sio.emit("trade:offer", trade_data, room=to_player_id)
+        else:
+            logger.info("Recipient %s is offline; trade offer stored for reconnect", to_player_id)
 
         return {"status": "success", "trade_id": trade.trade_id}
 
 @sio.on("trade:accept")
 async def trade_accept(sid, data):
     """Accept a trade offer."""
-    if not rate_limiter.allow(f"{sid}:trade_accept"):
+    session = await require_session(sid, "trade_accept")
+    if not session:
+        return {"status": "error", "message": "Not authenticated"}
+    session_id = session["session_id"]
+    if not rate_limiter.allow(f"{session_id}:trade_accept"):
         return {"status": "error", "message": "Too many requests"}
 
     room_code, err = get_room_code_or_error(sid)
@@ -109,7 +120,6 @@ async def trade_accept(sid, data):
 
         from_player_id = trade.from_player_id
         to_player_id = trade.to_player_id
-        session_id = room_manager.get_session_id(sid)
 
         if not trade_manager.accept_trade(game, trade_id, session_id):
             return {"status": "error", "message": "Cannot accept trade"}
@@ -128,16 +138,23 @@ async def trade_accept(sid, data):
             await emit_game_state(room_code, game, turn_state)
 
         # Notify both players (use saved IDs since trade was deleted)
-        await sio.emit("trade:completed", {"trade_id": trade_id}, room=from_player_id)
-        await sio.emit("trade:completed", {"trade_id": trade_id}, room=to_player_id)
+        # Only emit if player is connected; they'll see the updated state on reconnect
+        if room_manager.session_to_socket.get(from_player_id):
+            await sio.emit("trade:completed", {"trade_id": trade_id}, room=from_player_id)
+        if room_manager.session_to_socket.get(to_player_id):
+            await sio.emit("trade:completed", {"trade_id": trade_id}, room=to_player_id)
 
-        persist_game(room_code)
+        await persist_game(room_code)
         return {"status": "success"}
 
 @sio.on("trade:reject")
 async def trade_reject(sid, data):
     """Reject a trade offer."""
-    if not rate_limiter.allow(f"{sid}:trade_reject"):
+    session = await require_session(sid, "trade_reject")
+    if not session:
+        return {"status": "error", "message": "Not authenticated"}
+    session_id = session["session_id"]
+    if not rate_limiter.allow(f"{session_id}:trade_reject"):
         return {"status": "error", "message": "Too many requests"}
 
     room_code, err = get_room_code_or_error(sid)
@@ -159,19 +176,23 @@ async def trade_reject(sid, data):
         if not trade:
             return {"status": "error", "message": "Trade not found"}
         from_player_id = trade.from_player_id
-        session_id = room_manager.get_session_id(sid)
 
         if not trade_manager.reject_trade(trade_id, session_id):
             return {"status": "error", "message": "Cannot reject trade"}
 
-        await sio.emit("trade:rejected", {"trade_id": trade_id}, room=from_player_id)
+        if room_manager.session_to_socket.get(from_player_id):
+            await sio.emit("trade:rejected", {"trade_id": trade_id}, room=from_player_id)
 
         return {"status": "success"}
 
 @sio.on("trade:cancel")
 async def trade_cancel(sid, data):
     """Cancel a trade offer."""
-    if not rate_limiter.allow(f"{sid}:trade_cancel"):
+    session = await require_session(sid, "trade_cancel")
+    if not session:
+        return {"status": "error", "message": "Not authenticated"}
+    session_id = session["session_id"]
+    if not rate_limiter.allow(f"{session_id}:trade_cancel"):
         return {"status": "error", "message": "Too many requests"}
 
     room_code, err = get_room_code_or_error(sid)
@@ -193,22 +214,24 @@ async def trade_cancel(sid, data):
         if not trade:
             return {"status": "error", "message": "Trade not found"}
         to_player_id = trade.to_player_id
-        session_id = room_manager.get_session_id(sid)
 
         if not trade_manager.cancel_trade(trade_id, session_id):
             return {"status": "error", "message": "Cannot cancel trade"}
 
-        await sio.emit("trade:cancelled", {"trade_id": trade_id}, room=to_player_id)
+        if room_manager.session_to_socket.get(to_player_id):
+            await sio.emit("trade:cancelled", {"trade_id": trade_id}, room=to_player_id)
 
         return {"status": "success"}
 
 @sio.on("trade:counter")
 async def trade_counter(sid, data):
     """Counter a trade offer (rejects original, creates a new one)."""
-    if not rate_limiter.allow(f"{sid}:trade_counter"):
+    session = await require_session(sid, "trade_counter")
+    if not session:
+        return {"status": "error", "message": "Not authenticated"}
+    session_id = session["session_id"]
+    if not rate_limiter.allow(f"{session_id}:trade_counter"):
         return {"status": "error", "message": "Too many requests"}
-
-    session_id = room_manager.get_session_id(sid)
     room_code, err = get_room_code_or_error(sid)
     if err:
         return err
@@ -248,8 +271,9 @@ async def trade_counter(sid, data):
         if not counter_trade_offer:
             return {"status": "error", "message": "Invalid counter offer"}
 
-        # Notify original sender of rejection
-        await sio.emit("trade:rejected", {"trade_id": trade_id}, room=original_from_id)
+        # Notify original sender of rejection (if connected)
+        if room_manager.session_to_socket.get(original_from_id):
+            await sio.emit("trade:rejected", {"trade_id": trade_id}, room=original_from_id)
 
         # Notify both players about the new counter trade
         trade_data = {
@@ -266,7 +290,10 @@ async def trade_counter(sid, data):
         }
 
         await sio.emit("trade:offer", trade_data, room=session_id)
-        await sio.emit("trade:offer", trade_data, room=original_from_id)
+        if room_manager.session_to_socket.get(original_from_id):
+            await sio.emit("trade:offer", trade_data, room=original_from_id)
+        else:
+            logger.info("Counter recipient %s is offline; trade stored for reconnect", original_from_id)
 
-        persist_game(room_code)
+        await persist_game(room_code)
         return {"status": "success", "trade_id": counter_trade_offer.trade_id}

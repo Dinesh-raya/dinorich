@@ -1,5 +1,5 @@
 import json
-import random
+import secrets
 import os
 from typing import Dict, List
 from schemas.game import GameState, PropertyState
@@ -24,7 +24,10 @@ def init_game_state(room: RoomState) -> GameState:
     # Randomize turn order
     player_ids = list(room.players.keys())
     if room.settings.random_turn_order:
-        random.shuffle(player_ids)
+        # Use cryptographically secure shuffle for turn order
+        for i in range(len(player_ids) - 1, 0, -1):
+            j = secrets.randbelow(i + 1)
+            player_ids[i], player_ids[j] = player_ids[j], player_ids[i]
     
     # Set initial money from room settings
     for pid in player_ids:

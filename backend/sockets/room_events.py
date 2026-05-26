@@ -6,11 +6,15 @@ from schemas.room import RoomStatus
 from services.session_manager import session_manager
 from services.rate_limiter import rate_limiter
 from sockets.events import ROOM_EVENTS
-from sockets.helpers import get_room_code_or_error, persist_room, persist_game
+from sockets.helpers import get_room_code_or_error, persist_room, persist_game, require_session
 
 @sio.on('room:create')
 async def room_create(sid, data):
-    if not rate_limiter.allow(f"{sid}:room_create"):
+    session = await require_session(sid, "room_create")
+    if not session:
+        return {"status": "error", "message": "Not authenticated"}
+    session_id = session["session_id"]
+    if not rate_limiter.allow(f"{session_id}:room_create"):
         return {"status": "error", "message": "Too many requests"}
     """
     Expects data: {"name": "PlayerName"}
@@ -22,7 +26,13 @@ async def room_create(sid, data):
         return {"status": "error", "message": exc.errors()[0]["msg"]}
     player_name = payload.name
     client_session = await sio.get_session(sid)
-    session_id = client_session.get("session_id")
+
+    # Prevent creating a room if already in one
+    existing_room = room_manager.get_player_room_code(session_id)
+    if existing_room:
+        return {"status": "error", "message": "Already in a room. Leave first."}
+
+    session_token = client_session.get("session_token")
     reconnect_token = session_manager.rotate_reconnect_token(session_id)
 
     room_code = room_manager.create_room(
@@ -37,12 +47,22 @@ async def room_create(sid, data):
     room = room_manager.get_room(room_code)
     session_manager.set_room_code(session_id, room_code)
 
-    persist_room(room_code)
-    return {"status": "success", "room": room.model_dump(), "reconnectToken": reconnect_token}
+    await persist_room(room_code)
+    return {
+        "status": "success",
+        "room": room.model_dump(),
+        "reconnectToken": reconnect_token,
+        "sessionId": session_id,
+        "sessionToken": session_token
+    }
 
 @sio.on('room:join')
 async def room_join(sid, data):
-    if not rate_limiter.allow(f"{sid}:room_join"):
+    session = await require_session(sid, "room_join")
+    if not session:
+        return {"status": "error", "message": "Not authenticated"}
+    session_id = session["session_id"]
+    if not rate_limiter.allow(f"{session_id}:room_join"):
         return {"status": "error", "message": "Too many requests"}
     """
     Expects data: {"room_code": "ABCD", "name": "PlayerName"}
@@ -60,22 +80,52 @@ async def room_join(sid, data):
         return {"status": "error", "message": "Room not found"}
         
     async with room_manager.get_lock(room_code):
+        client_session = await sio.get_session(sid)
+        session_token = client_session.get("session_token")
+        
         # Reconnect logic
         if room.status == RoomStatus.PLAYING:
             reconnect_record = session_manager.consume_reconnect_token(payload.reconnect_token or "")
+            session_id = None
             if reconnect_record:
                 session_id = reconnect_record.session_id
+            else:
+                # Fallback: if current session is a player in this room, allow reconnection
+                # This handles expired reconnect tokens (token TTL is only 120s)
+                current_session_id = client_session.get("session_id")
+                if current_session_id and current_session_id in room.players:
+                    session_id = current_session_id
+
+            if session_id:
                 player = room.players.get(session_id)
-                if player and not player.connected:
+                if player:
+                    # If already reconnected (e.g., by connect() auto-reconnect), return current state
+                    if player.connected:
+                        from engine.turn_manager import turn_manager
+                        game = turn_manager.get_game(room_code)
+                        response_payload = {
+                            "status": "success",
+                            "room": room.model_dump(),
+                            "reconnectToken": player.reconnect_token,
+                            "sessionId": session_id,
+                            "sessionToken": session_token
+                        }
+                        if game:
+                            response_payload["game"] = game.model_dump()
+                            turn = turn_manager.get_turn_state(room_code)
+                            if turn:
+                                response_payload["turn"] = turn.model_dump()
+                        return response_payload
+
                     # Reconnect player
                     player.connected = True
                     player.socket_id = sid
                     player.reconnect_token = session_manager.rotate_reconnect_token(session_id)
-                    
+
                     # Register the new socket mapping
                     room_manager.register_socket(sid, session_id)
                     await sio.enter_room(sid, room_code)
-                    
+
                     # If game exists, update turn logs
                     from engine.turn_manager import turn_manager
                     game = turn_manager.get_game(room_code)
@@ -88,14 +138,16 @@ async def room_join(sid, data):
                             {"game": game.model_dump(), "turn": turn.model_dump() if turn else None},
                             room=room_code
                         )
-                    
-                    persist_room(room_code)
-                    persist_game(room_code)
-                    
+
+                    await persist_room(room_code)
+                    await persist_game(room_code)
+
                     response_payload = {
                         "status": "success",
                         "room": room.model_dump(),
-                        "reconnectToken": player.reconnect_token
+                        "reconnectToken": player.reconnect_token,
+                        "sessionId": session_id,
+                        "sessionToken": session_token
                     }
                     if game:
                         response_payload["game"] = game.model_dump()
@@ -105,7 +157,6 @@ async def room_join(sid, data):
             return {"status": "error", "message": "Cannot join a game already in progress"}
         
         # Normal join
-        client_session = await sio.get_session(sid)
         session_id = client_session.get("session_id")
         reconnect_token = session_manager.rotate_reconnect_token(session_id)
         room = room_manager.join_room(
@@ -129,15 +180,23 @@ async def room_join(sid, data):
             room=room_code
         )
 
-        persist_room(room_code)
-        return {"status": "success", "room": room.model_dump(), "reconnectToken": reconnect_token}
+        await persist_room(room_code)
+        return {
+            "status": "success",
+            "room": room.model_dump(),
+            "reconnectToken": reconnect_token,
+            "sessionId": session_id,
+            "sessionToken": session_token
+        }
 
 @sio.on('room:leave')
 async def room_leave(sid):
-    if not rate_limiter.allow(f"{sid}:room_leave"):
+    session = await require_session(sid, "room_leave")
+    if not session:
+        return {"status": "error", "message": "Not authenticated"}
+    session_id = session["session_id"]
+    if not rate_limiter.allow(f"{session_id}:room_leave"):
         return {"status": "error", "message": "Too many requests"}
-
-    session_id = room_manager.get_session_id(sid)
     room_code = room_manager.get_player_room_code(session_id)
     if not room_code:
         return {"status": "error", "message": "Not in a room"}
@@ -157,7 +216,7 @@ async def room_leave(sid):
                     updated_room.model_dump(),
                     room=room_code
                 )
-            persist_room(room_code)
+            await persist_room(room_code)
         else:
             # Active game: treat as disconnect (don't remove from room.players)
             if session_id in room.players:
@@ -179,7 +238,7 @@ async def room_leave(sid):
                             game.add_log(f"{room.players[session_id].name} left the game, turn skipped")
                             from sockets.helpers import emit_game_state
                             await emit_game_state(room_code, game, new_turn)
-                            persist_game(room_code)
+                            await persist_game(room_code)
 
                 # Start disconnect timeout (player can rejoin)
                 import asyncio
@@ -192,15 +251,19 @@ async def room_leave(sid):
 
 @sio.on('room:update_settings')
 async def room_update_settings(sid, data):
-    if not rate_limiter.allow(f"{sid}:room_update_settings"):
+    session = await require_session(sid, "room_update_settings")
+    if not session:
+        return {"status": "error", "message": "Not authenticated"}
+    session_id = session["session_id"]
+    if not rate_limiter.allow(f"{session_id}:room_update_settings"):
         return {"status": "error", "message": "Too many requests"}
     """
     Expects data: {"settings": {"max_players": 4, "auction_enabled": false}}
     """
-    room_code = room_manager.get_player_room_code(sid)
+    room_code = room_manager.get_player_room_code(session_id)
     if not room_code:
         return {"status": "error", "message": "Not in a room"}
-        
+
     try:
         payload = RoomUpdateSettingsPayload.model_validate(data or {})
     except ValidationError as exc:
@@ -218,15 +281,19 @@ async def room_update_settings(sid, data):
             room=room_code
         )
 
-        persist_room(room_code)
+        await persist_room(room_code)
         return {"status": "success"}
 
 @sio.on('room:kick_player')
 async def room_kick_player(sid, data):
-    if not rate_limiter.allow(f"{sid}:room_kick_player"):
+    session = await require_session(sid, "room_kick_player")
+    if not session:
+        return {"status": "error", "message": "Not authenticated"}
+    session_id = session["session_id"]
+    if not rate_limiter.allow(f"{session_id}:room_kick_player"):
         return {"status": "error", "message": "Too many requests"}
 
-    room_code = room_manager.get_player_room_code(sid)
+    room_code = room_manager.get_player_room_code(session_id)
     if not room_code:
         return {"status": "error", "message": "Not in a room"}
 
@@ -251,8 +318,8 @@ async def room_kick_player(sid, data):
         except Exception:
             pass  # Player may already be disconnected
 
-        # Notify kicked player using session room
-        await sio.emit("room:kicked", {"message": "You have been kicked by the host"}, room=target_sess_id)
+        # Notify kicked player via their socket
+        await sio.emit("room:kicked", {"message": "You have been kicked by the host"}, to=target_socket_id)
 
         # Broadcast updated room state
         await sio.emit(
@@ -261,5 +328,5 @@ async def room_kick_player(sid, data):
             room=room_code
         )
 
-        persist_room(room_code)
+        await persist_room(room_code)
         return {"status": "success"}

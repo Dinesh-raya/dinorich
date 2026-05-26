@@ -7,18 +7,21 @@ from schemas.contracts import PropertyActionPayload, AuctionBidPayload
 from schemas.action import TurnPhase
 from services.rate_limiter import rate_limiter
 from sockets.events import AUCTION_EVENTS
-from sockets.helpers import get_room_code_or_error, emit_game_state, persist_game
+from sockets.helpers import get_room_code_or_error, emit_game_state, persist_game, require_session
 
 @sio.on("auction:start")
 async def auction_start(sid, data):
-    if not rate_limiter.allow(f"{sid}:auction_start"):
+    session = await require_session(sid, "auction_start")
+    if not session:
+        return {"status": "error", "message": "Not authenticated"}
+    session_id = session["session_id"]
+    if not rate_limiter.allow(f"{session_id}:auction_start"):
         return {"status": "error", "message": "Too many requests"}
     room_code, err = get_room_code_or_error(sid)
     if err:
         return err
 
     async with room_manager.get_lock(room_code):
-        session_id = room_manager.get_session_id(sid)
         game = turn_manager.get_game(room_code)
         turn = turn_manager.get_turn_state(room_code)
         if not game or not turn:
@@ -43,6 +46,7 @@ async def auction_start(sid, data):
             return {"status": "error", "message": "Invalid property"}
 
         turn.phase = TurnPhase.AUCTION
+        turn_manager.clear_buy_timer(room_code)
 
         await sio.emit(AUCTION_EVENTS["START"], {"auction": auction.model_dump()}, room=room_code)
         await emit_game_state(room_code, game, turn)
@@ -50,7 +54,11 @@ async def auction_start(sid, data):
 
 @sio.on("auction:bid")
 async def auction_bid(sid, data):
-    if not rate_limiter.allow(f"{sid}:auction_bid"):
+    session = await require_session(sid, "auction_bid")
+    if not session:
+        return {"status": "error", "message": "Not authenticated"}
+    session_id = session["session_id"]
+    if not rate_limiter.allow(f"{session_id}:auction_bid"):
         return {"status": "error", "message": "Too many requests"}
     room_code, err = get_room_code_or_error(sid)
     if err:
@@ -63,10 +71,12 @@ async def auction_bid(sid, data):
             return {"status": "error", "message": exc.errors()[0]["msg"]}
         bid_amount = payload.amount
         game = turn_manager.get_game(room_code)
-        if not game:
+        turn = turn_manager.get_turn_state(room_code)
+        if not game or not turn:
             return {"status": "error", "message": "No active game"}
-        
-        session_id = room_manager.get_session_id(sid)
+
+        if turn.phase != TurnPhase.AUCTION:
+            return {"status": "error", "message": "Not in auction phase"}
         player = game.room.players.get(session_id)
         if not player:
             return {"status": "error", "message": "Player not found"}
@@ -81,7 +91,11 @@ async def auction_bid(sid, data):
 
 @sio.on("auction:end")
 async def auction_end(sid, data):
-    if not rate_limiter.allow(f"{sid}:auction_end"):
+    session = await require_session(sid, "auction_end")
+    if not session:
+        return {"status": "error", "message": "Not authenticated"}
+    session_id = session["session_id"]
+    if not rate_limiter.allow(f"{session_id}:auction_end"):
         return {"status": "error", "message": "Too many requests"}
     room_code, err = get_room_code_or_error(sid)
     if err:
@@ -96,8 +110,6 @@ async def auction_end(sid, data):
         room = room_manager.get_room(room_code)
         if not room:
             return {"status": "error", "message": "Room not found"}
-        
-        session_id = room_manager.get_session_id(sid)
         if session_id not in {room.host_id, turn.active_player_id}:
             return {"status": "error", "message": "Not authorized to end auction"}
 
@@ -110,5 +122,5 @@ async def auction_end(sid, data):
         turn.time_remaining = game.room.settings.turn_timer_seconds
         await sio.emit(AUCTION_EVENTS["END"], {"message": msg}, room=room_code)
         await emit_game_state(room_code, game, turn)
-        persist_game(room_code)
+        await persist_game(room_code)
         return {"status": "success"}

@@ -1,6 +1,9 @@
 import sqlite3
 import os
+import logging
 import threading
+
+logger = logging.getLogger(__name__)
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'game_data.sqlite')
 
@@ -73,7 +76,7 @@ def migration_1(conn):
                     data['settings']['starting_cash'] = 100000
                     cursor.execute('UPDATE rooms SET state_json = ? WHERE room_code = ?', (json.dumps(data), room_code))
         except Exception as e:
-            print(f"Migration 1 error in room {room_code}: {e}")
+            logger.error("Migration 1 error in room %s: %s", room_code, e)
 
     # 2. Update games room settings starting_cash
     cursor.execute('SELECT room_code, state_json FROM games')
@@ -88,7 +91,7 @@ def migration_1(conn):
                     data['room']['settings']['starting_cash'] = 100000
                     cursor.execute('UPDATE games SET state_json = ? WHERE room_code = ?', (json.dumps(data), room_code))
         except Exception as e:
-            print(f"Migration 1 error in game {room_code}: {e}")
+            logger.error("Migration 1 error in game %s: %s", room_code, e)
 
 def run_migrations(conn):
     cursor = conn.cursor()
@@ -112,16 +115,16 @@ def run_migrations(conn):
 
     for version, migration_fn in sorted(migrations.items()):
         if version > current_version:
-            print(f"Running database migration {version}...")
+            logger.info("Running database migration %s...", version)
             try:
                 migration_fn(conn)
                 cursor.execute('UPDATE schema_version SET version = ?', (version,))
                 conn.commit()
                 current_version = version
-                print(f"Database migration {version} completed successfully.")
+                logger.info("Database migration %s completed successfully.", version)
             except Exception as e:
                 conn.rollback()
-                print(f"Database migration {version} failed: {e}")
+                logger.error("Database migration %s failed: %s", version, e)
                 raise e
 
 def get_connection():

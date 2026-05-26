@@ -1,6 +1,5 @@
-import json
+import asyncio
 import logging
-import time
 from typing import Optional, Tuple
 from sockets.server import sio
 from rooms.manager import room_manager
@@ -18,7 +17,7 @@ _PERSIST_RETRIES = 3
 _PERSIST_DELAY = 0.5
 
 
-def _persist_with_retry(save_fn, description: str):
+async def _persist_with_retry(save_fn, description: str):
     """Try persistence with retries and exponential backoff."""
     for attempt in range(_PERSIST_RETRIES):
         try:
@@ -26,7 +25,7 @@ def _persist_with_retry(save_fn, description: str):
             return
         except Exception as e:
             if attempt < _PERSIST_RETRIES - 1:
-                time.sleep(_PERSIST_DELAY * (attempt + 1))
+                await asyncio.sleep(_PERSIST_DELAY * (attempt + 1))
             else:
                 logger.error(f"Failed to {description} after {_PERSIST_RETRIES} attempts: {e}")
 
@@ -48,43 +47,26 @@ def get_game_and_turn_or_error(room_code: str) -> Tuple[Optional[GameState], Opt
     return game, turn, None
 
 
-def persist_room(room_code: str):
+async def persist_room(room_code: str):
     """Persist room state to DB with retry."""
     def _save():
         room = room_manager.get_room(room_code)
         if room:
             repository.save_room(room_code, room)
-    _persist_with_retry(_save, f"persist room {room_code}")
+    await _persist_with_retry(_save, f"persist room {room_code}")
 
 
 def _build_runtime_json(room_code: str) -> str:
     """Build runtime JSON for a room (auction + trade state)."""
-    runtime = {}
-    auction = auction_manager.get_auction(room_code)
-    if auction:
-        runtime["auction"] = auction.model_dump()
-    trade_data = {}
-    for tid, trade in trade_manager.active_trades.items():
-        trade_data[tid] = {
-            "trade_id": trade.trade_id,
-            "from_player_id": trade.from_player_id,
-            "to_player_id": trade.to_player_id,
-            "offering_money": trade.offering_money,
-            "requesting_money": trade.requesting_money,
-            "offering_properties": trade.offering_properties,
-            "requesting_properties": trade.requesting_properties,
-            "offering_get_out_of_jail_cards": trade.offering_get_out_of_jail_cards,
-            "requesting_get_out_of_jail_cards": trade.requesting_get_out_of_jail_cards,
-            "status": trade.status,
-        }
-    if trade_data:
-        runtime["trades"] = trade_data
-    if trade_manager.player_trades:
-        runtime["player_trades"] = trade_manager.player_trades
-    return json.dumps(runtime) if runtime else None
+    return repository._build_runtime_json(
+        room_code,
+        {room_code: auction_manager.get_auction(room_code)} if auction_manager.get_auction(room_code) else {},
+        trade_manager.active_trades,
+        trade_manager.player_trades,
+    )
 
 
-def persist_game(room_code: str):
+async def persist_game(room_code: str):
     """Persist game + turn + runtime state to DB with retry."""
     def _save():
         game = turn_manager.get_game(room_code)
@@ -92,7 +74,7 @@ def persist_game(room_code: str):
         if game and turn:
             runtime_json = _build_runtime_json(room_code)
             repository.save_game(room_code, game, turn, runtime_json)
-    _persist_with_retry(_save, f"persist game {room_code}")
+    await _persist_with_retry(_save, f"persist game {room_code}")
 
 
 async def emit_game_state(room_code: str, game: GameState, turn: TurnState):
