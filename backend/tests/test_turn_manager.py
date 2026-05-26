@@ -90,7 +90,7 @@ class TestTickTurnTimer:
         turn.phase = TurnPhase.BUY
         turn.time_remaining = 30
         # Initialize the buy timer with a known property ID (tile 1)
-        tm._buy_timers["TEST01"] = (GameRules.BUY_TIMEOUT, 1)
+        tm._timers._buy_timers["TEST01"] = (GameRules.BUY_TIMEOUT, 1)
         for _ in range(GameRules.BUY_TIMEOUT + 2):
             turn, _, _ = tm.tick_turn_timer("TEST01")
         assert turn.phase == TurnPhase.AUCTION
@@ -103,7 +103,7 @@ class TestTickTurnTimer:
         turn = tm.get_turn_state("TEST01")
         turn.phase = TurnPhase.BUY
         turn.time_remaining = 30
-        tm._buy_timers["TEST01"] = (GameRules.BUY_TIMEOUT, 1)
+        tm._timers._buy_timers["TEST01"] = (GameRules.BUY_TIMEOUT, 1)
         for _ in range(GameRules.BUY_TIMEOUT + 2):
             turn, _, _ = tm.tick_turn_timer("TEST01")
         # Should have auto-bought

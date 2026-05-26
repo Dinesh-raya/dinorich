@@ -9,6 +9,16 @@
     --gold: 44 88% 48%;
     --text-main: 40 30% 91%;
     --text-muted: 36 20% 56%;
+
+    /* Refined tile colors — slightly desaturated for harmony */
+    --tile-brown: #7c3a1e;
+    --tile-light-blue: #0891b2;
+    --tile-pink: #db2777;
+    --tile-orange: #ea580c;
+    --tile-red: #dc2626;
+    --tile-yellow: #ca8a04;
+    --tile-green: #16a34a;
+    --tile-dark-blue: #2563eb;
   }
 
   html {
@@ -252,4 +262,133 @@
 
 .animate-shake {
   animation: shake 0.5s ease-in-out;
+}
+
+/* ====== Ambient Background (fixes #11) ====== */
+
+.bg-ambient {
+  background:
+    radial-gradient(ellipse at 20% 30%, rgba(212, 164, 55, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 70%, rgba(168, 85, 247, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(34, 211, 238, 0.03) 0%, transparent 60%),
+    linear-gradient(180deg, #0a0e1a 0%, #0f172a 50%, #0a0e1a 100%);
+}
+
+/* Subtle grain texture overlay */
+.bg-grain::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  opacity: 0.015;
+  pointer-events: none;
+  z-index: 9999;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* Animated ambient glow orbs */
+@keyframes ambientFloat1 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.04; }
+  50% { transform: translate(30px, -20px) scale(1.1); opacity: 0.07; }
+}
+@keyframes ambientFloat2 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.03; }
+  50% { transform: translate(-20px, 30px) scale(1.15); opacity: 0.06; }
+}
+
+.bg-ambient-orb {
+  position: relative;
+}
+.bg-ambient-orb::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(400px 400px at 15% 20%, rgba(212, 164, 55, 0.08), transparent 70%),
+    radial-gradient(350px 350px at 80% 75%, rgba(168, 85, 247, 0.05), transparent 70%);
+  animation: ambientFloat1 12s ease-in-out infinite;
+}
+
+/* ====== Premium Game Feel (fixes #15) ====== */
+
+/* Premium card surface */
+.surface-premium {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Cinematic glow for important elements */
+.glow-gold {
+  box-shadow: 0 0 15px rgba(212, 164, 55, 0.15), 0 0 30px rgba(212, 164, 55, 0.05);
+}
+
+.glow-gold-strong {
+  box-shadow: 0 0 20px rgba(212, 164, 55, 0.25), 0 0 40px rgba(212, 164, 55, 0.1), 0 0 60px rgba(212, 164, 55, 0.05);
+}
+
+/* Ownership glow colors */
+.glow-ownership-red { box-shadow: 0 0 8px 2px rgba(239, 68, 68, 0.4), inset 0 0 4px rgba(239, 68, 68, 0.1); }
+.glow-ownership-blue { box-shadow: 0 0 8px 2px rgba(59, 130, 246, 0.4), inset 0 0 4px rgba(59, 130, 246, 0.1); }
+.glow-ownership-green { box-shadow: 0 0 8px 2px rgba(34, 197, 94, 0.4), inset 0 0 4px rgba(34, 197, 94, 0.1); }
+.glow-ownership-yellow { box-shadow: 0 0 8px 2px rgba(234, 179, 8, 0.4), inset 0 0 4px rgba(234, 179, 8, 0.1); }
+.glow-ownership-purple { box-shadow: 0 0 8px 2px rgba(168, 85, 247, 0.4), inset 0 0 4px rgba(168, 85, 247, 0.1); }
+.glow-ownership-orange { box-shadow: 0 0 8px 2px rgba(249, 115, 22, 0.4), inset 0 0 4px rgba(249, 115, 22, 0.1); }
+
+/* Monopoly pulse */
+@keyframes monopolyPulse {
+  0%, 100% { box-shadow: 0 0 8px 2px rgba(212, 164, 55, 0.3); }
+  50% { box-shadow: 0 0 16px 4px rgba(212, 164, 55, 0.5); }
+}
+.monopoly-glow {
+  animation: monopolyPulse 2s ease-in-out infinite;
+}
+
+/* Current turn spotlight */
+@keyframes turnSpotlight {
+  0%, 100% { box-shadow: 0 0 10px rgba(212, 164, 55, 0.2), inset 0 0 20px rgba(212, 164, 55, 0.05); }
+  50% { box-shadow: 0 0 20px rgba(212, 164, 55, 0.35), inset 0 0 30px rgba(212, 164, 55, 0.1); }
+}
+.turn-spotlight {
+  animation: turnSpotlight 2.5s ease-in-out infinite;
+}
+
+/* Button hierarchy */
+.btn-gold-primary {
+  background: linear-gradient(135deg, #d4a437 0%, #b8892e 100%);
+  color: #0a0e1a;
+  font-weight: 700;
+  box-shadow: 0 2px 10px rgba(212, 164, 55, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.btn-gold-primary:hover {
+  background: linear-gradient(135deg, #e0b344 0%, #d4a437 100%);
+  box-shadow: 0 4px 15px rgba(212, 164, 55, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.btn-danger-action {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.15) 100%);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+.btn-danger-action:hover {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(220, 38, 38, 0.2) 100%);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
+}
+
+/* Activity feed item highlight */
+@keyframes feedSlideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.feed-item-enter {
+  animation: feedSlideIn 0.3s ease-out;
 }

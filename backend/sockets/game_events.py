@@ -4,7 +4,6 @@ from sockets.server import sio
 from rooms.manager import room_manager
 from engine.game_initializer import init_game_state
 from engine.turn_manager import turn_manager
-from schemas.player import PlayerState
 from services.rate_limiter import rate_limiter
 from sockets.events import GAME_EVENTS, ROOM_EVENTS
 from sockets.helpers import get_room_code_or_error, emit_game_state, persist_room, persist_game, require_session
@@ -13,12 +12,10 @@ from schemas.room import RoomStatus
 logger = logging.getLogger(__name__)
 
 MIN_HUMAN_PLAYERS = 2
-BOT_FILL_TARGET = 4
 
 @sio.on("game:start")
 async def game_start(sid, data):
     try:
-        from engine.bot import is_bot, get_bot_name, get_bot_color
         session = await require_session(sid, "game_start")
         if not session:
             return {"status": "error", "message": "Not authenticated"}
@@ -37,25 +34,9 @@ async def game_start(sid, data):
             if room.status != "waiting":
                 return {"status": "error", "message": "Game already started"}
 
-            human_count = sum(1 for p in room.players.values() if not is_bot(p.id) and p.connected)
-            if human_count < MIN_HUMAN_PLAYERS and not room.settings.bot_enabled:
-                return {"status": "error", "message": f"Need at least {MIN_HUMAN_PLAYERS} human players to start"}
-
-            # Fill empty slots with bots if enabled
-            if room.settings.bot_enabled:
-                bot_count = 0
-                while len(room.players) < BOT_FILL_TARGET:
-                    bot_id = f"bot_{bot_count}"
-                    if bot_id not in room.players:
-                        bot = PlayerState(
-                            id=bot_id,
-                            name=get_bot_name(bot_count),
-                            color=get_bot_color(bot_count),
-                            money=room.settings.starting_cash,
-                        )
-                        room.players[bot_id] = bot
-                        room_manager.player_rooms[bot_id] = room_code
-                    bot_count += 1
+            connected_count = sum(1 for p in room.players.values() if p.connected)
+            if connected_count < MIN_HUMAN_PLAYERS:
+                return {"status": "error", "message": f"Need at least {MIN_HUMAN_PLAYERS} players to start"}
 
             room.status = RoomStatus.PLAYING
 
@@ -353,14 +334,7 @@ async def game_rematch(sid, data):
             auction_manager.auctions.pop(room_code, None)
             trade_manager.cleanup_room(room_code)
 
-            # Remove bot players before resetting — prevents duplicates on restart
-            from engine.bot import is_bot
-            bot_ids = [pid for pid in room.players if is_bot(pid)]
-            for bot_id in bot_ids:
-                del room.players[bot_id]
-                room_manager.player_rooms.pop(bot_id, None)
-
-            # Reset player properties/money/state (humans only now)
+            # Reset player properties/money/state
             for player in list(room.players.values()):
                 player.properties_owned = []
                 player.money = room.settings.starting_cash
@@ -488,12 +462,6 @@ async def game_load(sid, data):
                     # Player from saved game not in current room — add as disconnected
                     saved_player.connected = False
                     room.players[pid] = saved_player
-
-            # Ensure loaded bots are registered in player_rooms
-            from engine.bot import is_bot as _is_bot
-            for pid in saved_game.room.players:
-                if _is_bot(pid):
-                    room_manager.player_rooms[pid] = room_code
 
             # Update the saved game's room reference to current room
             saved_game.room = room
