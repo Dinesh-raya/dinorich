@@ -33,7 +33,7 @@ export const BankruptModal = ({ isOpen, playerName, creditorName, onClose }: Ban
 
           {/* Modal */}
           <motion.div
-            className="relative w-full max-w-md rounded-2xl border-2 border-danger-500/30 p-6 sm:p-8 text-center"
+            className="relative w-full max-w-md rounded-2xl border-2 border-danger-500/30 p-6 sm:p-8 text-center max-h-[90vh] overflow-y-auto"
             style={{
               background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 20, 40, 0.98) 100%)',
               boxShadow: '0 0 60px rgba(239, 68, 68, 0.2), 0 0 120px rgba(239, 68, 68, 0.1)'
@@ -111,9 +111,10 @@ interface GameOverModalProps {
   isWinner: boolean;
   standings?: PlayerStanding[];
   onClose: () => void;
+  onLeave?: () => void;
 }
 
-export const GameOverModal = ({ isOpen, winnerName, isWinner, standings, onClose }: GameOverModalProps) => {
+export const GameOverModal = ({ isOpen, winnerName, isWinner, standings, onClose, onLeave }: GameOverModalProps) => {
   const { room, myId } = useGameStore();
   const isHost = room?.host_id === myId;
   const [loadingRematch, setLoadingRematch] = useState(false);
@@ -151,7 +152,7 @@ export const GameOverModal = ({ isOpen, winnerName, isWinner, standings, onClose
 
           {/* Modal */}
           <motion.div
-            className="relative w-full max-w-lg rounded-2xl border-2 border-accent-500/30 p-6 sm:p-8 text-center max-h-[90vh] overflow-y-auto"
+            className="relative w-full max-w-lg rounded-2xl border-2 border-gold-500/30 p-6 sm:p-8 text-center max-h-[90vh] overflow-y-auto"
             style={{
               background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 20, 60, 0.98) 100%)',
               boxShadow: '0 0 60px rgba(168, 85, 247, 0.2), 0 0 120px rgba(168, 85, 247, 0.1)'
@@ -213,7 +214,7 @@ export const GameOverModal = ({ isOpen, winnerName, isWinner, standings, onClose
                     <motion.div
                       key={player.id}
                       className={`flex items-center gap-3 p-3 rounded-xl ${
-                        index === 0 ? 'bg-accent-500/20 border border-accent-500/30' :
+                        index === 0 ? 'bg-gold-500/20 border border-gold-500/30' :
                         player.isBankrupt ? 'bg-white/5 opacity-60' : 'bg-white/5'
                       }`}
                       initial={{ opacity: 0, x: -20 }}
@@ -247,7 +248,7 @@ export const GameOverModal = ({ isOpen, winnerName, isWinner, standings, onClose
 
                       {/* Stats */}
                       <div className="text-right">
-                        <p className="text-sm font-bold text-primary-400">{formatMoney(player.netWorth)}</p>
+                        <p className="text-sm font-bold text-gold-500">{formatMoney(player.netWorth)}</p>
                         <p className="text-[10px] text-text-muted">{player.properties} properties</p>
                       </div>
                     </motion.div>
@@ -273,13 +274,13 @@ export const GameOverModal = ({ isOpen, winnerName, isWinner, standings, onClose
                   {loadingRematch ? 'Starting Rematch...' : '🔄 Play Again / Rematch'}
                 </motion.button>
               ) : (
-                <div className="p-3 text-sm text-purple-300 bg-purple-500/10 border border-purple-500/20 rounded-xl font-cyber mb-4 animate-pulse">
+                <div className="p-3 text-sm text-purple-300 bg-purple-500/10 border border-gold-800/20 rounded-xl font-cyber mb-4 animate-pulse">
                   ⏳ Waiting for the Host to initiate a rematch...
                 </div>
               )}
 
               <motion.button
-                onClick={onClose}
+                onClick={onLeave || onClose}
                 className="w-full py-2.5 rounded-xl bg-surface/50 border border-white/10 text-text-muted hover:text-danger-400 hover:border-danger-500/30 hover:bg-danger-500/5 transition-all text-sm font-bold min-h-[44px]"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}

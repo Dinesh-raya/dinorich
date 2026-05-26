@@ -2,6 +2,7 @@ export interface Player {
   id: string;
   session_id?: string;
   reconnect_token?: string;
+  socket_id?: string;
   name: string;
   position: number;
   money: number;
@@ -12,6 +13,7 @@ export interface Player {
   properties_owned: number[];
   connected: boolean;
   color: string;
+  goojf_sources?: string[];
 }
 
 export interface RoomSettings {
@@ -27,30 +29,56 @@ export interface RoomSettings {
   bot_enabled: boolean;
   board_theme: string;
   mode: string;
+  disconnect_timeout_seconds?: number;
+  game_paused?: boolean;
 }
 
 export interface RoomState {
   room_id: string;
   host_id: string;
   players: Record<string, Player>;
-  status: string;
+  status: 'waiting' | 'playing' | 'finished';
   settings: RoomSettings;
+  is_private?: boolean;
+}
+
+export interface PropertyState {
+  tile_id: number;
+  owner_id: string | null;
+  houses: number;
+  hotels: number;
+  is_mortgaged: boolean;
+}
+
+export interface CardTemplate {
+  action: string;
+  text: string;
+  amount?: number;
+  spaces?: number;
+  target?: number;
+  passes_go?: boolean;
+  collect_from_each?: boolean;
+  per_building?: boolean;
+  per_house?: number;
+  per_hotel?: number;
+  per_player?: number;
 }
 
 export interface GameState {
   room: RoomState;
-  properties: Record<number, any>;
+  properties: Record<string, PropertyState>;
   turn_order: string[];
   current_turn_index: number;
   history_log: string[];
-  board_config?: Record<number, any>;
+  board_config?: Record<string, unknown>;
   houses_remaining?: number;
   hotels_remaining?: number;
+  free_parking_pool?: number;
 }
 
 export interface TurnState {
   active_player_id: string;
-  phase: string;
+  phase: 'roll' | 'buy' | 'auction' | 'debt' | 'action' | 'tax';
   can_roll: boolean;
   can_end_turn: boolean;
   in_debt: boolean;
@@ -77,7 +105,7 @@ export interface DiceResult {
 }
 
 export interface CardDraw {
-  card: any;
+  card: CardTemplate;
   card_type: string;
   player_id: string;
 }

@@ -2,16 +2,13 @@
 import pytest
 from unittest.mock import patch
 
+from conftest import make_player
 from schemas.room import RoomState, RoomSettings, RoomStatus
 from schemas.player import PlayerState
 from schemas.game import GameState, PropertyState
 from schemas.action import TurnState, TurnPhase
 from engine.bot import BotBrain, is_bot, get_bot_name, get_bot_color
 from engine.property import get_board_config
-
-
-def make_player(pid: str, name: str, money: int = 15000, color: str = "#ff0000", **kwargs) -> PlayerState:
-    return PlayerState(id=pid, name=name, color=color, money=money, **kwargs)
 
 
 def make_property_state(tile_id: int, owner_id: str | None = None, houses: int = 0, hotels: int = 0,

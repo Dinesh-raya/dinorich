@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect, useRef, memo } from 'react';
+import { useState, useEffect, useRef, memo, useCallback, useMemo } from 'react';
 import { useGameStore } from '../stores/gameStore';
 import { animations } from '../animations';
 // THEME import removed - using direct color values
@@ -8,6 +8,20 @@ import { TokenVisualizer } from './TokenVisualizer';
 import { PropertyDetailModal } from './PropertyDetailModal';
 import { soundManager } from '../utils/audio';
 import { formatMoney, formatMoneyShort } from '../utils/format';
+
+// Hook: detect mobile viewport (below lg breakpoint)
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < 1024 : false
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023px)');
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return isMobile;
+};
 
 import boardData from '../../shared/configs/board_config.json';
 
@@ -37,20 +51,6 @@ const getGridPosition = (index: number) => {
   if (index > 20 && index <= 30) return { gridRow: 1, gridColumn: 1 + (index - 20) };
   if (index > 30 && index < 40) return { gridRow: 1 + (index - 30), gridColumn: 11 };
   return { gridRow: 6, gridColumn: 6 };
-};
-
-// Helper function to check if a player has monopoly on a color group
-const hasMonopoly = (game: any, tile: any, playerId: string) => {
-  if (!tile.color || tile.type !== 'property') return false;
-
-  const colorGroupIds = boardData.tiles
-    .filter((t: any) => t.color === tile.color && t.type === 'property')
-    .map((t: any) => t.id);
-
-  return colorGroupIds.every((id: number) => {
-    const prop = game.properties[id];
-    return prop && prop.owner_id === playerId;
-  });
 };
 
 // Helper function to get property state
@@ -206,7 +206,7 @@ const BoardTile = memo(({
           className="h-4 w-full border-b border-white/10 flex items-center justify-center"
           style={{ backgroundColor: tileColor }}
         >
-          {tileIcon && <span className="text-[9px] sm:text-[10px]">{tileIcon}</span>}
+          {tileIcon && <span className="text-xs">{tileIcon}</span>}
         </div>
       )}
 
@@ -216,19 +216,19 @@ const BoardTile = memo(({
         )}
 
         {!isCorner && tile.type === 'property' && (
-          <span className="text-[10px] md:text-xs mb-0.5">🇮🇳</span>
+          <span className="text-xs md:text-sm mb-0.5">🇮🇳</span>
         )}
 
         <span className={`font-bold leading-tight ${
           isCorner
-            ? 'text-xs md:text-sm text-primary-300'
-            : 'text-[10px] md:text-[12px] text-text-main'
+            ? 'text-xs md:text-sm text-gold-500'
+            : 'text-xs md:text-[12px] text-text-main'
         }`}>
           {tile.name}
         </span>
 
         {tile.price && (
-          <span className="text-[10px] md:text-xs font-semibold text-primary-400/80 mt-0.5">
+          <span className="text-xs md:text-sm font-semibold text-gold-500/80 mt-0.5">
             {formatMoneyShort(tile.price)}
           </span>
         )}
@@ -280,7 +280,7 @@ const BoardTile = memo(({
             title="Mortgaged"
             variants={animations.scaleIn}
           >
-            <span className="text-white text-[8px] sm:text-[10px] font-bold">M</span>
+            <span className="text-white text-xs font-bold">M</span>
           </motion.div>
         )}
 
@@ -345,7 +345,7 @@ const CenterGameLog = ({ historyLog }: { historyLog: string[] }) => {
   return (
     <div className="absolute top-[52%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none w-[75%] max-w-sm">
       <div className="flex items-center justify-center gap-2 mb-2">
-        <span className="text-[10px] text-text-muted font-cyber tracking-widest uppercase">Activity Feed</span>
+        <span className="text-xs text-text-muted font-cyber tracking-widest uppercase">Activity Feed</span>
       </div>
       <div
         ref={scrollRef}
@@ -357,13 +357,13 @@ const CenterGameLog = ({ historyLog }: { historyLog: string[] }) => {
           if (historyLog.length > 15 && i < historyLog.length - 15) return null;
           return (
             <motion.div
-              key={i}
+              key={`${i}-${log.slice(0, 20)}`}
               initial={{ opacity: 0, y: -8, scale: 0.95 }}
               animate={{ opacity: isLatest ? 1 : 0.55, y: 0, scale: 1 }}
               transition={{ duration: 0.25, ease: 'easeOut' }}
             >
               <div
-                className={`flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg ${isLatest ? 'border border-primary-500/20' : 'border border-transparent'}`}
+                className={`flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg ${isLatest ? 'border border-gold-800/20' : 'border border-transparent'}`}
                 style={isLatest ? {
                   background: 'linear-gradient(135deg, rgba(34, 211, 238, 0.08) 0%, rgba(15, 23, 42, 0.8) 100%)',
                   boxShadow: '0 2px 10px rgba(34, 211, 238, 0.08)'
@@ -371,10 +371,10 @@ const CenterGameLog = ({ historyLog }: { historyLog: string[] }) => {
                   background: 'rgba(15, 23, 42, 0.3)'
                 }}
               >
-                <span className="text-[10px] leading-relaxed mt-[1px] flex-shrink-0">
+                <span className="text-xs leading-relaxed mt-[1px] flex-shrink-0">
                   {getActivityIcon(log)}
                 </span>
-                <p className={`${isLatest ? 'text-[11px] text-text-main font-medium' : 'text-[10px] text-text-muted'} leading-relaxed`}>
+                <p className={`${isLatest ? 'text-xs text-text-main font-medium' : 'text-xs text-text-muted'} leading-relaxed`}>
                   {log}
                 </p>
               </div>
@@ -388,6 +388,7 @@ const CenterGameLog = ({ historyLog }: { historyLog: string[] }) => {
 
 export const Board = () => {
   const { game, myId, turn, diceResult, moneyChange, pendingAction } = useGameStore();
+  const isMobile = useIsMobile();
   const [isRolling, setIsRolling] = useState(false);
   const [diceValues, setDiceValues] = useState({ die1: 1, die2: 1 });
   const [isMoving, setIsMoving] = useState(false);
@@ -397,6 +398,47 @@ export const Board = () => {
   const [isShaking, setIsShaking] = useState(false);
   const shakenPlayers = useRef(new Set<string>());
   const viewportRef = useRef<HTMLDivElement>(null);
+  const gameRef = useRef(game);
+  gameRef.current = game;
+
+  // Memoize game stats computation to avoid recalculating on every render
+  const gameStats = useMemo(() => {
+    if (!game) return null;
+    const props = Object.values(game.properties || {});
+    const owned = props.filter((p: any) => p.owner_id).length;
+    const houses = props.reduce((sum: number, p: any) => sum + (p.houses || 0), 0);
+    const hotels = props.reduce((sum: number, p: any) => sum + (p.hotels || 0), 0);
+    const mortgaged = props.filter((p: any) => p.is_mortgaged).length;
+    const bankHouses = game.houses_remaining ?? 32;
+    const bankHotels = game.hotels_remaining ?? 12;
+    return { owned, houses, hotels, mortgaged, bankHouses, bankHotels };
+  }, [game?.properties, game?.houses_remaining, game?.hotels_remaining]);
+
+  // Pre-compute monopoly set: tile IDs where the owner has all properties in the color group
+  const monopolySet = useMemo(() => {
+    const set = new Set<number>();
+    if (!game?.properties) return set;
+
+    // Group property tiles by color
+    const colorGroups: Record<string, { id: number }[]> = {};
+    for (const tile of boardData.tiles as any[]) {
+      if (tile.type === 'property' && tile.color) {
+        (colorGroups[tile.color] ??= []).push(tile);
+      }
+    }
+
+    // For each color group, check if one owner has all tiles
+    for (const tiles of Object.values(colorGroups)) {
+      const firstProp = game.properties[tiles[0].id];
+      if (!firstProp?.owner_id) continue;
+      const ownerId = firstProp.owner_id;
+      const allOwned = tiles.every(t => game.properties[t.id]?.owner_id === ownerId);
+      if (allOwned) {
+        for (const t of tiles) set.add(t.id);
+      }
+    }
+    return set;
+  }, [game?.properties]);
 
   // Update dice values when backend sends result
   useEffect(() => {
@@ -409,29 +451,33 @@ export const Board = () => {
 
       // Start movement animation and highlight landing tile
       setIsMoving(true);
-      if (game) {
-        const activePlayerId = game.turn_order[game.current_turn_index];
-        const activePlayer = game.room.players?.[activePlayerId];
+      const timers: ReturnType<typeof setTimeout>[] = [];
+      const currentGame = gameRef.current;
+      if (currentGame) {
+        const activePlayerId = currentGame.turn_order[currentGame.current_turn_index];
+        const activePlayer = currentGame.room.players?.[activePlayerId];
         if (activePlayer) {
           setLandingTile(activePlayer.position);
-          setTimeout(() => setLandingTile(null), 1500);
+          timers.push(setTimeout(() => setLandingTile(null), 1500));
         }
       }
-      setTimeout(() => setIsMoving(false), 1500);
+      timers.push(setTimeout(() => setIsMoving(false), 1500));
+      return () => timers.forEach(clearTimeout);
     }
   }, [diceResult]);
 
   // Screen shake on bankruptcy (fires once per new bankruptcy)
   useEffect(() => {
-    if (game) {
-      for (const [pid, player] of Object.entries(game.room.players)) {
-        if ((player as any).is_bankrupt && !shakenPlayers.current.has(pid)) {
-          shakenPlayers.current.add(pid);
-          setIsShaking(true);
-          setTimeout(() => setIsShaking(false), 500);
-        }
+    if (!game) return;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    for (const [pid, player] of Object.entries(game.room.players)) {
+      if ((player as any).is_bankrupt && !shakenPlayers.current.has(pid)) {
+        shakenPlayers.current.add(pid);
+        setIsShaking(true);
+        timers.push(setTimeout(() => setIsShaking(false), 500));
       }
     }
+    return () => timers.forEach(clearTimeout);
   }, [game?.room.players]);
 
   // Handle dice roll (animation handled by DiceAnim component)
@@ -450,24 +496,30 @@ export const Board = () => {
     setIsMoving(false);
   };
 
+  // Stable callback for tile clicks — prevents BoardTile re-renders from inline arrow
+  const handleTileClick = useCallback((id: number) => {
+    soundManager.playButtonClick();
+    setSelectedTile(id);
+  }, []);
+
   if (!game) return null;
 
   // Use dice values (from backend result or local animation)
   const currentDice = diceValues;
 
-  const renderTurnPanel = (isMobile: boolean) => {
+  const renderTurnPanel = useCallback((isMobile: boolean) => {
     return (
-      <div 
+      <div
         className={
-          isMobile 
-            ? "lg:hidden absolute bottom-[76px] left-1/2 transform -translate-x-1/2 w-[92%] max-w-sm z-30" 
-            : "absolute bottom-4 left-1/2 transform -translate-x-1/2 w-4/5 max-w-md hidden lg:block"
+          isMobile
+            ? "absolute bottom-[76px] left-1/2 transform -translate-x-1/2 w-[92%] max-w-sm z-30"
+            : "absolute bottom-4 left-1/2 transform -translate-x-1/2 w-4/5 max-w-md"
         }
       >
         {turn?.active_player_id === myId ? (
           <motion.div
             key={`${isMobile ? 'mobile-' : ''}turn-${turn?.active_player_id}`}
-            className={`glass-panel-primary rounded-2xl border border-primary-500/30 shadow-xl ${isMobile ? 'p-4' : 'p-5'}`}
+            className={`panel-dark rounded-2xl border border-gold-500/30 shadow-xl ${isMobile ? 'p-4' : 'p-5'}`}
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
@@ -479,7 +531,7 @@ export const Board = () => {
                   animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
                 />
-                <h3 className={`text-primary-300 font-bold ${isMobile ? 'text-xs md:text-sm' : 'text-xs md:text-base'}`}>YOUR TURN!</h3>
+                <h3 className={`text-gold-500 font-bold ${isMobile ? 'text-xs md:text-sm' : 'text-xs md:text-base'}`}>YOUR TURN!</h3>
               </div>
 
               {/* Turn timer bar */}
@@ -490,7 +542,7 @@ export const Board = () => {
                     <span className={`font-mono font-bold ${
                       turn.time_remaining <= 10 ? 'text-danger-400' :
                       turn.time_remaining <= 20 ? 'text-warning-400' :
-                      'text-primary-400'
+                      'text-gold-500'
                     }`}>
                       {Math.floor(turn.time_remaining / 60)}:{(turn.time_remaining % 60).toString().padStart(2, '0')}
                     </span>
@@ -557,7 +609,7 @@ export const Board = () => {
                     <p className="text-red-300/70 text-xs mt-1">Trade, mortgage, or sell to resolve. Or declare bankruptcy.</p>
                   </div>
                   <motion.button
-                    className="btn-primary py-2.5 px-5 text-xs md:text-sm font-bold rounded-full bg-red-600 hover:bg-red-500 border-red-500 w-full"
+                    className="btn-gold py-2.5 px-5 text-xs md:text-sm font-bold rounded-full bg-red-600 hover:bg-red-500 border-red-500 w-full"
                     onClick={() => {
                       soundManager.playButtonClick();
                       useGameStore.getState().declareBankruptcy();
@@ -580,11 +632,11 @@ export const Board = () => {
                 >
                   <div className="px-4 py-1.5 rounded-xl border border-warning-500/40 bg-warning-500/10 text-center">
                     <p className="text-warning-400 text-xs md:text-sm font-bold">IN JAIL</p>
-                    <p className="text-warning-300/70 text-[10px] md:text-xs mt-0.5">Pay fine, use card, or roll for doubles</p>
+                    <p className="text-warning-300/70 text-xs mt-0.5">Pay fine, use card, or roll for doubles</p>
                   </div>
                   <div className="flex gap-2 flex-wrap justify-center">
                     <motion.button
-                      className="btn-ghost py-2 px-4 text-xs md:text-sm border-warning-500/30 text-warning-400"
+                      className="btn-gold-ghost py-2 px-4 text-xs md:text-sm border-warning-500/30 text-warning-400"
                       onClick={() => {
                         soundManager.playButtonClick();
                         useGameStore.getState().payJailFine();
@@ -593,11 +645,11 @@ export const Board = () => {
                       whileTap={{ scale: 0.95 }}
                       disabled={!!pendingAction}
                     >
-                      {pendingAction === 'payJailFine' ? 'PAYING...' : '                      PAY FINE (₹500)'}
+                      {pendingAction === 'payJailFine' ? 'PAYING...' : 'PAY FINE (₹500)'}
                     </motion.button>
                     {(game.room.players[myId]?.get_out_of_jail_cards ?? 0) > 0 && (
                       <motion.button
-                        className="btn-ghost py-2 px-4 text-xs md:text-sm border-accent-500/30 text-accent-400"
+                        className="btn-gold-ghost py-2 px-4 text-xs md:text-sm border-gold-500/30 text-accent-400"
                         onClick={() => {
                           soundManager.playButtonClick();
                           useGameStore.getState().useJailCard();
@@ -615,7 +667,7 @@ export const Board = () => {
 
               {turn.can_roll && !isRolling && !turn.in_debt && (
                 <motion.button
-                  className="btn-primary py-2.5 px-6 text-xs md:text-base font-bold rounded-full flex items-center gap-2"
+                  className="btn-gold py-2.5 px-6 text-xs md:text-base font-bold rounded-full flex items-center gap-2"
                   onClick={handleRollDice}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -628,7 +680,7 @@ export const Board = () => {
 
               {turn.can_end_turn && !turn.in_debt && (
                 <motion.button
-                  className="btn-ghost py-2 px-4 text-xs md:text-sm"
+                  className="btn-gold-ghost py-2 px-4 text-xs md:text-sm"
                   onClick={() => {
                     soundManager.playButtonClick();
                     useGameStore.getState().endTurn();
@@ -654,7 +706,7 @@ export const Board = () => {
                   </div>
                   <div className="flex gap-2 flex-wrap justify-center">
                     <motion.button
-                      className="btn-ghost py-2 px-4 text-xs md:text-sm border-danger-500/30 text-danger-400"
+                      className="btn-gold-ghost py-2 px-4 text-xs md:text-sm border-danger-500/30 text-danger-400"
                       onClick={() => {
                         soundManager.playButtonClick();
                         useGameStore.getState().payTax(false);
@@ -665,7 +717,7 @@ export const Board = () => {
                       PAY ₹{turn.pending_tax.amount?.toLocaleString()}
                     </motion.button>
                     <motion.button
-                      className="btn-ghost py-2 px-4 text-xs md:text-sm border-warning-500/30 text-warning-400"
+                      className="btn-gold-ghost py-2 px-4 text-xs md:text-sm border-warning-500/30 text-warning-400"
                       onClick={() => {
                         soundManager.playButtonClick();
                         useGameStore.getState().payTax(true);
@@ -721,7 +773,7 @@ export const Board = () => {
         ) : (
           <motion.div
             key={`${isMobile ? 'mobile-' : ''}waiting-${turn?.active_player_id}`}
-            className={`glass-panel rounded-xl text-center border border-white/10 ${isMobile ? 'p-3' : 'p-4'}`}
+            className={`panel-dark rounded-xl text-center border border-white/10 ${isMobile ? 'p-3' : 'p-4'}`}
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.3 }}
@@ -740,13 +792,13 @@ export const Board = () => {
         )}
       </div>
     );
-  };
+  }, [turn, myId, game, isRolling, diceValues, moneyChange, pendingAction, handleRollDice]);
 
   return (
-    <div ref={viewportRef} className={`flex-1 flex items-center justify-center overflow-hidden p-1 lg:p-4 relative board-container ${isShaking ? 'animate-shake' : ''}`}>
+    <div ref={viewportRef} className={`flex-1 flex items-center justify-center p-1 lg:p-4 relative board-container ${isShaking ? 'animate-shake' : ''}`}>
       {/* Mobile Zoom Toggle */}
       <motion.button
-        className="lg:hidden absolute top-2 right-2 z-30 w-10 h-10 rounded-xl bg-surface/80 border border-primary-500/30 text-primary-300 flex items-center justify-center backdrop-blur-sm shadow-lg"
+        className="lg:hidden absolute top-2 right-2 z-30 w-10 h-10 rounded-xl bg-surface/80 border border-gold-500/30 text-gold-500 flex items-center justify-center backdrop-blur-sm shadow-lg"
         onClick={() => setBoardZoom(prev => prev === 1 ? 1.5 : 1)}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
@@ -756,7 +808,7 @@ export const Board = () => {
       </motion.button>
 
       <motion.div
-        drag={boardZoom > 1}
+        drag={isMobile || boardZoom > 1}
         dragConstraints={viewportRef}
         dragElastic={0.1}
         animate={{
@@ -771,13 +823,14 @@ export const Board = () => {
         className="flex items-center justify-center touch-none w-full h-full"
       >
       <motion.div
-        className="relative grid border-2 border-primary-500/30 shadow-2xl rounded-2xl overflow-hidden"
+        className="relative grid border-2 border-gold-500/30 shadow-2xl rounded-2xl overflow-hidden"
         style={{
-          gridTemplateColumns: 'repeat(11, minmax(0, 1fr))',
-          gridTemplateRows: 'repeat(11, minmax(0, 1fr))',
+          gridTemplateColumns: 'repeat(11, minmax(44px, 1fr))',
+          gridTemplateRows: 'repeat(11, minmax(44px, 1fr))',
           aspectRatio: '1/1',
           width: '100%',
-          maxWidth: 'min(calc(100vh - 160px), calc(100vw - 16px))',
+          minWidth: isMobile ? '484px' : undefined,
+          maxWidth: isMobile ? '484px' : 'min(calc(100vh - 160px), calc(100vw - 16px))',
           maxHeight: 'calc(100vh - 160px)',
           ['--board-max' as any]: 'min(calc(100vh - 160px), calc(100vw - 16px))',
           position: 'relative',
@@ -803,7 +856,8 @@ export const Board = () => {
             name: p.name,
             color: p.color,
             position: p.position,
-            money: p.money
+            money: p.money,
+            is_in_jail: p.is_in_jail
           }))}
           currentPlayerId={turn?.active_player_id}
           isMoving={isMoving}
@@ -827,7 +881,7 @@ export const Board = () => {
 
           <div className="absolute top-2 md:top-6 left-1/2 transform -translate-x-1/2 text-center">
             <motion.h1
-              className="heading-cyber text-xl md:text-5xl"
+              className="font-cyber text-xl md:text-5xl"
               variants={animations.glowPulse}
               animate="visible"
             >
@@ -838,33 +892,20 @@ export const Board = () => {
             </p>
 
             {/* Compact game stats */}
-            {game && (
+            {gameStats && (
               <div className="mt-2 flex items-center justify-center gap-3 text-xs md:text-sm text-text-muted">
-                {(() => {
-                  const props = Object.values(game.properties || {});
-                  const owned = props.filter((p: any) => p.owner_id).length;
-                  const houses = props.reduce((sum: number, p: any) => sum + (p.houses || 0), 0);
-                  const hotels = props.reduce((sum: number, p: any) => sum + (p.hotels || 0), 0);
-                  const mortgaged = props.filter((p: any) => p.is_mortgaged).length;
-                  const bankHouses = game.houses_remaining ?? 32;
-                  const bankHotels = game.hotels_remaining ?? 12;
-                  return (
-                    <>
-                      <span>{owned} properties</span>
-                      <span className="w-1 h-1 bg-text-muted rounded-full"></span>
-                      <span className="text-success-400">{houses}H</span>
-                      <span className="text-danger-400">{hotels}Ho</span>
-                      <span className="w-1 h-1 bg-text-muted rounded-full"></span>
-                      <span className="text-info-400">Bank: {bankHouses}H/{bankHotels}Ho</span>
-                      {mortgaged > 0 && (
-                        <>
-                          <span className="w-1 h-1 bg-text-muted rounded-full"></span>
-                          <span className="text-warning-400">{mortgaged}M</span>
-                        </>
-                      )}
-                    </>
-                  );
-                })()}
+                <span>{gameStats.owned} properties</span>
+                <span className="w-1 h-1 bg-text-muted rounded-full"></span>
+                <span className="text-success-400">{gameStats.houses}H</span>
+                <span className="text-danger-400">{gameStats.hotels}Ho</span>
+                <span className="w-1 h-1 bg-text-muted rounded-full"></span>
+                <span className="text-info-400">Bank: {gameStats.bankHouses}H/{gameStats.bankHotels}Ho</span>
+                {gameStats.mortgaged > 0 && (
+                  <>
+                    <span className="w-1 h-1 bg-text-muted rounded-full"></span>
+                    <span className="text-warning-400">{gameStats.mortgaged}M</span>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -873,7 +914,7 @@ export const Board = () => {
           {game && <CenterGameLog historyLog={game.history_log} />}
 
           {/* Center cell turn panel (desktop only) */}
-          {renderTurnPanel(false)}
+          {!isMobile && renderTurnPanel(false)}
         </div>
 
         {/* Tiles */}
@@ -899,7 +940,7 @@ export const Board = () => {
               houses={propState?.houses || 0}
               hotels={propState?.hotels || 0}
               isMortgaged={propState?.is_mortgaged || false}
-              hasMonopolyOnTile={ownerId ? hasMonopoly(game, tile, ownerId) : false}
+              hasMonopolyOnTile={ownerId ? monopolySet.has(tile.id) : false}
               tileColor={getTileColor(tile)}
               tileIcon={getTileIcon(tile)}
               playerColor={playerColor}
@@ -907,10 +948,7 @@ export const Board = () => {
               ownerIcon={ownerId ? (ownerIcons[playerColor || ''] || '⚪') : ''}
               isLandingTile={landingTile === tile.id}
               isMyTile={ownerId === myId}
-              onTileClick={(id) => {
-                soundManager.playButtonClick();
-                setSelectedTile(id);
-              }}
+              onTileClick={handleTileClick}
             />
           );
         })}
@@ -919,7 +957,7 @@ export const Board = () => {
       </motion.div>
 
       {/* Mobile-only viewport turn panel */}
-      {renderTurnPanel(true)}
+      {isMobile && renderTurnPanel(true)}
 
       {/* Property Detail Modal (moved to viewport level to avoid transformed ancestor bug) */}
       <PropertyDetailModal

@@ -151,6 +151,7 @@ class RoomManager:
         if not room.players:
             # Room is empty, destroy it
             del self.rooms[room_code]
+            self._room_locks.pop(room_code, None)
             from persistence import repository
             repository.delete_room(room_code)
             repository.delete_game(room_code)

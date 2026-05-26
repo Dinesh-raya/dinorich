@@ -111,4 +111,8 @@ class AuctionManager:
         auction.time_remaining = max(0, auction.time_remaining - 1)
         return auction
 
+    def cleanup_room(self, room_code: str):
+        """Remove all auction state for a room from memory."""
+        self.auctions.pop(room_code, None)
+
 auction_manager = AuctionManager()

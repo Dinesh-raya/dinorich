@@ -1,6 +1,7 @@
 """Tests for engine.auction."""
 import pytest
 
+from conftest import make_player, make_test_game
 from schemas.room import RoomState, RoomSettings, RoomStatus
 from schemas.player import PlayerState
 from schemas.game import GameState, PropertyState
@@ -11,27 +12,6 @@ from constants.game_rules import GameRules
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-def make_player(pid: str, name: str, money: int = 15000, color: str = "#ff0000") -> PlayerState:
-    return PlayerState(id=pid, name=name, color=color, money=money)
-
-
-def make_test_game() -> GameState:
-    settings = RoomSettings()
-    p1 = make_player("p1", "Player 1")
-    p2 = make_player("p2", "Player 2", color="#0000ff")
-    room = RoomState(
-        room_id="TEST01",
-        host_id="p1",
-        status=RoomStatus.PLAYING,
-        players={"p1": p1, "p2": p2},
-        settings=settings,
-    )
-    game = GameState(room=room)
-    game.turn_order = ["p1", "p2"]
-    # Register property being auctioned (Guwahati, tile 1, price 600)
-    game.properties[1] = PropertyState(tile_id=1)
-    return game
 
 
 # ---------------------------------------------------------------------------

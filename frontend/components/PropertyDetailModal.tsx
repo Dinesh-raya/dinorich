@@ -22,14 +22,14 @@ const COLOR_MAP: Record<string, string> = {
 
 // House prices by color group (matches GameRules.HOUSE_PRICES)
 const HOUSE_PRICES: Record<string, number> = {
-  brown: 50000,
-  light_blue: 50000,
-  pink: 100000,
-  orange: 100000,
-  red: 150000,
-  yellow: 150000,
-  green: 200000,
-  dark_blue: 200000,
+  brown: 500,
+  light_blue: 600,
+  pink: 1000,
+  orange: 1000,
+  red: 1500,
+  yellow: 1500,
+  green: 2000,
+  dark_blue: 2000,
 };
 
 const HOTEL_PRICE_MULTIPLIER = 5;
@@ -64,7 +64,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
           exit={{ opacity: 0 }}
         />
         <motion.div
-          className="relative bg-surface border-2 border-primary-500/30 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto overflow-hidden"
+          className="relative bg-surface border-2 border-gold-500/30 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto overflow-hidden"
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
@@ -83,6 +83,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
             )}
             <button
               onClick={onClose}
+              aria-label="Close"
               className="absolute top-4 right-4 text-text-muted hover:text-white transition-colors text-xl"
             >
               ✕
@@ -105,7 +106,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
             {tileConfig.price && (
               <div className="flex justify-between items-center p-3 bg-primary-500/10 rounded-xl">
                 <span className="text-text-muted">Price</span>
-                <span className="text-xl font-bold text-primary-300">{formatMoney(tileConfig.price)}</span>
+                <span className="text-xl font-bold text-gold-500">{formatMoney(tileConfig.price)}</span>
               </div>
             )}
 
@@ -152,7 +153,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
               <div>
                 <h3 className="text-sm font-bold text-text-muted mb-3">RENT (by airports owned)</h3>
                 <div className="grid grid-cols-2 gap-2">
-                  {[25000, 50000, 100000, 200000].map((rent, i) => (
+                  {[250, 500, 1000, 2000].map((rent, i) => (
                     <div key={i} className="p-3 rounded-xl text-center bg-surface/50 border border-white/5">
                       <div className="text-xs text-text-muted mb-1">{i + 1} Airport{i > 0 ? 's' : ''}</div>
                       <div className="text-sm font-bold text-white">{formatMoney(rent)}</div>
@@ -169,11 +170,11 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                 <div className="grid grid-cols-2 gap-2">
                   <div className="p-3 rounded-xl text-center bg-surface/50 border border-white/5">
                     <div className="text-xs text-text-muted mb-1">1 Utility</div>
-                    <div className="text-sm font-bold text-white">Dice x 4,000</div>
+                    <div className="text-sm font-bold text-white">Dice x 40</div>
                   </div>
                   <div className="p-3 rounded-xl text-center bg-surface/50 border border-white/5">
                     <div className="text-xs text-text-muted mb-1">2 Utilities</div>
-                    <div className="text-sm font-bold text-white">Dice x 10,000</div>
+                    <div className="text-sm font-bold text-white">Dice x 100</div>
                   </div>
                 </div>
               </div>
@@ -212,13 +213,13 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                 <div className="flex justify-between items-center">
                   <span className="text-text-muted">House Cost</span>
                   <span className="font-bold text-white">
-                    {formatMoney(HOUSE_PRICES[tileConfig.color] || 50000)}
+                    {formatMoney(HOUSE_PRICES[tileConfig.color] || 500)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center mt-1">
                   <span className="text-text-muted">Hotel Cost</span>
                   <span className="font-bold text-white">
-                    {formatMoney((HOUSE_PRICES[tileConfig.color] || 50000) * HOTEL_PRICE_MULTIPLIER)}
+                    {formatMoney((HOUSE_PRICES[tileConfig.color] || 500) * HOTEL_PRICE_MULTIPLIER)}
                   </span>
                 </div>
               </div>
@@ -231,7 +232,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                 {game.room?.settings?.mortgage_enabled && (
                   propState.is_mortgaged ? (
                     <motion.button
-                      className="w-full py-2 px-4 bg-accent-500/20 border border-accent-500/30 rounded-xl text-accent-300 font-bold text-sm hover:bg-accent-500/30 transition-colors"
+                      className="w-full py-2 px-4 bg-gold-500/20 border border-gold-500/30 rounded-xl text-accent-300 font-bold text-sm hover:bg-accent-500/30 transition-colors"
                       onClick={() => {
                         soundManager.playButtonClick();
                         useGameStore.getState().unmortgageProperty(tileId);
@@ -260,7 +261,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                 {isProperty && tileConfig.color && !propState.is_mortgaged && (() => {
                   const colorGroup = boardData.tiles.filter((t: any) => t.color === tileConfig.color && t.type === 'property');
                   const hasMonopoly = colorGroup.every((t: any) => game.properties?.[t.id]?.owner_id === myId);
-                  const housePrice = HOUSE_PRICES[tileConfig.color] || 50000;
+                  const housePrice = HOUSE_PRICES[tileConfig.color] || 500;
                   const hotelPrice = housePrice * HOTEL_PRICE_MULTIPLIER;
 
                   if (!hasMonopoly) return null;
@@ -337,7 +338,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
           <div className="p-4 border-t border-white/10">
             <button
               onClick={onClose}
-              className="w-full py-3 bg-primary-500/20 border border-primary-500/30 rounded-xl text-primary-300 font-bold hover:bg-primary-500/30 transition-colors"
+              className="w-full py-3 bg-gold-500/20 border border-gold-500/30 rounded-xl text-gold-500 font-bold hover:bg-primary-500/30 transition-colors"
             >
               Close
             </button>

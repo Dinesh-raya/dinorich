@@ -11,7 +11,7 @@ export function ReconnectOverlay({ connected, hasRoom }: ReconnectOverlayProps) 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-md">
       <motion.div
-        className="glass-panel-dark p-8 rounded-3xl border-2 border-danger-500/30 max-w-sm w-full text-center shadow-2xl mx-4"
+        className="panel-dark p-8 rounded-3xl border-2 border-danger-500/30 max-w-sm w-full text-center shadow-2xl mx-4"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3 }}
@@ -31,7 +31,7 @@ export function ReconnectOverlay({ connected, hasRoom }: ReconnectOverlayProps) 
           ⚡
         </motion.div>
         
-        <h2 className="heading-cyber text-2xl font-bold text-danger-400 neon-glow-danger mb-3 font-cyber">
+        <h2 className="font-cyber text-2xl font-bold text-danger-400  mb-3 font-cyber">
           CONNECTION LOST
         </h2>
         

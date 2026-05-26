@@ -17,7 +17,7 @@ class GameMode(str, Enum):
     CHAOS = "chaos"
 
 class RoomSettings(BaseModel):
-    max_players: int = Field(6, ge=1, le=6, description="Maximum players allowed (1-6)")
+    max_players: int = Field(6, ge=2, le=6, description="Maximum players allowed (2-6)")
     starting_cash: int = Field(15000, ge=5000, le=100000, description="Initial money for each player")
     auction_enabled: bool = Field(True, description="Whether auctions are enabled")
     double_rent_enabled: bool = Field(True, description="Whether double rent applies to monopolies")
@@ -30,6 +30,7 @@ class RoomSettings(BaseModel):
     board_theme: str = Field("pan_india", description="Board theme placeholder")
     mode: GameMode = Field(GameMode.CLASSIC, description="Game mode preset (descriptive only — does not auto-override settings)")
     disconnect_timeout_seconds: int = Field(120, ge=30, le=300, description="Seconds before disconnected player is bankrupted")
+    game_paused: bool = Field(False, description="Whether the game is currently paused")
 
     @staticmethod
     def get_mode_preset(mode: GameMode) -> dict:

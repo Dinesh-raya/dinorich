@@ -45,10 +45,13 @@ const SOUNDS = {
 
 export type SoundName = keyof typeof SOUNDS;
 
+const MAX_CONCURRENT_SOUNDS = 10;
+
 class SoundManager {
   private enabled: boolean = true;
   private audioMap: Map<string, HTMLAudioElement> = new Map();
   private volume: number = 0.7;
+  private activeClones: Map<HTMLAudioElement, ReturnType<typeof setTimeout>> = new Map();
 
   constructor() {
     // Preload all sound effects
@@ -61,22 +64,50 @@ class SoundManager {
     });
   }
 
+  private cleanupClone(clone: HTMLAudioElement) {
+    // Clear fallback timer if it exists
+    const timer = this.activeClones.get(clone);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+    }
+    this.activeClones.delete(clone);
+    clone.src = '';
+    clone.removeAttribute('src');
+    clone.load();
+  }
+
   play(soundName: SoundName, options: { volume?: number; loop?: boolean } = {}) {
     if (!this.enabled) return;
-    
+
     const audio = this.audioMap.get(soundName);
     if (audio) {
+      // Enforce max concurrent sounds — drop oldest clone if at limit
+      if (this.activeClones.size >= MAX_CONCURRENT_SOUNDS) {
+        const oldest = this.activeClones.keys().next().value;
+        if (oldest) {
+          oldest.pause();
+          this.cleanupClone(oldest);
+        }
+      }
+
       audio.currentTime = 0;
       audio.volume = options.volume ?? this.volume;
       audio.loop = options.loop ?? false;
-      
+
       // Clone the audio element for overlapping sounds
-      const playPromise = audio.cloneNode() as HTMLAudioElement;
-      playPromise.volume = options.volume ?? this.volume;
-      playPromise.loop = options.loop ?? false;
-      
-      playPromise.play().catch(e => {
-        console.warn(`Audio play failed for ${soundName}:`, e);
+      const clone = audio.cloneNode() as HTMLAudioElement;
+      clone.volume = options.volume ?? this.volume;
+      clone.loop = options.loop ?? false;
+
+      // Fallback cleanup after 30s in case 'ended' never fires (e.g. looping)
+      const fallbackTimer = setTimeout(() => this.cleanupClone(clone), 30000);
+      this.activeClones.set(clone, fallbackTimer);
+
+      // Clean up cloned element after playback ends — clears the fallback timer
+      clone.addEventListener('ended', () => this.cleanupClone(clone), { once: true });
+
+      clone.play().catch(() => {
+        this.cleanupClone(clone);
       });
     }
   }
@@ -97,6 +128,10 @@ class SoundManager {
     this.audioMap.forEach(audio => {
       audio.volume = this.volume;
     });
+  }
+
+  getVolume(): number {
+    return this.volume;
   }
 
   toggleSound() {

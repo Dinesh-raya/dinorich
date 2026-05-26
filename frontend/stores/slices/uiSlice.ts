@@ -9,6 +9,7 @@ export interface UiSlice {
   moneyChange: MoneyChange | null;
 
   clearCardDraw: () => void;
+  clearPendingAction: () => void;
 }
 
 export const createUiSlice: StateCreator<StoreState, [], [], UiSlice> = (set) => ({
@@ -19,5 +20,9 @@ export const createUiSlice: StateCreator<StoreState, [], [], UiSlice> = (set) =>
 
   clearCardDraw: () => {
     set({ lastCardDraw: null });
+  },
+
+  clearPendingAction: () => {
+    set({ pendingAction: null });
   },
 });

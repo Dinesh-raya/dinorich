@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { animations } from '../animations';
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { formatMoneyShort } from '../utils/format';
 
 // Map color hex to icon
@@ -26,6 +26,7 @@ interface Player {
   properties?: number[];
   is_in_jail?: boolean;
   jail_turns?: number;
+  is_bankrupt?: boolean;
 }
 
 interface PlayerSidebarProps {
@@ -46,6 +47,16 @@ export const PlayerSidebar = ({
   const [expandedPlayer, setExpandedPlayer] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'money' | 'name' | 'position'>('money');
 
+  // Collapse expanded panel if the player is no longer in the game or has disconnected/gone bankrupt
+  useEffect(() => {
+    if (expandedPlayer) {
+      const player = players.find(p => p.id === expandedPlayer);
+      if (!player || player.is_bankrupt || !player.connected) {
+        setExpandedPlayer(null);
+      }
+    }
+  }, [players, expandedPlayer]);
+
   // Sort players based on selected criteria
   const sortedPlayers = [...players].sort((a, b) => {
     switch (sortBy) {
@@ -62,8 +73,8 @@ export const PlayerSidebar = ({
 
   // Calculate player stats
   const totalMoney = players.reduce((sum, p) => sum + p.money, 0);
-  const averageMoney = Math.floor(totalMoney / players.length);
-  const richestPlayer = players.reduce((richest, p) =>
+  const averageMoney = players.length === 0 ? 0 : Math.floor(totalMoney / players.length);
+  const richestPlayer = players.length === 0 ? null : players.reduce((richest, p) =>
     p.money > richest.money ? p : richest
   );
 
@@ -72,9 +83,16 @@ export const PlayerSidebar = ({
     if (onPlayerClick) onPlayerClick(playerId);
   };
 
+  // Memoize money-based ranking to avoid re-sorting per player per render
+  const moneyRankMap = useMemo(() => {
+    const sorted = [...players].sort((a, b) => b.money - a.money);
+    const map = new Map<string, number>();
+    sorted.forEach((p, i) => map.set(p.id, i + 1));
+    return map;
+  }, [players]);
+
   const getPlayerRank = (player: Player) => {
-    const sortedByMoney = [...players].sort((a, b) => b.money - a.money);
-    return sortedByMoney.findIndex(p => p.id === player.id) + 1;
+    return moneyRankMap.get(player.id) ?? 1;
   };
 
   const getPositionName = (position: number) => {
@@ -91,16 +109,16 @@ export const PlayerSidebar = ({
 
   return (
     <motion.div
-      className={`glass-panel-dark rounded-2xl border border-primary-500/20 overflow-hidden ${compact ? 'w-full' : 'w-72 lg:w-80'}`}
+      className={`panel-dark rounded-2xl border border-gold-800/20 overflow-hidden ${compact ? 'w-full' : 'w-72 lg:w-80'}`}
       variants={animations.fadeIn}
       initial="hidden"
       animate="visible"
     >
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-900/50 to-accent-900/30 p-3 border-b border-primary-500/30">
+      <div className="bg-gradient-to-r from-primary-900/50 to-accent-900/30 p-3 border-b border-gold-500/30">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-primary-300 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gold-500 flex items-center gap-2">
               <span className="text-accent-400">👥</span>
               Players ({players.length})
             </h2>
@@ -112,7 +130,7 @@ export const PlayerSidebar = ({
             {(['money', 'name', 'position'] as const).map((sortType) => (
               <button
                 key={sortType}
-                className={`px-3 py-2 text-xs rounded-md transition-colors min-h-[44px] ${sortBy === sortType ? 'bg-primary-500/30 text-primary-300' : 'text-text-muted hover:text-text-main'}`}
+                className={`px-3 py-2 text-xs rounded-md transition-colors min-h-[44px] ${sortBy === sortType ? 'bg-primary-500/30 text-gold-500' : 'text-text-muted hover:text-text-main'}`}
                 onClick={() => setSortBy(sortType)}
               >
                 {sortType.charAt(0).toUpperCase() + sortType.slice(1)}
@@ -125,10 +143,10 @@ export const PlayerSidebar = ({
         <div className="grid grid-cols-2 gap-1.5 mt-2">
           <div className="bg-success-500/10 border border-success-500/20 rounded-lg p-1.5">
             <div className="text-xs text-text-muted">Richest</div>
-            <div className="text-sm font-bold text-success-400 truncate" title={richestPlayer.name}>
-              {richestPlayer.name}
+            <div className="text-sm font-bold text-success-400 truncate" title={richestPlayer?.name ?? '-'}>
+              {richestPlayer?.name ?? '-'}
             </div>
-            <div className="text-xs text-success-300">{formatMoney(richestPlayer.money)}</div>
+            <div className="text-xs text-success-300">{formatMoney(richestPlayer?.money ?? 0)}</div>
           </div>
           <div className="bg-warning-500/10 border border-warning-500/20 rounded-lg p-2">
             <div className="text-xs text-text-muted">Average</div>
@@ -140,7 +158,7 @@ export const PlayerSidebar = ({
 
       {/* Players list */}
       <div className="overflow-y-auto max-h-[500px]">
-        <AnimatePresence>
+        <AnimatePresence mode="popLayout">
           {sortedPlayers.map((player, index) => {
             const isCurrent = player.id === currentPlayerId;
             const isActive = player.id === activePlayerId;
@@ -191,7 +209,7 @@ export const PlayerSidebar = ({
                           <h3 className="font-bold text-text-main truncate flex items-center gap-1.5" title={player.name}>
                             <span className={!player.connected ? 'line-through text-text-muted' : ''}>{player.name}</span>
                             {player.isHost && <span className="text-xs text-accent-400">👑</span>}
-                            {isActive && player.connected && <span className="text-xs text-primary-400 animate-pulse">▶</span>}
+                            {isActive && player.connected && <span className="text-xs text-gold-500 animate-pulse">▶</span>}
                             {!player.connected && (
                               <span className="px-1.5 py-0.5 bg-danger-500/20 text-danger-400 border border-danger-500/30 rounded text-[9px] font-cyber tracking-wide uppercase animate-pulse">
                                 Offline
@@ -250,12 +268,12 @@ export const PlayerSidebar = ({
                         <div className="grid grid-cols-2 gap-3">
                           <div className="bg-surface/30 rounded-lg p-2">
                             <div className="text-xs text-text-muted">Properties</div>
-                            <div className="text-sm font-bold text-primary-300">
+                            <div className="text-sm font-bold text-gold-500">
                               {player.properties?.length || 0} owned
                             </div>
                           </div>
                           <div className="bg-surface/30 rounded-lg p-2">
-                            <div className="text-xs text-text-muted">Net Worth</div>
+                            <div className="text-xs text-text-muted">Cash</div>
                             <div className="text-sm font-bold text-accent-300">
                               {formatMoney(player.money)}
                             </div>
@@ -274,10 +292,10 @@ export const PlayerSidebar = ({
                         )}
 
                         {isActive && (
-                          <div className="mt-2 bg-primary-500/10 border border-primary-500/20 rounded-lg p-2">
+                          <div className="mt-2 bg-primary-500/10 border border-gold-800/20 rounded-lg p-2">
                             <div className="flex items-center gap-2">
-                              <span className="text-primary-400 animate-pulse">🎲</span>
-                              <span className="text-sm text-primary-300">
+                              <span className="text-gold-500 animate-pulse">🎲</span>
+                              <span className="text-sm text-gold-500">
                                 Currently playing
                               </span>
                             </div>
@@ -297,13 +315,13 @@ export const PlayerSidebar = ({
       <div className="p-3 border-t border-white/10 bg-surface/20">
         <div className="flex gap-2">
           <button
-            className="flex-1 bg-primary-500/20 hover:bg-primary-500/30 text-primary-300 text-sm py-3 rounded-lg transition-colors flex items-center justify-center gap-1 min-h-[44px]"
+            className="flex-1 bg-gold-500/20 hover:bg-primary-500/30 text-gold-500 text-sm py-3 rounded-lg transition-colors flex items-center justify-center gap-1 min-h-[44px]"
             onClick={() => setExpandedPlayer(null)}
           >
             <span>Collapse All</span>
           </button>
           <button
-            className="flex-1 bg-accent-500/20 hover:bg-accent-500/30 text-accent-300 text-sm py-3 rounded-lg transition-colors flex items-center justify-center gap-1 min-h-[44px]"
+            className="flex-1 bg-gold-500/20 hover:bg-accent-500/30 text-accent-300 text-sm py-3 rounded-lg transition-colors flex items-center justify-center gap-1 min-h-[44px]"
             onClick={() => setSortBy('money')}
           >
             <span>Sort by $</span>
@@ -311,44 +329,5 @@ export const PlayerSidebar = ({
         </div>
       </div>
     </motion.div>
-  );
-};
-
-// Compact version for mobile/small screens
-export const CompactPlayerSidebar = ({ players, activePlayerId }: { players: Player[], activePlayerId?: string }) => {
-  return (
-    <div className="glass-panel-dark rounded-xl p-3">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-bold text-primary-300">Players</h3>
-        <span className="text-xs text-text-muted">{players.length} online</span>
-      </div>
-      
-      <div className="flex flex-wrap gap-2">
-        {players.map(player => (
-          <div
-            key={player.id}
-            className="relative group"
-            title={`${player.name}: ${formatMoneyShort(player.money)}`}
-          >
-            <div
-              className="w-8 h-8 rounded-full border-2 border-white/50"
-              style={{ backgroundColor: player.color }}
-            >
-              {player.id === activePlayerId && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary-500 rounded-full border border-white animate-pulse"></div>
-              )}
-            </div>
-            
-            {/* Tooltip */}
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
-              <div className="glass-panel px-3 py-2 rounded-lg whitespace-nowrap text-sm">
-                <div className="font-bold">{player.name}</div>
-                <div className="text-xs text-text-muted">{formatMoneyShort(player.money)}</div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 };

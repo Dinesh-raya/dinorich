@@ -8,6 +8,7 @@ interface Player {
   color: string;
   position: number;
   money: number;
+  is_in_jail?: boolean;
 }
 
 interface TokenVisualizerProps {
@@ -94,8 +95,8 @@ export const TokenVisualizer = ({
                   style={{
                     left: `calc(50% + ${offset.x}px)`,
                     top: `calc(50% + ${offset.y}px)`,
-                    width: isCurrent ? '28px' : '24px',
-                    height: isCurrent ? '28px' : '24px',
+                    width: isCurrent ? '40px' : '36px',
+                    height: isCurrent ? '40px' : '36px',
                     backgroundColor: player.color,
                     transform: 'translate(-50%, -50%)',
                     zIndex: isCurrent ? 50 : 40,
@@ -103,11 +104,6 @@ export const TokenVisualizer = ({
                   }}
                   layoutId={`player-${player.id}`}
                   initial={false}
-                  animate={isMoving && isCurrent ? {
-                    y: [0, -15, 0],
-                    scale: [1, 1.1, 1],
-                    transition: { duration: 0.5, repeat: 2, repeatType: 'reverse' }
-                  } : {}}
                   whileHover={{ scale: 1.3, zIndex: 60 }}
                   whileTap={{ scale: 0.9 }}
                   onHoverStart={() => setHighlightedPlayer(player.id)}
@@ -115,7 +111,7 @@ export const TokenVisualizer = ({
                 >
                   {/* Player indicator dot */}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-2 h-2 bg-white/90 rounded-full"></div>
+                    <div className="w-3 h-3 bg-white/90 rounded-full"></div>
                   </div>
 
                   {/* Glow effect for current/highlighted player */}
@@ -137,7 +133,7 @@ export const TokenVisualizer = ({
                   {/* Player info tooltip */}
                   <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
                     <motion.div
-                      className="glass-panel px-3 py-2 rounded-lg whitespace-nowrap text-sm"
+                      className="panel-dark px-3 py-2 rounded-lg whitespace-nowrap text-sm"
                       initial={{ y: 10, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
                       transition={{ duration: 0.2 }}
@@ -149,8 +145,8 @@ export const TokenVisualizer = ({
                     <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-surface/90"></div>
                   </div>
 
-                  {/* Jail animation */}
-                  {player.position === 10 && (
+                  {/* Jail animation — use is_in_jail field from player data */}
+                  {player.is_in_jail && (
                     <motion.div
                       className="absolute -top-1 -right-1 w-3 h-3 bg-danger-500 rounded-full border border-white"
                       animate={{

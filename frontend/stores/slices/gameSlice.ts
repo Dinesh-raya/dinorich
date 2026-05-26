@@ -11,6 +11,7 @@ export interface GameSlice {
   incomingTrade: TradeOffer | null;
   outgoingTradeId: string | null;
   gameOver: { winner_id: string | null; winner_name: string } | null;
+  hasSave: boolean;
 
   startGame: () => void;
   rollDice: () => void;
@@ -23,6 +24,11 @@ export interface GameSlice {
   rejectTrade: (tradeId: string) => void;
   cancelTrade: (tradeId: string) => void;
   clearIncomingTrade: () => void;
+  pauseGame: () => void;
+  resumeGame: () => void;
+  saveGame: () => void;
+  loadGame: () => void;
+  listSaves: () => void;
 }
 
 export const createGameSlice: StateCreator<StoreState, [], [], GameSlice> = (set, get) => ({
@@ -32,9 +38,13 @@ export const createGameSlice: StateCreator<StoreState, [], [], GameSlice> = (set
   incomingTrade: null,
   outgoingTradeId: null,
   gameOver: null,
+  hasSave: false,
 
   startGame: () => {
-    if (get().pendingAction) return;
+    if (get().pendingAction) {
+      showToast('Please wait for current action to complete...', 'warning');
+      return;
+    }
     set({ pendingAction: 'startGame' });
     socket.emit('game:start', {}, (response: any) => {
       set({ pendingAction: null });
@@ -89,7 +99,10 @@ export const createGameSlice: StateCreator<StoreState, [], [], GameSlice> = (set
   },
 
   payJailFine: () => {
-    if (get().pendingAction) return;
+    if (get().pendingAction) {
+      showToast('Please wait for current action to complete...', 'warning');
+      return;
+    }
     set({ pendingAction: 'payJailFine' });
     socket.emit('game:pay_jail_fine', {}, (response: any) => {
       set({ pendingAction: null });
@@ -103,7 +116,10 @@ export const createGameSlice: StateCreator<StoreState, [], [], GameSlice> = (set
   },
 
   useJailCard: () => {
-    if (get().pendingAction) return;
+    if (get().pendingAction) {
+      showToast('Please wait for current action to complete...', 'warning');
+      return;
+    }
     set({ pendingAction: 'useJailCard' });
     socket.emit('game:use_jail_card', {}, (response: any) => {
       set({ pendingAction: null });
@@ -117,7 +133,10 @@ export const createGameSlice: StateCreator<StoreState, [], [], GameSlice> = (set
   },
 
   payTax: (usePercentage) => {
-    if (get().pendingAction) return;
+    if (get().pendingAction) {
+      showToast('Please wait for current action to complete...', 'warning');
+      return;
+    }
     set({ pendingAction: 'payTax' });
     socket.emit('game:pay_tax', { use_percentage: usePercentage }, (response: any) => {
       set({ pendingAction: null });
@@ -131,7 +150,10 @@ export const createGameSlice: StateCreator<StoreState, [], [], GameSlice> = (set
   },
 
   acceptTrade: (tradeId) => {
-    if (get().pendingAction) return;
+    if (get().pendingAction) {
+      showToast('Please wait for current action to complete...', 'warning');
+      return;
+    }
     set({ pendingAction: 'acceptTrade' });
     socket.emit('trade:accept', { trade_id: tradeId }, (response: any) => {
       set({ pendingAction: null });
@@ -146,7 +168,10 @@ export const createGameSlice: StateCreator<StoreState, [], [], GameSlice> = (set
   },
 
   rejectTrade: (tradeId) => {
-    if (get().pendingAction) return;
+    if (get().pendingAction) {
+      showToast('Please wait for current action to complete...', 'warning');
+      return;
+    }
     set({ pendingAction: 'rejectTrade' });
     socket.emit('trade:reject', { trade_id: tradeId }, (response: any) => {
       set({ pendingAction: null });
@@ -161,7 +186,10 @@ export const createGameSlice: StateCreator<StoreState, [], [], GameSlice> = (set
   },
 
   cancelTrade: (tradeId) => {
-    if (get().pendingAction) return;
+    if (get().pendingAction) {
+      showToast('Please wait for current action to complete...', 'warning');
+      return;
+    }
     set({ pendingAction: 'cancelTrade' });
     socket.emit('trade:cancel', { trade_id: tradeId }, (response: any) => {
       set({ pendingAction: null });
@@ -177,5 +205,73 @@ export const createGameSlice: StateCreator<StoreState, [], [], GameSlice> = (set
 
   clearIncomingTrade: () => {
     set({ incomingTrade: null });
+  },
+
+  pauseGame: () => {
+    if (get().pendingAction) {
+      showToast('Please wait for current action to complete...', 'warning');
+      return;
+    }
+    set({ pendingAction: 'pauseGame' });
+    socket.emit('game:pause', {}, (response: any) => {
+      set({ pendingAction: null });
+      if (response.status === 'error') {
+        set({ error: response.message });
+        showToast(response.message, 'error');
+      }
+    });
+  },
+
+  resumeGame: () => {
+    if (get().pendingAction) {
+      showToast('Please wait for current action to complete...', 'warning');
+      return;
+    }
+    set({ pendingAction: 'resumeGame' });
+    socket.emit('game:resume', {}, (response: any) => {
+      set({ pendingAction: null });
+      if (response.status === 'error') {
+        set({ error: response.message });
+        showToast(response.message, 'error');
+      }
+    });
+  },
+
+  saveGame: () => {
+    if (get().pendingAction) {
+      showToast('Please wait for current action to complete...', 'warning');
+      return;
+    }
+    set({ pendingAction: 'saveGame' });
+    socket.emit('game:save', {}, (response: any) => {
+      set({ pendingAction: null });
+      if (response.status === 'error') {
+        set({ error: response.message });
+        showToast(response.message, 'error');
+      }
+    });
+  },
+
+  loadGame: () => {
+    if (get().pendingAction) {
+      showToast('Please wait for current action to complete...', 'warning');
+      return;
+    }
+    set({ pendingAction: 'loadGame' });
+    socket.emit('game:load', {}, (response: any) => {
+      set({ pendingAction: null });
+      if (response.status === 'error') {
+        set({ error: response.message });
+        showToast(response.message, 'error');
+      }
+    });
+  },
+
+  listSaves: () => {
+    socket.emit('game:list_saves', {}, (response: any) => {
+      if (response.status === 'success') {
+        set({ hasSave: (response.saves || []).length > 0 });
+      }
+    });
   },
 });

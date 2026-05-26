@@ -40,4 +40,14 @@ class GameRules:
     MAX_HOUSE_DIFFERENCE = 1
 
     BUY_TIMEOUT = 15
+    TAX_TIMEOUT = 30
     TRADE_TIMEOUT = 120
+    BUY_TIMEOUT_BUFFER = 5  # seconds of buffer between buy timeout and turn timer
+
+    @staticmethod
+    def get_buy_timeout(turn_timer_seconds: int) -> int:
+        """Return the effective buy-phase timeout, capped so it never exceeds
+        the turn timer minus a safety buffer.  This prevents the buy timer
+        from running longer than the remaining turn when a short turn timer
+        is configured (e.g. TURBO mode at 30 s)."""
+        return min(GameRules.BUY_TIMEOUT, turn_timer_seconds - GameRules.BUY_TIMEOUT_BUFFER)

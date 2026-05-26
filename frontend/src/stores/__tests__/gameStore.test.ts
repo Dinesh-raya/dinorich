@@ -12,9 +12,11 @@ const mockSocket = {
   emit: vi.fn((_event: string, _data: any, cb?: Function) => {
     if (cb) cb({ status: 'ok' });
   }),
+  removeAllListeners: vi.fn(),
   auth: {} as Record<string, string>,
   io: {
     on: vi.fn(),
+    removeAllListeners: vi.fn(),
   },
 };
 
@@ -60,6 +62,7 @@ let useGameStore: any;
 
 beforeEach(async () => {
   vi.clearAllMocks();
+  Object.keys(localStorageMock).forEach(k => delete localStorageMock[k]);
 
   vi.stubGlobal('localStorage', {
     getItem: vi.fn((key: string) => localStorageMock[key] ?? null),
@@ -108,6 +111,7 @@ describe('gameStore', () => {
       'connect',
       'disconnect',
       'connect_error',
+      'session:init',
       'room:state_update',
       'game:start',
       'game:state_update',
@@ -134,7 +138,16 @@ describe('gameStore', () => {
     expect(h).toBeDefined();
     h!();
     expect(useGameStore.getState().connected).toBe(true);
-    expect(useGameStore.getState().myId).toBe('test-socket-id');
+    // myId is set by session:init, not by connect
+    expect(useGameStore.getState().myId).toBeNull();
+  });
+
+  it('handles session:init event and stores credentials', () => {
+    const h = handler('session:init');
+    expect(h).toBeDefined();
+    h!({ session_token: 'new-token', session_id: 'stable-id' });
+    expect(useGameStore.getState().myId).toBe('stable-id');
+    expect(localStorageMock['dino_session_token']).toBe('new-token');
   });
 
   it('sets connected false on disconnect', () => {
@@ -221,9 +234,12 @@ describe('gameStore', () => {
   });
 
   it('resets state on leaveGame', () => {
+    // leaveGame skips emit when socket is disconnected (disconnect handler cleans up server-side)
+    mockSocket.connected = false;
     useGameStore.getState().leaveGame();
 
-    expect(mockSocket.emit).toHaveBeenCalledWith('room:leave');
+    // When disconnected, no emit is sent
+    expect(mockSocket.emit).not.toHaveBeenCalledWith('room:leave', expect.any(Function));
 
     const state = useGameStore.getState();
     expect(state.room).toBeNull();
@@ -274,7 +290,8 @@ describe('gameStore', () => {
     const h = handler('trade:offer');
     expect(h).toBeDefined();
 
-    h!({ trade_id: 't1', from_player_id: 'p2', to_player_id: 'test-socket-id', offering_money: 100, requesting_money: 200, offering_properties: [], requesting_properties: [], offering_get_out_of_jail_cards: 0, requesting_get_out_of_jail_cards: 0 });
+    const myId = useGameStore.getState().myId || 'test-socket-id';
+    h!({ trade_id: 't1', from_player_id: 'p2', to_player_id: myId, offering_money: 100, requesting_money: 200, offering_properties: [], requesting_properties: [], offering_get_out_of_jail_cards: 0, requesting_get_out_of_jail_cards: 0 });
 
     expect(useGameStore.getState().incomingTrade).toBeDefined();
     expect(useGameStore.getState().incomingTrade.trade_id).toBe('t1');

@@ -33,7 +33,7 @@ const PropertyCard = ({ tile }: { tile: any }) => {
   const isUtility = tile.type === 'utility';
 
   return (
-    <div className="glass-panel border border-white/10 rounded-2xl overflow-hidden shadow-lg h-full flex flex-col">
+    <div className="panel-dark border border-white/10 rounded-2xl overflow-hidden shadow-lg h-full flex flex-col">
       {/* Property Header */}
       <div className={`p-3 text-center font-bold font-cyber tracking-wide uppercase text-xs ${getHeaderColor(tile.color)}`}>
         {tile.name}
@@ -54,35 +54,47 @@ const PropertyCard = ({ tile }: { tile: any }) => {
           <span className="font-bold text-accent-400">₹{tile.mortgage}</span>
         </div>
 
-        {isProperty && tile.rent && (
+        {isProperty && Array.isArray(tile.rent) && tile.rent.length > 0 && (
           <div className="space-y-0.5 mt-1">
-            <div className="flex justify-between border-b border-white/5 pb-0.5">
-              <span className="text-text-muted">Base Rent:</span>
-              <span className="text-white">₹{tile.rent[0]}</span>
-            </div>
-            <div className="flex justify-between border-b border-white/5 pb-0.5">
-              <span className="text-text-muted">1 House:</span>
-              <span className="text-white">₹{tile.rent[1]}</span>
-            </div>
-            <div className="flex justify-between border-b border-white/5 pb-0.5">
-              <span className="text-text-muted">2 Houses:</span>
-              <span className="text-white">₹{tile.rent[2]}</span>
-            </div>
-            <div className="flex justify-between border-b border-white/5 pb-0.5">
-              <span className="text-text-muted">3 Houses:</span>
-              <span className="text-white">₹{tile.rent[3]}</span>
-            </div>
-            <div className="flex justify-between border-b border-white/5 pb-0.5">
-              <span className="text-text-muted">4 Houses:</span>
-              <span className="text-white">₹{tile.rent[4]}</span>
-            </div>
-            <div className="flex justify-between border-b border-white/5 pb-0.5">
-              <span className="text-text-muted">Hotel:</span>
-              <span className="text-white">₹{tile.rent[5]}</span>
-            </div>
+            {tile.rent[0] !== undefined && (
+              <div className="flex justify-between border-b border-white/5 pb-0.5">
+                <span className="text-text-muted">Base Rent:</span>
+                <span className="text-white">₹{tile.rent[0]}</span>
+              </div>
+            )}
+            {tile.rent[1] !== undefined && (
+              <div className="flex justify-between border-b border-white/5 pb-0.5">
+                <span className="text-text-muted">1 House:</span>
+                <span className="text-white">₹{tile.rent[1]}</span>
+              </div>
+            )}
+            {tile.rent[2] !== undefined && (
+              <div className="flex justify-between border-b border-white/5 pb-0.5">
+                <span className="text-text-muted">2 Houses:</span>
+                <span className="text-white">₹{tile.rent[2]}</span>
+              </div>
+            )}
+            {tile.rent[3] !== undefined && (
+              <div className="flex justify-between border-b border-white/5 pb-0.5">
+                <span className="text-text-muted">3 Houses:</span>
+                <span className="text-white">₹{tile.rent[3]}</span>
+              </div>
+            )}
+            {tile.rent[4] !== undefined && (
+              <div className="flex justify-between border-b border-white/5 pb-0.5">
+                <span className="text-text-muted">4 Houses:</span>
+                <span className="text-white">₹{tile.rent[4]}</span>
+              </div>
+            )}
+            {tile.rent[5] !== undefined && (
+              <div className="flex justify-between border-b border-white/5 pb-0.5">
+                <span className="text-text-muted">Hotel:</span>
+                <span className="text-white">₹{tile.rent[5]}</span>
+              </div>
+            )}
             <div className="flex justify-between pt-0.5 font-bold">
               <span className="text-text-muted">House Cost:</span>
-              <span className="text-primary-300">₹{HOUSE_PRICES[tile.color] || 0}</span>
+              <span className="text-gold-500">₹{HOUSE_PRICES[tile.color] || 0}</span>
             </div>
           </div>
         )}
@@ -165,7 +177,9 @@ export const AuctionModal = () => {
 
   const handleQuickBid = (amount: number) => {
     if (!auction) return;
-    const newBid = auction.current_bid + amount;
+    // Round to nearest 100 to avoid odd bid amounts
+    const rawBid = auction.current_bid + amount;
+    const newBid = Math.ceil(rawBid / 100) * 100;
     if (newBid <= myMoney) {
       soundManager.playAuctionBid();
       placeBid && placeBid(newBid);
@@ -173,9 +187,11 @@ export const AuctionModal = () => {
   };
 
   const handleBid = () => {
-    if (auction && bidAmount > auction.current_bid && bidAmount <= myMoney) {
+    if (!auction) return;
+    const roundedBid = Math.round(bidAmount);
+    if (roundedBid > auction.current_bid && roundedBid <= myMoney) {
       soundManager.playAuctionBid();
-      placeBid && placeBid(bidAmount);
+      placeBid && placeBid(roundedBid);
     }
   };
 
@@ -193,16 +209,16 @@ export const AuctionModal = () => {
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.8, y: 50, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="glass-panel-dark p-4 sm:p-8 rounded-2xl sm:rounded-3xl w-[96%] sm:w-full max-w-2xl max-h-[90vh] overflow-y-auto border-2 border-primary-500/30 shadow-2xl neon-glow-strong"
+            className="panel-dark p-3 sm:p-8 rounded-2xl sm:rounded-3xl w-[calc(100vw-2rem)] sm:w-full max-w-2xl max-h-[90vh] overflow-y-auto border-2 border-gold-500/30 shadow-2xl gold-glow-strong"
           >
             {/* Header */}
             <div className="text-center mb-6">
               <motion.h2 
-                className="heading-cyber text-2xl sm:text-4xl font-bold text-primary-300 mb-1"
+                className="font-cyber text-2xl sm:text-4xl font-bold text-gold-500 mb-1"
                 variants={animations.glowPulse}
                 animate="visible"
               >
-                <span className="text-gradient-primary">AUCTION</span>
+                <span className="text-gold-500">AUCTION</span>
               </motion.h2>
               <p className="text-text-muted text-sm sm:text-base font-cyber">
                 Bidding for {propertyName}
@@ -220,7 +236,7 @@ export const AuctionModal = () => {
               <div className="md:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <motion.div
                   key={auction.current_bid}
-                  className="glass-panel p-4 rounded-xl border border-primary-500/20 flex flex-col justify-center"
+                  className="panel-dark p-4 rounded-xl border border-gold-800/20 flex flex-col justify-center"
                   initial={{ scale: 1.05, borderColor: 'rgba(34, 211, 238, 0.5)' }}
                   animate={{ scale: 1, borderColor: 'rgba(34, 211, 238, 0.2)' }}
                   transition={{ duration: 0.4 }}
@@ -238,7 +254,7 @@ export const AuctionModal = () => {
                 </motion.div>
 
                 <motion.div
-                  className={`glass-panel p-4 rounded-xl border ${timeLeft <= 5 ? 'border-red-500/50' : timeLeft <= 10 ? 'border-warning-500/40' : 'border-accent-500/20'} flex flex-col justify-center`}
+                  className={`panel-dark p-4 rounded-xl border ${timeLeft <= 5 ? 'border-red-500/50' : timeLeft <= 10 ? 'border-warning-500/40' : 'border-gold-800/20'} flex flex-col justify-center`}
                   whileHover={{ scale: 1.02 }}
                   variants={animations.fadeIn}
                   animate={timeLeft <= 5 ? { boxShadow: ['0 0 0px rgba(239, 68, 68, 0)', '0 0 20px rgba(239, 68, 68, 0.3)', '0 0 0px rgba(239, 68, 68, 0)'] } : {}}
@@ -265,7 +281,7 @@ export const AuctionModal = () => {
                 </motion.div>
 
                 <motion.div 
-                  className="glass-panel p-4 rounded-xl border border-success-500/20 sm:col-span-2 flex flex-col justify-center"
+                  className="panel-dark p-4 rounded-xl border border-success-500/20 sm:col-span-2 flex flex-col justify-center"
                   whileHover={{ scale: 1.02 }}
                   variants={animations.fadeIn}
                 >
@@ -293,19 +309,22 @@ export const AuctionModal = () => {
                 <div>
                   <p className="text-text-muted text-xs mb-2">Quick Bid (Add to current)</p>
                   <div className="grid grid-cols-3 gap-3">
-                    {quickBidOptions.map(amount => (
-                      <motion.button
-                        key={amount}
-                        onClick={() => handleQuickBid(amount)}
-                        className="glass-button py-2.5 px-3 rounded-xl border border-primary-500/30 hover:border-primary-500 transition-all flex flex-col items-center justify-center min-h-[44px]"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        disabled={auction.current_bid + amount > myMoney}
-                      >
-                        <div className="text-sm font-bold text-primary-300">+{formatMoney(amount)}</div>
-                        <div className="text-[9px] text-text-muted truncate">Total: {formatMoney(auction.current_bid + amount)}</div>
-                      </motion.button>
-                    ))}
+                    {quickBidOptions.map(amount => {
+                      const roundedBid = Math.ceil((auction.current_bid + amount) / 100) * 100;
+                      return (
+                        <motion.button
+                          key={amount}
+                          onClick={() => handleQuickBid(amount)}
+                          className="btn-gold-ghost py-2.5 px-3 rounded-xl border border-gold-500/30 hover:border-gold-500 transition-all flex flex-col items-center justify-center min-h-[44px]"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          disabled={roundedBid > myMoney}
+                        >
+                          <div className="text-sm font-bold text-gold-500">+{formatMoney(amount)}</div>
+                          <div className="text-[9px] text-text-muted truncate">Total: {formatMoney(roundedBid)}</div>
+                        </motion.button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -315,11 +334,12 @@ export const AuctionModal = () => {
                   <div className="flex flex-col sm:flex-row gap-3">
                     <div className="flex-1">
                       <div className="relative">
-                        <input 
-                          type="number" 
+                        <input
+                          type="number"
+                          step="1"
                           value={bidAmount}
                           onChange={(e) => setBidAmount(Number(e.target.value))}
-                          className="w-full bg-surface/50 border-2 border-primary-500/30 rounded-xl p-3 text-lg font-bold text-white text-center focus:border-primary-500 focus:outline-none"
+                          className="w-full bg-surface/50 border-2 border-gold-500/30 rounded-xl p-3 text-lg font-bold text-white text-center focus:border-gold-500 focus:outline-none"
                           min={auction.current_bid + 1}
                           max={myMoney}
                         />
@@ -335,7 +355,7 @@ export const AuctionModal = () => {
                     
                     <motion.button
                       onClick={handleBid}
-                      className="btn-primary w-full sm:w-auto px-6 py-3 text-base font-bold rounded-xl flex items-center justify-center gap-2 min-h-[44px]"
+                      className="btn-gold w-full sm:w-auto px-6 py-3 text-base font-bold rounded-xl flex items-center justify-center gap-2 min-h-[44px]"
                       whileHover={{ scale: canAffordBid ? 1.02 : 1 }}
                       whileTap={{ scale: canAffordBid ? 0.98 : 1 }}
                       disabled={bidAmount <= auction.current_bid || bidAmount > myMoney}
@@ -353,7 +373,7 @@ export const AuctionModal = () => {
                       soundManager.playAuctionEnd();
                       endAuction();
                     }}
-                    className="btn-ghost w-full sm:w-1/2 py-2.5 rounded-xl min-h-[44px]"
+                    className="btn-gold-ghost w-full sm:w-1/2 py-2.5 rounded-xl min-h-[44px]"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
@@ -371,13 +391,13 @@ export const AuctionModal = () => {
                 <p className="text-text-muted text-xs mb-4">
                   You are not participating. Watch the bidding unfold!
                 </p>
-                <div className="glass-panel p-4 rounded-xl inline-block max-w-full">
+                <div className="panel-dark p-4 rounded-xl inline-block max-w-full">
                   <p className="text-xs text-text-muted">Current Participants</p>
                   <div className="flex flex-wrap gap-1.5 mt-2 justify-center">
                     {auction.participants.map((pid: string) => (
                       <div 
                         key={pid}
-                        className="px-2.5 py-1 rounded-full bg-surface border border-primary-500/20 text-xs font-bold"
+                        className="px-2.5 py-1 rounded-full bg-surface border border-gold-800/20 text-xs font-bold"
                         style={{ 
                           color: game?.room.players[pid]?.color || THEME.colors.primary[500]
                         }}

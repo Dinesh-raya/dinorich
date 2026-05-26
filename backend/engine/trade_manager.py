@@ -36,6 +36,10 @@ class TradeManager:
                      offering_get_out_of_jail_cards: int = 0,
                      requesting_get_out_of_jail_cards: int = 0) -> Optional[TradeOffer]:
         """Create a new trade offer."""
+        # Prevent self-trade
+        if from_player_id == to_player_id:
+            return None
+
         # Validate players
         if from_player_id not in game.room.players or to_player_id not in game.room.players:
             return None
@@ -150,6 +154,16 @@ class TradeManager:
                 return False
             ps = game.properties.get(prop_id)
             if ps and ps.is_mortgaged:
+                return False
+
+        # Re-validate no buildings on traded properties (may have been built since offer)
+        for prop_id in trade.offering_properties:
+            prop_state = game.properties.get(prop_id)
+            if prop_state and (prop_state.houses > 0 or prop_state.hotels > 0):
+                return False
+        for prop_id in trade.requesting_properties:
+            prop_state = game.properties.get(prop_id)
+            if prop_state and (prop_state.houses > 0 or prop_state.hotels > 0):
                 return False
 
         # Validate Get Out of Jail Free cards still available
@@ -267,6 +281,10 @@ class TradeManager:
                 self.player_trades[trade.to_player_id] = [
                     tid for tid in self.player_trades[trade.to_player_id] if tid != trade_id
                 ]
+            if trade.room_code in self.room_trades:
+                self.room_trades[trade.room_code] = [
+                    tid for tid in self.room_trades[trade.room_code] if tid != trade_id
+                ]
             del self.active_trades[trade_id]
 
     def get_player_trades(self, player_id: str) -> List[TradeOffer]:
@@ -291,6 +309,15 @@ class TradeManager:
         for tid, trade in list(self.active_trades.items()):
             if trade.status == "pending" and (now - trade.created_at) > timeout:
                 trade.status = "expired"
+                # Log the expiration to the game state so players know (T-04)
+                from engine.turn_manager import turn_manager
+                game = turn_manager.get_game(trade.room_code)
+                if game:
+                    from_player = game.room.players.get(trade.from_player_id)
+                    to_player = game.room.players.get(trade.to_player_id)
+                    from_name = from_player.name if from_player else trade.from_player_id
+                    to_name = to_player.name if to_player else trade.to_player_id
+                    game.add_log(f"Trade between {from_name} and {to_name} expired (timed out)")
                 self._cleanup_trade(tid)
 
 # Global trade manager instance

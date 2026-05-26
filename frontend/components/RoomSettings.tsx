@@ -27,6 +27,7 @@ interface RoomSettingsType {
 
 export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
   const { room, myId, updateRoomSettings, kickPlayer } = useGameStore();
+  const [saving, setSaving] = useState(false);
 
   // Default settings
   const defaultSettings: RoomSettingsType = {
@@ -62,8 +63,8 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
   const MODE_PRESETS: Record<string, Partial<RoomSettingsType>> = {
     classic: {},
     casual: { double_rent_enabled: false, free_parking_jackpot: true, jail_strict_mode: false, turn_timer_seconds: 90 },
-    competitive: { double_rent_enabled: true, turn_timer_seconds: 45, bot_enabled: true },
-    turbo: { starting_cash: 10000, turn_timer_seconds: 30, bot_enabled: true },
+    competitive: { double_rent_enabled: true, turn_timer_seconds: 45 },
+    turbo: { starting_cash: 10000, turn_timer_seconds: 30 },
     chaos: { starting_cash: 50000, free_parking_jackpot: true, double_rent_enabled: false, turn_timer_seconds: 120, auction_enabled: false, jail_strict_mode: false },
   };
 
@@ -77,10 +78,17 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
     }
   };
 
-  const handleSave = () => {
-    if (!isHost || isLocked) return;
-    updateRoomSettings(settings);
-    onClose();
+  const handleSave = async () => {
+    if (!isHost || isLocked || saving) return;
+    setSaving(true);
+    try {
+      const success = await updateRoomSettings(settings);
+      if (success) {
+        onClose();
+      }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleReset = () => {
@@ -113,12 +121,12 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
             }}
           >
             {/* Header */}
-            <div className="flex justify-between items-center p-6 border-b border-purple-500/20">
+            <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gold-800/20">
               <div>
-                <h2 className="text-2xl font-bold text-purple-300 mb-1 font-cyber">
+                <h2 className="text-xl sm:text-2xl font-bold text-purple-300 mb-1 font-cyber">
                   ROOM SETTINGS
                 </h2>
-                <p className="text-text-muted text-sm font-cyber">
+                <p className="text-text-muted text-xs sm:text-sm font-cyber">
                   Room Code: <span className="text-purple-400 font-bold tracking-widest font-mono">{room?.room_id}</span>
                 </p>
               </div>
@@ -175,21 +183,21 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
             ) : null}
 
             {/* Settings Grid */}
-            <div className="p-6 space-y-4">
+            <div className="p-4 sm:p-6 space-y-4">
               {/* Game Mode Section */}
               <motion.div
-                className="glass-panel p-6 rounded-2xl border border-purple-500/20"
+                className="panel-dark p-4 sm:p-6 rounded-2xl border border-gold-800/20"
                 variants={animations.fadeIn}
                 style={{
                   background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%)',
                   boxShadow: '0 0 30px rgba(168, 85, 247, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
                 }}
               >
-                <h3 className="text-lg font-bold text-purple-300 mb-5 flex items-center gap-2 font-cyber">
-                  <span className="text-xl">🎯</span>
+                <h3 className="text-base sm:text-lg font-bold text-purple-300 mb-4 sm:mb-5 flex items-center gap-2 font-cyber">
+                  <span className="text-lg sm:text-xl">🎯</span>
                   GAME MODE
                 </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
                   {[
                     { id: 'classic', label: 'Classic', icon: '🎲', desc: 'Standard' },
                     { id: 'casual', label: 'Casual', icon: '🌴', desc: 'Relaxed rules' },
@@ -219,21 +227,21 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
 
               {/* Game Rules Section */}
               <motion.div
-                className="glass-panel p-6 rounded-2xl border border-purple-500/20"
+                className="panel-dark p-4 sm:p-6 rounded-2xl border border-gold-800/20"
                 variants={animations.fadeIn}
                 style={{
                   background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%)',
                   boxShadow: '0 0 30px rgba(168, 85, 247, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
                 }}
               >
-                <h3 className="text-lg font-bold text-purple-300 mb-5 flex items-center gap-2 font-cyber">
-                  <span className="text-xl">⚙️</span>
+                <h3 className="text-base sm:text-lg font-bold text-purple-300 mb-4 sm:mb-5 flex items-center gap-2 font-cyber">
+                  <span className="text-lg sm:text-xl">⚙️</span>
                   GAME RULES
                 </h3>
 
                 <div className="space-y-0 divide-y divide-white/5">
                   {/* Max Players */}
-                  <div className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 py-4 first:pt-0 last:pb-0">
                     <div className="flex items-center gap-3">
                       <span className="text-lg">👥</span>
                       <div>
@@ -241,12 +249,12 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                         <p className="text-xs text-text-muted">Maximum number of players in room</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       {[2, 3, 4, 5, 6].map(num => (
                         <motion.button
                           key={num}
                           onClick={() => handleSettingChange('max_players', num)}
-                          className={`w-11 h-11 rounded-lg font-bold text-sm transition-all ${
+                          className={`w-10 h-10 sm:w-11 sm:h-11 rounded-lg font-bold text-sm transition-all ${
                             settings.max_players === num
                               ? 'bg-purple-500/30 border border-purple-500 text-purple-300 shadow-lg shadow-purple-500/20'
                               : 'bg-surface/50 border border-white/10 text-text-muted hover:border-purple-500/30'
@@ -262,7 +270,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                   </div>
 
                   {/* Starting Cash */}
-                  <div className="flex items-center justify-between py-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 py-4">
                     <div className="flex items-center gap-3">
                       <span className="text-lg">💰</span>
                       <div>
@@ -281,8 +289,8 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                         −
                       </motion.button>
 
-                      <div className="min-w-[100px] text-center">
-                        <p className="text-xl font-bold text-success-400">{formatCurrency(settings.starting_cash)}</p>
+                      <div className="min-w-[80px] sm:min-w-[100px] text-center">
+                        <p className="text-lg sm:text-xl font-bold text-success-400">{formatCurrency(settings.starting_cash)}</p>
                       </div>
 
                       <motion.button
@@ -298,7 +306,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                   </div>
 
                   {/* Turn Timer */}
-                  <div className="flex items-center justify-between py-4 last:pb-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 py-4 last:pb-0">
                     <div className="flex items-center gap-3">
                       <span className="text-lg">⏱️</span>
                       <div>
@@ -306,12 +314,12 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                         <p className="text-xs text-text-muted">Seconds per turn before timeout</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       {[30, 45, 60, 90, 120].map(seconds => (
                         <motion.button
                           key={seconds}
                           onClick={() => handleSettingChange('turn_timer_seconds', seconds)}
-                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                          className={`px-2.5 py-1.5 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                             settings.turn_timer_seconds === seconds
                               ? 'bg-purple-500/30 border border-purple-500 text-purple-300 shadow-lg shadow-purple-500/20'
                               : 'bg-surface/50 border border-white/10 text-text-muted hover:border-purple-500/30'
@@ -330,15 +338,15 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
 
               {/* Game Features Section */}
               <motion.div
-                className="glass-panel p-6 rounded-2xl border border-purple-500/20"
+                className="panel-dark p-4 sm:p-6 rounded-2xl border border-gold-800/20"
                 variants={animations.fadeIn}
                 style={{
                   background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%)',
                   boxShadow: '0 0 30px rgba(168, 85, 247, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
                 }}
               >
-                <h3 className="text-lg font-bold text-purple-300 mb-5 flex items-center gap-2 font-cyber">
-                  <span className="text-xl">🎮</span>
+                <h3 className="text-base sm:text-lg font-bold text-purple-300 mb-4 sm:mb-5 flex items-center gap-2 font-cyber">
+                  <span className="text-lg sm:text-xl">🎮</span>
                   GAMEPLAY RULES
                 </h3>
 
@@ -350,9 +358,8 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                     { key: 'free_parking_jackpot' as const, label: 'Vacation Cash', description: 'Taxes go to free parking', icon: '🏖️' },
                     { key: 'random_turn_order' as const, label: 'Randomize Order', description: 'Shuffle player order at start', icon: '🎲' },
                     { key: 'jail_strict_mode' as const, label: 'Prison Rent Rule', description: 'Enforce strict jail handling', icon: '👮' },
-                    { key: 'bot_enabled' as const, label: 'AI Bots', description: 'Fill empty slots with bots for solo play', icon: '🤖' },
                   ].map(({ key, label, description, icon }) => (
-                    <div key={key} className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
+                    <div key={key} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0 py-4 first:pt-0 last:pb-0">
                       <div className="flex items-center gap-3">
                         <span className="text-lg">{icon}</span>
                         <div>
@@ -362,6 +369,9 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                       </div>
                       <motion.button
                         onClick={() => handleSettingChange(key, !settings[key])}
+                        role="switch"
+                        aria-checked={settings[key]}
+                        aria-label={label}
                         className={`relative inline-flex h-9 w-14 items-center rounded-full transition-all ${
                           settings[key]
                             ? 'bg-purple-500 shadow-lg shadow-purple-500/30'
@@ -384,21 +394,21 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
               {/* Player Management */}
               {isHost && room?.players && (
                 <motion.div
-                  className="glass-panel p-6 rounded-2xl border border-purple-500/20"
+                  className="panel-dark p-4 sm:p-6 rounded-2xl border border-gold-800/20"
                   variants={animations.fadeIn}
                   style={{
                     background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%)',
                     boxShadow: '0 0 30px rgba(168, 85, 247, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
                   }}
                 >
-                  <h3 className="text-lg font-bold text-purple-300 mb-5 flex items-center gap-2 font-cyber">
-                    <span className="text-xl">👥</span>
+                  <h3 className="text-base sm:text-lg font-bold text-purple-300 mb-4 sm:mb-5 flex items-center gap-2 font-cyber">
+                    <span className="text-lg sm:text-xl">👥</span>
                     PLAYER MANAGEMENT
                   </h3>
 
                   <div className="space-y-2">
                     {Object.values(room.players).map((player: any) => (
-                      <div key={player.id} className="flex items-center justify-between p-3 rounded-xl bg-surface/30 border border-white/5 hover:border-purple-500/20 transition-all">
+                      <div key={player.id} className="flex items-center justify-between p-3 rounded-xl bg-surface/30 border border-white/5 hover:border-gold-800/20 transition-all">
                         <div className="flex items-center gap-3">
                           <div
                             className="w-9 h-9 rounded-full border-2 shadow-lg"
@@ -443,17 +453,17 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-between items-center p-6 border-t border-purple-500/20">
-              <p className="text-xs text-text-muted">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 p-4 sm:p-6 border-t border-gold-800/20">
+              <p className="text-[10px] sm:text-xs text-text-muted order-2 sm:order-1">
                 {isLocked ? 'Settings are read-only during gameplay.' : 'Settings affect all players. Changes take effect immediately.'}
               </p>
 
-              <div className="flex gap-3">
+              <div className="flex gap-2 sm:gap-3 w-full sm:w-auto order-1 sm:order-2">
                 {!isLocked && (
                   <>
                     <motion.button
                       onClick={handleReset}
-                      className="px-5 py-2.5 rounded-xl bg-surface/50 border border-white/10 text-text-muted hover:bg-white/10 hover:border-white/20 transition-all text-sm"
+                      className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 rounded-xl bg-surface/50 border border-white/10 text-text-muted hover:bg-white/10 hover:border-white/20 transition-all text-sm"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       disabled={!isHost}
@@ -463,23 +473,23 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
 
                     <motion.button
                       onClick={handleSave}
-                      className="px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      className="flex-1 sm:flex-none px-5 sm:px-6 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                       style={{
                         background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
                         boxShadow: '0 4px 14px rgba(168, 85, 247, 0.3)'
                       }}
-                      whileHover={{ scale: 1.02, boxShadow: '0 6px 20px rgba(168, 85, 247, 0.4)' }}
-                      whileTap={{ scale: 0.98 }}
-                      disabled={!isHost}
+                      whileHover={!saving ? { scale: 1.02, boxShadow: '0 6px 20px rgba(168, 85, 247, 0.4)' } : undefined}
+                      whileTap={!saving ? { scale: 0.98 } : undefined}
+                      disabled={!isHost || saving}
                     >
-                      💾 Save
+                      {saving ? '⏳ Saving...' : '💾 Save'}
                     </motion.button>
                   </>
                 )}
                 {isLocked && (
                   <motion.button
                     onClick={onClose}
-                    className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-purple-500/20 border border-purple-500 text-purple-300 shadow-lg shadow-purple-500/20"
+                    className="flex-1 sm:flex-none px-5 sm:px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-purple-500/20 border border-purple-500 text-purple-300 shadow-lg shadow-purple-500/20"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >

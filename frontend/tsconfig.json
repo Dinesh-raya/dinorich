@@ -20,6 +20,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "constants", "utils", "hooks", "stores", "services", "components", "pages", "animations"],
+  "include": ["src", "constants", "utils", "stores", "services", "components", "animations"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

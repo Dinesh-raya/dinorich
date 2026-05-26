@@ -115,7 +115,7 @@ export interface RoomJoinPayload {
 
 
 export interface RoomSettings {
-  max_players: number;  // Maximum players allowed (1-6)
+  max_players: number;  // Maximum players allowed (2-6)
   starting_cash: number;  // Initial money for each player
   auction_enabled: boolean;  // Whether auctions are enabled
   double_rent_enabled: boolean;  // Whether double rent applies to monopolies
@@ -128,6 +128,7 @@ export interface RoomSettings {
   board_theme: string;  // Board theme placeholder
   mode: GameMode;  // Game mode preset (descriptive only — does not auto-override settings)
   disconnect_timeout_seconds: number;  // Seconds before disconnected player is bankrupted
+  game_paused: boolean;  // Whether the game is currently paused
 }
 
 
@@ -181,7 +182,7 @@ export interface TurnState {
   time_remaining: number;  // Seconds remaining in turn
   in_debt: boolean;  // Whether the active player is in negative balance
   debt_creditor_id?: string | null;  // Player ID to whom debt is owed (None if bank)
+  debt_creditors: any[];  // List of (creditor_id, amount) tuples tracking all creditors in order
   pending_tax?: Record<string, any> | null;  // Pending tax info: {amount, name, tile_id}
-  pending_rent?: Record<string, any> | null;  // Pending rent info: {payer_id, owner_id, amount, property_id, property_name}
 }
 

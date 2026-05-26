@@ -45,14 +45,14 @@ class SessionManager:
                      record.reconnect_expires_at, now)
         return signed
 
-    def resolve_session(self, signed_session_token: str, fallback_name: str) -> SessionRecord:
+    def resolve_session(self, signed_session_token: str, fallback_name: str) -> tuple[SessionRecord, str]:
         session_id = verify_signed_value(signed_session_token) if signed_session_token else None
         if session_id and session_id in self.sessions:
-            return self.sessions[session_id]
+            return self.sessions[session_id], signed_session_token
 
         new_signed = self.create_session(fallback_name)
         new_session_id = verify_signed_value(new_signed)
-        return self.sessions[new_session_id]
+        return self.sessions[new_session_id], new_signed
 
     def set_room_code(self, session_id: str, room_code: str):
         record = self.sessions.get(session_id)

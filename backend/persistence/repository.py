@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 from persistence.db import get_connection, with_db_lock
 from schemas.room import RoomState
 from schemas.game import GameState
@@ -218,6 +218,66 @@ def load_snapshot() -> Tuple[Dict[str, RoomState], Dict[str, GameState], Dict[st
             
     conn.close()
     return rooms, games, turns, runtime_auctions, runtime_trades
+
+
+def get_game_save_info(room_code: str) -> Optional[dict]:
+    """Check if a game save exists for a room. Returns metadata dict or None."""
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute('SELECT room_code FROM games WHERE room_code = ?', (room_code,))
+        row = cursor.fetchone()
+        if row:
+            return {"room_code": row['room_code']}
+        return None
+    except Exception as e:
+        logger.error(f"Failed to check game save for {room_code}: {e}", exc_info=True)
+        return None
+    finally:
+        conn.close()
+
+
+def load_game_save(room_code: str) -> Tuple[Optional[GameState], Optional[TurnState]]:
+    """Load a saved game for a specific room. Returns (game, turn) or (None, None)."""
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute('SELECT state_json, turn_json FROM games WHERE room_code = ?', (room_code,))
+        row = cursor.fetchone()
+        if row:
+            game = GameState.model_validate_json(row['state_json'])
+            turn = TurnState.model_validate_json(row['turn_json'])
+            return game, turn
+        return None, None
+    except Exception as e:
+        logger.error(f"Failed to load game save for {room_code}: {e}", exc_info=True)
+        return None, None
+    finally:
+        conn.close()
+
+
+def load_game_save_full(room_code: str) -> Tuple[Optional[GameState], Optional[TurnState], Optional[dict]]:
+    """Load a saved game with runtime data for a specific room.
+    Returns (game, turn, runtime_dict) or (None, None, None).
+    runtime_dict may contain 'auction', 'trades', 'player_trades' keys.
+    """
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute('SELECT state_json, turn_json, runtime_json FROM games WHERE room_code = ?', (room_code,))
+        row = cursor.fetchone()
+        if row:
+            game = GameState.model_validate_json(row['state_json'])
+            turn = TurnState.model_validate_json(row['turn_json'])
+            runtime_raw = row['runtime_json'] if row['runtime_json'] else '{}'
+            runtime = json.loads(runtime_raw)
+            return game, turn, runtime
+        return None, None, None
+    except Exception as e:
+        logger.error(f"Failed to load full game save for {room_code}: {e}", exc_info=True)
+        return None, None, None
+    finally:
+        conn.close()
 
 
 def save_session(session_id: str, player_name: str, reconnect_token: str,

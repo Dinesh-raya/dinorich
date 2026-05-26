@@ -96,8 +96,7 @@ export const DiceAnim = ({
       setDisplayDie1(die1);
       setDisplayDie2(die2);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRolling]);
+  }, [isRolling, die1, die2]);
 
   // Handle sound and completion timing
   useEffect(() => {
@@ -125,12 +124,11 @@ export const DiceAnim = ({
       if (soundTimerRef.current) clearTimeout(soundTimerRef.current);
       if (completeTimerRef.current) clearTimeout(completeTimerRef.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRolling]);
+  }, [isRolling, die1, die2, onRollComplete]);
 
   return (
     <div className="flex flex-col items-center gap-4">
-      <div className="flex items-center gap-5">
+      <div className="flex items-center gap-5" role="img" aria-label={`Die 1: ${isRolling ? 'rolling' : displayDie1}, Die 2: ${isRolling ? 'rolling' : displayDie2}${!isRolling ? `, total: ${displayDie1 + displayDie2}` : ''}`}>
         {/* Die 1 */}
         <motion.div
           className={`relative ${sizeClasses[size]} rounded-xl overflow-hidden border-2 border-white/40`}
@@ -222,13 +220,13 @@ export const DiceAnim = ({
               transition={{ duration: 0.25 }}
             >
               <div className="text-text-muted text-sm">Total</div>
-              <div className="text-3xl font-bold text-primary-300">
+              <div className="text-3xl font-bold text-gold-500">
                 {total}
               </div>
 
               {die1 === die2 && (
                 <motion.div
-                  className="mt-1 px-3 py-1 bg-accent-500/20 rounded-full border border-accent-500/30"
+                  className="mt-1 px-3 py-1 bg-gold-500/20 rounded-full border border-gold-500/30"
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.1, type: 'spring', stiffness: 400 }}

@@ -28,6 +28,9 @@ def buy_property(game_state: GameState, player_id: str, property_id: int) -> tup
     if not player:
         return False, "Player not found"
 
+    if property_id in player.properties_owned:
+        return False, "Already owned"
+
     if player.money < price:
         return False, "Not enough money"
         
@@ -87,7 +90,9 @@ def calculate_rent(game_state: GameState, property_id: int, dice_total: int = 0)
         return 0
 
     owner_id = prop_state.owner_id
-    owner = game_state.room.players[owner_id]
+    owner = game_state.room.players.get(owner_id)
+    if not owner:
+        return 0
 
     if config["type"] == "property":
         color = config["color"]
@@ -107,19 +112,22 @@ def calculate_rent(game_state: GameState, property_id: int, dice_total: int = 0)
 
     elif config["type"] == "airport":
         # Airport rent: ₹250 × 2^(owned − 1), same as standard Monopoly railroad formula
-        owned_airports = sum(1 for p in owner.properties_owned if get_board_config()[p]["type"] == "airport")
+        board = get_board_config()
+        owned_airports = sum(1 for p in owner.properties_owned if board.get(p, {}).get("type") == "airport")
         return 250 * (2 ** (owned_airports - 1))
 
     elif config["type"] == "utility":
-        owned_utilities = sum(1 for p in owner.properties_owned if get_board_config()[p]["type"] == "utility")
+        board = get_board_config()
+        owned_utilities = sum(1 for p in owner.properties_owned if board.get(p, {}).get("type") == "utility")
+        tile_name = config.get("name", "")
 
-        if property_id == 12:
+        if tile_name == "NTPC Power":
             # NTPC Power — Exponential surge pricing (THEMATIC, see docstring)
             # Formula: dice² × multiplier   (5 if solo, 10 if both owned)
             multiplier = 10 if owned_utilities >= 2 else 5
             return dice_total * dice_total * multiplier
 
-        elif property_id == 28:
+        elif tile_name == "Jal Jeevan Water":
             # Jal Jeevan Water — Scarcity pricing (THEMATIC, see docstring)
             # Formula: dice × base + per_player × alive_players
             alive_players = sum(1 for p in game_state.room.players.values() if not p.is_bankrupt)
@@ -141,15 +149,15 @@ def mortgage_property(game_state: GameState, player_id: str, property_id: int) -
         return False, "Already mortgaged"
         
     # Official rules: ALL buildings in the color group must be sold before ANY property can be mortgaged
-    config = get_board_config().get(property_id)
+    board = get_board_config()
+    config = board.get(property_id)
     color_group = config.get("color") if config else None
     if color_group:
         for pid, ps in game_state.properties.items():
-            pc = get_board_config().get(pid)
+            pc = board.get(pid)
             if pc and pc.get("color") == color_group and (ps.houses > 0 or ps.hotels > 0):
                 return False, f"Must sell all buildings in the {color_group} group first"
         
-    config = get_board_config().get(property_id)
     mortgage_value = config.get("mortgage", 0)
     
     prop_state.is_mortgaged = True
@@ -190,18 +198,21 @@ def can_build_house(game_state: GameState, player_id: str, property_id: int) -> 
     
     if prop_state.is_mortgaged:
         return False, "Cannot build on mortgaged property"
-    
+
+    if prop_state.hotels > 0:
+        return False, "Cannot build house on property with hotel"
+
     config = get_board_config().get(property_id)
     if not config or config["type"] != "property":
         return False, "Not a buildable property"
-    
+
     # Check if player has monopoly on color group
     color = config["color"]
     color_group_ids = [k for k, v in get_board_config().items() if v.get("color") == color]
     has_monopoly = all(game_state.properties[k].owner_id == player_id for k in color_group_ids)
     if not has_monopoly:
         return False, "You need monopoly on this color group to build"
-    
+
     # Check house limit
     if prop_state.houses >= GameRules.MAX_HOUSES_PER_PROPERTY:
         return False, f"Maximum {GameRules.MAX_HOUSES_PER_PROPERTY} houses already built"

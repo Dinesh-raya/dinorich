@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from schemas.room import RoomSettings
 
@@ -37,6 +37,14 @@ class TradeCreatePayload(BaseModel):
     offering_get_out_of_jail_cards: int = Field(default=0, ge=0)
     requesting_get_out_of_jail_cards: int = Field(default=0, ge=0)
 
+    @field_validator("offering_properties", "requesting_properties", mode="before")
+    @classmethod
+    def validate_property_ids(cls, v: list[int]) -> list[int]:
+        for pid in v:
+            if not (0 <= pid <= 39):
+                raise ValueError(f"Property ID must be between 0 and 39, got {pid}")
+        return v
+
 
 class TradeActionPayload(BaseModel):
     trade_id: str = Field(min_length=1)
@@ -50,6 +58,14 @@ class TradeCounterPayload(BaseModel):
     requesting_properties: list[int] = Field(default_factory=list)
     offering_get_out_of_jail_cards: int = Field(default=0, ge=0)
     requesting_get_out_of_jail_cards: int = Field(default=0, ge=0)
+
+    @field_validator("offering_properties", "requesting_properties", mode="before")
+    @classmethod
+    def validate_property_ids(cls, v: list[int]) -> list[int]:
+        for pid in v:
+            if not (0 <= pid <= 39):
+                raise ValueError(f"Property ID must be between 0 and 39, got {pid}")
+        return v
 
 
 class KickPlayerPayload(BaseModel):

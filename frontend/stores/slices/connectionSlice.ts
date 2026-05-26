@@ -1,6 +1,6 @@
 import { StateCreator } from 'zustand';
 import { socket } from '../../services/socket';
-import type { StoreState } from '../gameStore';
+import type { StoreState } from './storeTypes';
 
 export interface ConnectionSlice {
   connected: boolean;

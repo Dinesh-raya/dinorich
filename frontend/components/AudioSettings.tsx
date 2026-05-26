@@ -9,12 +9,12 @@ interface AudioSettingsProps {
 
 export const AudioSettings = ({ isOpen, onClose }: AudioSettingsProps) => {
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [soundVolume, setSoundVolume] = useState(70);
+  const [soundVolume, setSoundVolume] = useState(() => Math.round(soundManager.getVolume() * 100));
 
   useEffect(() => {
     if (isOpen) {
       setSoundEnabled(soundManager.isSoundEnabled());
-      setSoundVolume(70);
+      setSoundVolume(Math.round(soundManager.getVolume() * 100));
     }
   }, [isOpen]);
 
@@ -47,13 +47,13 @@ export const AudioSettings = ({ isOpen, onClose }: AudioSettingsProps) => {
         animate={{ scale: 1, y: 0, opacity: 1 }}
         exit={{ scale: 0.8, y: 50, opacity: 0 }}
         transition={{ type: 'spring', damping: 25 }}
-        className="glass-panel-dark p-6 sm:p-8 rounded-3xl w-full max-w-md border-2 border-accent-500/30 shadow-2xl"
+        className="panel-dark p-5 sm:p-8 rounded-2xl sm:rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto border-2 border-gold-500/30 shadow-2xl"
       >
         <div className="flex items-center justify-between mb-6 sm:mb-8">
-          <h2 className="heading-cyber text-xl sm:text-2xl font-bold text-primary-300">Audio Settings</h2>
+          <h2 className="font-cyber text-xl sm:text-2xl font-bold text-gold-500">Audio Settings</h2>
           <button
             onClick={onClose}
-            className="glass-button p-3 rounded-xl text-text-muted hover:text-white transition-colors"
+            className="btn-gold-ghost p-3 rounded-xl text-text-muted hover:text-white transition-colors"
           >
             ✕
           </button>
@@ -89,6 +89,8 @@ export const AudioSettings = ({ isOpen, onClose }: AudioSettingsProps) => {
                 min="0"
                 max="100"
                 value={soundVolume}
+                aria-label="Sound volume"
+                aria-valuetext={`${soundVolume} percent`}
                 onChange={(e) => handleSoundVolumeChange(parseInt(e.target.value))}
                 className="w-full h-2 bg-surface rounded-full appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent-500"
               />
@@ -113,7 +115,7 @@ export const AudioSettings = ({ isOpen, onClose }: AudioSettingsProps) => {
                   setSoundEnabled(true);
                   soundManager.setSoundEnabled(true);
                 }}
-                className="py-3 bg-accent-500/20 border border-accent-500/30 rounded-xl text-accent-300 hover:bg-accent-500/30 transition-colors"
+                className="py-3 bg-gold-500/20 border border-gold-500/30 rounded-xl text-accent-300 hover:bg-accent-500/30 transition-colors"
               >
                 Loud
               </button>

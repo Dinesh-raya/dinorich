@@ -2,6 +2,7 @@
 import pytest
 from unittest.mock import patch
 
+from conftest import make_player, make_test_game
 from schemas.room import RoomState, RoomSettings, RoomStatus
 from schemas.player import PlayerState
 from schemas.game import GameState, PropertyState
@@ -13,36 +14,6 @@ from constants.game_rules import GameRules
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-def make_player(pid: str, name: str, money: int = 15000, color: str = "#ff0000", **kwargs) -> PlayerState:
-    return PlayerState(id=pid, name=name, color=color, money=money, **kwargs)
-
-
-def make_test_game() -> GameState:
-    """Create a minimal game state for testing."""
-    settings = RoomSettings()
-    p1 = make_player("p1", "Player 1")
-    p2 = make_player("p2", "Player 2", color="#0000ff")
-    room = RoomState(
-        room_id="TEST01",
-        host_id="p1",
-        status=RoomStatus.PLAYING,
-        players={"p1": p1, "p2": p2},
-        settings=settings,
-    )
-    game = GameState(room=room)
-    game.turn_order = ["p1", "p2"]
-    # Register all board properties so color group lookups work
-    from engine.property import get_board_config
-    for tile_id, config in get_board_config().items():
-        if config.get("type") in ("property", "airport", "utility"):
-            game.properties[tile_id] = PropertyState(tile_id=tile_id)
-    # Populate card decks so tests don't fail on empty decks
-    from engine.cards import TREASURY_CARDS_TEMPLATE, SURPRISE_CARDS_TEMPLATE
-    import copy
-    game.treasury_deck = copy.deepcopy(TREASURY_CARDS_TEMPLATE)
-    game.surprise_deck = copy.deepcopy(SURPRISE_CARDS_TEMPLATE)
-    return game
 
 
 def start(game: GameState) -> TurnManager:
@@ -110,21 +81,76 @@ class TestTickTurnTimer:
         assert result_turn.time_remaining == 30  # Main timer unchanged
         assert buy_prop is None  # Timer didn't expire
 
-    def test_buy_phase_timeout_triggers_auction(self):
+    def test_buy_phase_timeout_triggers_auction_when_cant_afford(self):
         game = make_test_game()
         tm = start(game)
+        # Give player low money so they can't auto-buy (need 2x price)
+        game.room.players["p1"].money = 500  # Guwahati costs 600, need 1200
         turn = tm.get_turn_state("TEST01")
         turn.phase = TurnPhase.BUY
         turn.time_remaining = 30
         # Initialize the buy timer with a known property ID (tile 1)
         tm._buy_timers["TEST01"] = (GameRules.BUY_TIMEOUT, 1)
-        buy_prop = None
         for _ in range(GameRules.BUY_TIMEOUT + 2):
-            turn, _, buy_prop = tm.tick_turn_timer("TEST01")
-            if buy_prop is not None:
-                break
-        assert buy_prop == 1
+            turn, _, _ = tm.tick_turn_timer("TEST01")
         assert turn.phase == TurnPhase.AUCTION
+
+    def test_buy_phase_timeout_auto_buys_when_affordable(self):
+        game = make_test_game()
+        tm = start(game)
+        # Player has 15,000, Guwahati costs 600 — 2x threshold = 1200, easily met
+        initial_money = game.room.players["p1"].money
+        turn = tm.get_turn_state("TEST01")
+        turn.phase = TurnPhase.BUY
+        turn.time_remaining = 30
+        tm._buy_timers["TEST01"] = (GameRules.BUY_TIMEOUT, 1)
+        for _ in range(GameRules.BUY_TIMEOUT + 2):
+            turn, _, _ = tm.tick_turn_timer("TEST01")
+        # Should have auto-bought
+        assert turn.phase == TurnPhase.ACTION
+        assert turn.can_end_turn is True
+        assert 1 in game.room.players["p1"].properties_owned
+        assert game.room.players["p1"].money == initial_money - 600
+
+    def test_auto_build_on_monopoly(self):
+        """When timer expires in ACTION phase with a monopoly, auto-build a house."""
+        game = make_test_game()
+        tm = start(game)
+        p1 = game.room.players["p1"]
+        # Give p1 monopoly on brown (tiles 1, 3)
+        game.properties[1].owner_id = "p1"
+        game.properties[3].owner_id = "p1"
+        p1.properties_owned = [1, 3]
+        turn = tm.get_turn_state("TEST01")
+        turn.phase = TurnPhase.ACTION
+        turn.can_roll = False
+        turn.can_end_turn = True
+        turn.time_remaining = 1  # Will expire on next tick
+        initial_money = p1.money
+        result_turn, _, _ = tm.tick_turn_timer("TEST01")
+        # Should have auto-built a house on one of the brown properties
+        total_houses = game.properties[1].houses + game.properties[3].houses
+        assert total_houses == 1
+        assert p1.money == initial_money - GameRules.HOUSE_PRICES["brown"]
+
+    def test_no_auto_build_without_monopoly(self):
+        """When timer expires in ACTION phase without monopoly, just end turn."""
+        game = make_test_game()
+        tm = start(game)
+        p1 = game.room.players["p1"]
+        # Only own one brown property (no monopoly)
+        game.properties[1].owner_id = "p1"
+        p1.properties_owned = [1]
+        turn = tm.get_turn_state("TEST01")
+        turn.phase = TurnPhase.ACTION
+        turn.can_roll = False
+        turn.can_end_turn = True
+        turn.time_remaining = 1
+        initial_money = p1.money
+        result_turn, _, _ = tm.tick_turn_timer("TEST01")
+        # No auto-build, turn ended
+        assert game.properties[1].houses == 0
+        assert p1.money == initial_money
 
     def test_skips_during_auction_phase(self):
         game = make_test_game()
@@ -221,6 +247,46 @@ class TestProcessRoll:
         turn.phase = TurnPhase.ROLL
         result = tm.process_roll("TEST01", "p1")  # 3rd double -> jail
         assert game.room.players["p1"].is_in_jail is True
+
+    @patch("engine.turn_manager.roll_dice")
+    def test_debt_creditors_tracked_on_rent(self, mock_roll):
+        """When a player goes negative from rent, debt_creditors tracks the creditor and amount."""
+        # Tile 11 = Jaipur (rent base 100). Roll 11 from position 0.
+        mock_roll.return_value = DiceState(die1=5, die2=6, total=11, is_double=False, doubles_count=0)
+        game = make_test_game(3)
+        tm = start(game)
+        # p2 owns tile 11
+        game.properties[11].owner_id = "p2"
+        game.room.players["p2"].properties_owned = [11]
+        # Give p1 very low money so rent pushes them negative
+        game.room.players["p1"].money = 50
+        result = tm.process_roll("TEST01", "p1")
+        turn = result["turn"]
+        assert turn.in_debt is True
+        assert len(turn.debt_creditors) == 1
+        assert turn.debt_creditors[0][0] == "p2"
+        assert turn.debt_creditors[0][1] > 0  # amount owed
+        assert turn.debt_creditor_id == "p2"
+
+    @patch("engine.turn_manager.roll_dice")
+    def test_debt_creditors_cleared_on_resolution(self, mock_roll):
+        """debt_creditors is cleared when debt is resolved."""
+        mock_roll.return_value = DiceState(die1=5, die2=6, total=11, is_double=False, doubles_count=0)
+        game = make_test_game(3)
+        tm = start(game)
+        game.properties[11].owner_id = "p2"
+        game.room.players["p2"].properties_owned = [11]
+        game.room.players["p1"].money = 50
+        tm.process_roll("TEST01", "p1")
+        turn = tm.get_turn_state("TEST01")
+        assert turn.in_debt is True
+        assert len(turn.debt_creditors) == 1
+        # Resolve debt by giving player money
+        game.room.players["p1"].money = 5000
+        resolved = tm.check_debt_resolved("TEST01", "p1")
+        assert resolved.in_debt is False
+        assert resolved.debt_creditors == []
+        assert resolved.debt_creditor_id is None
 
 
 # ---------------------------------------------------------------------------

@@ -47,10 +47,16 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
   useEffect(() => {
     if (isOpen) {
       if (counterOffer) {
+        // Validate that the current user still owns the properties being offered in the counter
+        const ownedPropIds = new Set(myPlayer?.properties_owned || []);
+        const validOfferingProps = (counterOffer.requesting_properties || []).filter(
+          (propId) => ownedPropIds.has(propId)
+        );
+
         setSelectedPlayer(counterOffer.from_player_id);
         setOfferingMoney(counterOffer.requesting_money);
         setRequestingMoney(counterOffer.offering_money);
-        setOfferingProperties(counterOffer.requesting_properties || []);
+        setOfferingProperties(validOfferingProps);
         setRequestingProperties(counterOffer.offering_properties || []);
         setOfferingJailCards(counterOffer.requesting_get_out_of_jail_cards || 0);
         setRequestingJailCards(counterOffer.offering_get_out_of_jail_cards || 0);
@@ -172,7 +178,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
 
           {/* Modal */}
           <motion.div
-            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border-2 border-accent-500/30"
+            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border-2 border-gold-500/30"
             style={{
               background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 20, 60, 0.98) 100%)',
               boxShadow: '0 0 60px rgba(168, 85, 247, 0.15), 0 0 120px rgba(168, 85, 247, 0.05)'
@@ -183,7 +189,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
           >
             {/* Header */}
-            <div className="flex justify-between items-center p-4 sm:p-6 border-b border-accent-500/20">
+            <div className="flex justify-between items-center p-3 sm:p-6 border-b border-gold-800/20">
               <div>
                 <h2 className="text-xl sm:text-2xl font-bold text-accent-300 font-cyber">TRADE</h2>
                 <p className="text-text-muted text-xs sm:text-sm">Exchange properties and money with other players</p>
@@ -199,7 +205,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
             </div>
 
             {/* Content */}
-            <div className="p-4 sm:p-6">
+            <div className="p-3 sm:p-6">
               {/* Step 1: Select Player */}
               {step === 'select-player' && (
                 <div>
@@ -212,7 +218,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                           setSelectedPlayer(player.id);
                           setStep('configure-trade');
                         }}
-                        className="p-3 sm:p-4 rounded-xl border border-white/10 bg-surface/30 hover:border-accent-500/30 hover:bg-accent-500/5 transition-all text-left"
+                        className="p-3 sm:p-4 rounded-xl border border-white/10 bg-surface/30 hover:border-gold-500/30 hover:bg-accent-500/5 transition-all text-left"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                       >
@@ -265,7 +271,16 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                       </div>
                     </div>
                     <motion.button
-                      onClick={() => setStep('select-player')}
+                      onClick={() => {
+                        setSelectedPlayer(null);
+                        setOfferingMoney(0);
+                        setRequestingMoney(0);
+                        setOfferingProperties([]);
+                        setRequestingProperties([]);
+                        setOfferingJailCards(0);
+                        setRequestingJailCards(0);
+                        setStep('select-player');
+                      }}
                       className="text-xs text-text-muted hover:text-accent-400"
                       whileHover={{ scale: 1.05 }}
                     >
@@ -294,6 +309,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                             type="number"
                             value={offeringMoney || ''}
                             onChange={(e) => setOfferingMoney(Math.min(myPlayer.money, Math.max(0, Number(e.target.value))))}
+                            onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
                             className="w-20 sm:w-24 bg-surface/50 border border-white/10 rounded px-2 py-1 text-center font-bold text-success-400 text-xs sm:text-sm focus:border-success-500 focus:outline-none"
                             min={0}
                             max={myPlayer.money}
@@ -396,7 +412,8 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                             type="number"
                             value={requestingMoney || ''}
                             onChange={(e) => setRequestingMoney(Math.min(selectedPlayerData.money, Math.max(0, Number(e.target.value))))}
-                            className="w-20 sm:w-24 bg-surface/50 border border-white/10 rounded px-2 py-1 text-center font-bold text-accent-400 text-xs sm:text-sm focus:border-accent-500 focus:outline-none"
+                            onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
+                            className="w-20 sm:w-24 bg-surface/50 border border-white/10 rounded px-2 py-1 text-center font-bold text-accent-400 text-xs sm:text-sm focus:border-gold-500 focus:outline-none"
                             min={0}
                             max={selectedPlayerData.money}
                           />
@@ -429,7 +446,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                                   onClick={() => handleToggleRequestingProperty(propId)}
                                   className={`p-2.5 rounded-lg border text-left text-[11px] transition-all flex flex-col justify-between ${
                                     requestingProperties.includes(propId)
-                                      ? 'border-accent-500 bg-accent-500/10'
+                                      ? 'border-gold-500 bg-accent-500/10'
                                       : 'border-white/10 bg-surface/30 hover:border-white/20'
                                   }`}
                                 >
@@ -595,13 +612,13 @@ export const TradeNotification = ({ trade, onAccept, onReject, onCounter }: Trad
 
   return (
     <motion.div
-      className="fixed bottom-24 right-4 z-40 w-72 sm:w-80 max-w-[calc(100vw-2rem)]"
+      className="fixed bottom-24 right-2 sm:right-4 z-40 w-[calc(100vw-1rem)] sm:w-80 max-w-80"
       initial={{ x: 320, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: 320, opacity: 0 }}
       transition={{ type: "spring", damping: 25 }}
     >
-      <div className="glass-panel-dark rounded-xl border border-accent-500/30 p-4"
+      <div className="panel-dark rounded-xl border border-gold-500/30 p-4"
         style={{
           background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 20, 60, 0.95) 100%)',
           boxShadow: '0 8px 32px rgba(168, 85, 247, 0.2)'
@@ -641,7 +658,7 @@ export const TradeNotification = ({ trade, onAccept, onReject, onCounter }: Trad
           {trade.requesting_get_out_of_jail_cards > 0 && (
             <p>Wants Jail Cards: <span className="text-accent-400 font-bold">{trade.requesting_get_out_of_jail_cards}</span></p>
           )}
-          <div className="h-px bg-white/10 my-1 pt-1.5 flex justify-between font-bold">
+          <div className="h-px bg-white/10 my-1 pt-1.5 flex flex-col sm:flex-row sm:justify-between font-bold gap-0.5">
             <span className="text-success-400">Total Offer: {formatMoney(totalOffer)}</span>
             <span className="text-accent-400">Total Request: {formatMoney(totalRequest)}</span>
           </div>

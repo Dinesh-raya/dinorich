@@ -88,7 +88,7 @@ export const CardDrawModal = () => {
           {/* Card content */}
           <div className="p-4 text-center">
             <p className="text-text-main text-sm mb-3 leading-relaxed">
-              {card.text}
+              {card?.text ?? ''}
             </p>
 
             {effectText && (
@@ -97,7 +97,7 @@ export const CardDrawModal = () => {
                   effectText.startsWith('+') ? 'bg-success-500/20 text-success-400' :
                   effectText.startsWith('-') ? 'bg-danger-500/20 text-danger-400' :
                   effectText.includes('Jail') ? 'bg-danger-500/20 text-danger-400' :
-                  'bg-primary-500/20 text-primary-400'
+                  'bg-gold-500/20 text-gold-500'
                 }`}
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}

@@ -65,6 +65,7 @@ async def tick_room_turn_and_bot(room_code: str, tick_count: int, bot_brains: di
                                 turn.phase = TurnPhase.ACTION
                                 turn.can_end_turn = True
                                 turn.time_remaining = min(turn.time_remaining, 5)
+                                turn_manager.clear_buy_timer(room_code)
                                 game.bump_version()
                             else:
                                 # Start auction instead
@@ -74,6 +75,7 @@ async def tick_room_turn_and_bot(room_code: str, tick_count: int, bot_brains: di
                                 turn.phase = TurnPhase.AUCTION
                                 turn.can_roll = False
                                 turn.can_end_turn = False
+                                turn_manager.clear_buy_timer(room_code)
                                 game.bump_version()
 
                 # Bot: build houses in ACTION phase
