@@ -30,7 +30,7 @@ A real-time multiplayer Monopoly-inspired board game set across the Indian subco
 - **40-city Indian board** — from Guwahati to Delhi, every tile is a real Indian metro or landmark
 - **Deep mechanics** — house/hotel building, mortgage banking, timed auctions, player trading, jail escapes, tax strategies
 - **Cyberpunk soul** — neon cyan on obsidian black, glass panels, glow pulses, Framer Motion fluidity
-- **Production-ready** — SQLite persistence, reconnect tokens, Docker, 158 backend tests
+- **Production-ready** — SQLite persistence, reconnect tokens, Docker, 238 backend tests
 
 ---
 
@@ -43,9 +43,9 @@ A real-time multiplayer Monopoly-inspired board game set across the Indian subco
 | House & Hotel building | ✅ | 4 houses → 1 hotel, even-build rule enforced |
 | Auction system | ✅ | 9-second timed bidding rounds |
 | Player trading | ✅ | Money, properties, Get Out of Jail cards |
-| Jail mechanics | ✅ | Doubles escape, Rs 5K fine, max 3 turns |
+| Jail mechanics | ✅ | Doubles escape, ₹500 fine, max 3 turns |
 | Mortgage system | ✅ | 50% loan, 10% interest to unmortgage |
-| Tax system | ✅ | Income Tax (Rs 200K), Luxury Tax (Rs 100K) |
+| Tax system | ✅ | Income Tax (₹2,400 / 10%), Luxury Tax (₹1,500) |
 | Card decks | ✅ | 20 Treasury + 20 Surprise cards |
 | Airport & Utility rent | ✅ | Scaling rent formulas |
 | Bankruptcy | ✅ | Asset transfer or return to bank |
@@ -96,7 +96,7 @@ A real-time multiplayer Monopoly-inspired board game set across the Indian subco
 ├────────────┬────────────┬──────────────┬─────────────────┤
 │  Backend   │  Frontend  │  Database    │  Infra          │
 ├────────────┼────────────┼──────────────┼─────────────────┤
-│ Python 3.11│ React 18   │ SQLite (WAL) │ Docker          │
+│ Python 3.13│ React 18   │ SQLite (WAL) │ Docker          │
 │ FastAPI    │ TypeScript │              │ Docker Compose  │
 │ Socket.IO  │ Vite       │              │                 │
 │ Pydantic   │ Tailwind   │              │                 │
@@ -116,14 +116,14 @@ A real-time multiplayer Monopoly-inspired board game set across the Indian subco
 ╔════════════╦══════════════════════════╦═════════╦═════════╗
 ║   Group    ║  Properties              ║ Price   ║ Rent    ║
 ╠════════════╬══════════════════════════╬═════════╬═════════╣
-║ 🟤 Brown   ║ Guwahati, Goa            ║ 60K     ║ 2-4K    ║
-║ 🔵 Lt Blue ║ Ahmedabad, Pune, Hyderabad║ 100-120K║ 6-8K    ║
-║ 🩷 Pink    ║ Jaipur, Chandigarh, Luck. ║ 140-160K║ 10-12K  ║
-║ 🟠 Orange  ║ Kochi, Trivandrum, Chen.  ║ 180-200K║ 14-16K  ║
-║ 🔴 Red     ║ Surat, Indore, Bhopal     ║ 220-240K║ 18-20K  ║
-║ 🟡 Yellow  ║ Kolkata, Patna, Bengaluru ║ 260-280K║ 22-24K  ║
-║ 🟢 Green   ║ Noida, Gurugram, Agra     ║ 300-320K║ 26-28K  ║
-║ 🔵 Dk Blue ║ Mumbai, Delhi             ║ 350-400K║ 35-50K  ║
+║ 🟤 Brown   ║ Guwahati, Goa            ║ ₹600    ║ ₹20-40  ║
+║ 🔵 Lt Blue ║ Ahmedabad, Pune, Hyderabad║ ₹1,000-1,200║ ₹60-80║
+║ 🩷 Pink    ║ Jaipur, Chandigarh, Luck. ║ ₹1,400-1,600║ ₹100-120║
+║ 🟠 Orange  ║ Kochi, Trivandrum, Chen.  ║ ₹1,800-2,000║ ₹140-160║
+║ 🔴 Red     ║ Surat, Indore, Bhopal     ║ ₹2,200-2,400║ ₹180-200║
+║ 🟡 Yellow  ║ Kolkata, Patna, Bengaluru ║ ₹2,600-2,800║ ₹220-240║
+║ 🟢 Green   ║ Noida, Gurugram, Agra     ║ ₹3,000-3,200║ ₹260-280║
+║ 🔵 Dk Blue ║ Mumbai, Delhi             ║ ₹3,500-4,000║ ₹350-500║
 ╚════════════╩══════════════════════════╩═════════╩═════════╝
 ```
 
@@ -131,36 +131,37 @@ A real-time multiplayer Monopoly-inspired board game set across the Indian subco
 
 | Tile | Pos | Effect |
 |------|:---:|--------|
-| 🏁 GO | 0 | Collect Rs 20,000 on passing |
+| 🏁 GO | 0 | Collect ₹1,500 on passing |
 | 🚁 Delhi Airport | 5 | Airport — rent scales with airports owned |
-| ⚡ NTPC Power | 12 | Utility — rent = dice × 4K (or × 10K for both) |
+| ⚡ NTPC Power | 12 | Utility — rent = dice² × 5 (or × 10 for both) |
 | 🚁 Mumbai Airport | 15 | Airport |
 | 🅿️ Free Parking | 20 | Tax pool accumulates here (optional) |
 | 🚁 Chennai Airport | 25 | Airport |
 | 💧 Jal Jeevan Water | 28 | Utility |
 | 🚔 Go To Jail | 30 | Direct to jail, do not pass GO |
 | 🚁 Kolkata Airport | 35 | Airport |
-| 💰 Luxury Tax | 38 | Pay Rs 100,000 |
+| 💰 Luxury Tax | 38 | Pay ₹1,500 |
 | 🏛️ Delhi | 39 | Most expensive property |
 
 ### House Prices
 
 | Color | Per House |
 |-------|:---------:|
-| Brown / Light Blue | Rs 50,000 |
-| Pink / Orange | Rs 100,000 |
-| Red / Yellow | Rs 150,000 |
-| Green / Dark Blue | Rs 200,000 |
+| Brown | ₹500 |
+| Light Blue | ₹600 |
+| Pink / Orange | ₹1,000 |
+| Red / Yellow | ₹1,500 |
+| Green / Dark Blue | ₹2,000 |
 
 ---
 
 ## 🃏 Card Decks
 
 ### Treasury Cards (20)
-Includes classics reimagined: *"Bank error in your favor — Collect Rs 20,000"*, *"Advance to Bengaluru"*, *"Pay hospital fees of Rs 10,000"*, *"It's your birthday — Collect Rs 2,000 from each player"*, plus a **Get Out of Jail Free** card.
+Includes classics reimagined: *"Bank error in your favor — Collect ₹200"*, *"Advance to Bengaluru"*, *"Pay hospital fees of ₹100"*, *"It's your birthday — Collect ₹20 from each player"*, plus a **Get Out of Jail Free** card.
 
 ### Surprise Cards (20)
-*"Go back 3 spaces"*, *"Advance to Delhi"*, *"Speeding fine — Pay Rs 1,500"*, *"Your building loan matures — Collect Rs 15,000"*, *"Go back to Goa"*, plus a **Get Out of Jail Free** card.
+*"Go back 3 spaces"*, *"Advance to Delhi"*, *"Speeding fine — Pay ₹15"*, *"Your building loan matures — Collect ₹150"*, *"Go back to Goa"*, plus a **Get Out of Jail Free** card.
 
 Both decks use smart recycling: non-GOOJF cards return to the bottom of the deck; GOOJF cards are held by the player until used, then reshuffled back.
 
@@ -185,16 +186,16 @@ ROLL ──► ACTION ──► BUY ──► AUCTION ──► DEBT ──► E
 ### Airport Rent Formula
 | Airports Owned | Rent |
 |:--------------:|:----:|
-| 1 | Rs 25,000 |
-| 2 | Rs 50,000 |
-| 3 | Rs 100,000 |
-| 4 | Rs 200,000 |
+| 1 | ₹250 |
+| 2 | ₹500 |
+| 3 | ₹1,000 |
+| 4 | ₹2,000 |
 
 ### Utility Rent Formula
 | Utilities Owned | Rent |
 |:---------------:|:----:|
-| 1 | Dice total × Rs 4,000 |
-| 2 | Dice total × Rs 10,000 |
+| 1 (NTPC) | dice² × ₹5 |
+| 2 (both) | dice² × ₹10 (NTPC), dice×60+₹40×alive (Water) |
 
 ### Mortgage Rules
 - Loan = **50%** of purchase price
@@ -253,14 +254,14 @@ backend/
 ├── schemas/                  # Pydantic models
 ├── services/                 # Rate limiter, session manager
 ├── utils/                    # HMAC, code gen, name gen
-└── tests/                    # 10 test files, 158 tests
+└── tests/                    # 11 test files, 238 tests
 ```
 
 ### Frontend Module Map
 
 ```
 frontend/
-├── components/               # 12 React components
+├── components/               # 14 React components
 │   ├── Board.tsx             # 11×11 grid, tiles, tokens, log
 │   ├── DiceAnim.tsx          # 3D dice animation
 │   ├── TokenVisualizer.tsx   # smooth position tweening
@@ -274,7 +275,7 @@ frontend/
 │   ├── CardDrawModal.tsx     # card reveal animation
 │   └── Toast.tsx             # notification system
 │
-├── stores/gameStore.ts       # Zustand: 17 listeners, 23 actions
+├── stores/gameStore.ts       # Zustand: 9 slices, 15+ socket listeners
 ├── services/socket.ts        # Socket.IO client + LAN detection
 ├── utils/                    # audio, formatting, token movement
 ├── animations/               # 30+ Framer Motion presets
@@ -359,10 +360,10 @@ docker compose up --build
 ## 🧪 Testing
 
 ```bash
-# Backend — 158 tests
+# Backend — 238 tests
 cd backend && python -m pytest tests/ -v
 
-# Frontend — 45 tests
+# Frontend — 78 tests
 cd frontend && npm run test
 
 # TypeScript
@@ -408,7 +409,7 @@ dino-wolf-BT-v2-organized/
 │   ├── sockets/      # Socket.IO event handlers
 │   ├── persistence/  # SQLite save/load
 │   ├── schemas/      # Pydantic models
-│   ├── tests/        # 158 pytest tests
+│   ├── tests/        # 238 pytest tests
 │   └── main.py       # ASGI entry point
 │
 ├── frontend/         # React + TypeScript + Vite
@@ -446,7 +447,7 @@ dino-wolf-BT-v2-organized/
 | `game:start` | — | Host starts game |
 | `game:dice_roll` | — | Current player rolls |
 | `game:end_turn` | — | End current turn |
-| `game:pay_jail_fine` | — | Pay Rs 5K to leave jail |
+| `game:pay_jail_fine` | — | Pay ₹500 to leave jail |
 | `game:use_jail_card` | — | Use GOOJF card |
 | `game:pay_tax` | `{use_percentage}` | Pay pending tax |
 | `game:declare_bankruptcy` | — | Declare bankruptcy |
@@ -493,7 +494,7 @@ dino-wolf-BT-v2-organized/
 
 | Setting | Default | Range |
 |---------|:-------:|:-----:|
-| Starting cash | Rs 150,000 | 50K – 1M |
+| Starting cash | ₹15,000 | ₹5,000 – ₹100,000 |
 | Max players | 6 | 1 – 6 |
 | Turn timer | 60s | 15 – 180 |
 | Auction timer | 9s | — |

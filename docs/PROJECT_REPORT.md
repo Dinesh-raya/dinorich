@@ -1,8 +1,8 @@
 # 🎲 DINO-RICHUP: PAN-INDIA EDITION — Project Report
 
-> **Version:** 0.0.0  
-> **Last updated:** 2026-05-23  
-> **Stack:** FastAPI + Python 3.11 / React 18 + Vite + TypeScript  
+> **Version:** 3.0.0  
+> **Last updated:** 2026-05-26  
+> **Stack:** FastAPI + Python 3.13 / React 18 + Vite + TypeScript  
 > **Real-time:** Socket.IO  
 > **Database:** SQLite  
 > **Deployment:** Docker (single container)  
@@ -52,7 +52,7 @@ A **multiplayer property trading board game** inspired by Monopoly, themed acros
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| Backend | Python 3.11, FastAPI, Uvicorn | HTTP API + WebSocket server |
+| Backend | Python 3.13, FastAPI, Uvicorn | HTTP API + WebSocket server |
 | Real-time | python-socketio 5.11 | Bidirectional socket events |
 | Data | Pydantic 2.11 | Schema validation, serialization |
 | Storage | SQLite (built-in) | Game state persistence |
@@ -412,11 +412,11 @@ The `shared/` directory contains configuration consumed by both backend and fron
 
 | Tile Type | Count | Examples |
 |-----------|-------|---------|
-| Property | 22 | Guwahati (₹60k) → Delhi (₹400k) |
-| Airport | 4 | Delhi Airport (₹200k each) |
-| Utility | 2 | NTPC Power, Jal Jeevan Water (₹150k each) |
+| Property | 22 | Guwahati (₹600) → Delhi (₹4,000) |
+| Airport | 4 | Delhi Airport (₹2,000 each) |
+| Utility | 2 | NTPC Power, Jal Jeevan Water (₹1,500 each) |
 | Corner | 4 | GO, Jail, Free Parking, Go To Jail |
-| Tax | 2 | Income Tax (₹200k), Luxury Tax (₹100k) |
+| Tax | 2 | Income Tax (₹2,400), Luxury Tax (₹1,500) |
 | Card | 6 | 3 Treasury + 3 Surprise |
 
 Property color groups: brown (2), light_blue (3), pink (3), orange (3), red (3), yellow (3), green (3), dark_blue (2).
@@ -442,7 +442,7 @@ Room Created (WAITING)
   ▼
 Game Starts (PLAYING)
   │  Board initialized, cards shuffled, turn order randomized
-  │  Each player gets ₹5,00,000 starting cash
+  │  Each player gets ₹15,000 starting cash
   ▼
 Turn Loop:
   │  ROLL phase → player clicks "Roll Dice"
@@ -454,7 +454,7 @@ Turn Loop:
   │    ├── Land on tax → Pay tax (flat or 10%)
   │    ├── Land on card → Draw Treasury or Surprise
   │    ├── Land on "Go To Jail" → Send to jail
-  │    ├── Land on GO → Collect ₹50,000 salary
+  │    ├── Land on GO → Collect ₹1,500 salary
   │    └── Land on Free Parking → Collect jackpot (if enabled)
   │  END phase → click "End Turn"
   ▼
@@ -464,26 +464,26 @@ Bankruptcy → Player eliminated, properties returned to bank/creditor
 Last player standing → Game Over
 ```
 
-### Starting Cash: ₹5,00,000
+### Starting Cash: ₹15,000
 
-Updated from ₹1,50,000 to fix economy balance. Comparison:
-- Cheapest property (Guwahati/Goa): ₹60,000 (12% of starting cash)
-- Median property: ₹1,80,000 (36%)
-- Most expensive (Delhi): ₹4,00,000 (80%)
-- Player can buy 2-3 mid-range properties on first circuit
+÷100 rebalance applied for clean Indian numbers. Comparison:
+- Cheapest property (Guwahati/Goa): ₹600 (4% of starting cash)
+- Median property: ₹1,800 (12%)
+- Most expensive (Delhi): ₹4,000 (27%)
+- Player can buy 8-10 properties on first circuit
 
 ### Rent Calculation
 
 - **Properties**: Base rent × 2 if owner has monopoly and `double_rent_enabled`
 - **Houses**: 1st rent tier through hotel (5th tier) multiplier
-- **Airports**: ₹25,000 × 2^(owned_airports - 1) — caps at ₹200k for 4 airports
-- **Utilities**: ₹4,000 × dice total (1 owned) or ₹10,000 × dice total (2 owned)
+- **Airports**: ₹250 × 2^(owned_airports - 1) — caps at ₹2,000 for 4 airports
+- **Utilities**: NTPC = dice²×5 (1 owned) or dice²×10 (2 owned); Water = dice×30+20×alive (1) or dice×60+40×alive (2)
 
 ### Building Rules
 
 - Must own all properties in a color group (monopoly)
 - Even-building: max 1 house difference between properties in same color
-- House prices by color: ₹50k (brown/light_blue) → ₹200k (green/dark_blue)
+- House prices by color: ₹500 (brown/light_blue) → ₹2,000 (green/dark_blue)
 - Hotel = 5× house price (replaces 4 houses)
 - Bank has 32 houses and 12 hotels total
 
@@ -491,13 +491,13 @@ Updated from ₹1,50,000 to fix economy balance. Comparison:
 
 | Tax | Amount | Alternative |
 |-----|--------|-------------|
-| Income Tax (tile 4) | ₹2,00,000 flat | 10% of total worth |
-| Luxury Tax (tile 38) | ₹1,00,000 flat | — |
+| Income Tax (tile 4) | ₹2,400 flat | 10% of total worth |
+| Luxury Tax (tile 38) | ₹1,500 flat | — |
 
 ### Jail Rules
 
 - Entry: landing on "Go To Jail" or rolling 3 doubles in a row
-- Exit options: pay ₹5,000 fine, use Get Out of Jail Free card, or roll doubles (up to 3 turns)
+- Exit options: pay ₹500 fine, use Get Out of Jail Free card, or roll doubles (up to 3 turns)
 - Jail fine goes to Free Parking pool if `free_parking_jackpot` is enabled
 
 ### Auction Rules
@@ -695,9 +695,9 @@ CREATE INDEX idx_sessions_reconnect ON sessions(reconnect_token);
 | `test_room_manager.py` | 17 | Room CRUD, join, leave, kick |
 | `test_trade_manager.py` | 25 | Trade create, accept, reject, timeout |
 | `test_turn_manager.py` | 24 | Turn flow, jail, tax, bankruptcy |
-| **Backend total** | **221** (219 pass + 2 skip) | |
-| **Frontend total** | **45** | Format, store, smoke tests |
-| **Grand total** | **266 tests** | |
+| **Backend total** | **238** (236 pass + 2 skip) | |
+| **Frontend total** | **78** | Format, store, component tests |
+| **Grand total** | **316 tests** | |
 
 ### Running Tests
 
@@ -768,9 +768,9 @@ jobs:
   backend:
     runs-on: ubuntu-latest
     steps:
-      - Python 3.11 setup
+      - Python 3.13 setup
       - pip install -r requirements.txt
-      - pytest -q          # 219 tests
+      - pytest -q          # 238 tests
 
   frontend:
     runs-on: ubuntu-latest
@@ -779,7 +779,7 @@ jobs:
       - npm ci
       - npm run typecheck   # tsc --noEmit
       - npm run build       # codegen → tsc → vite build
-      - npm test            # vitest run (45 tests)
+      - npm test            # vitest run (78 tests)
 ```
 
 Triggers: `push` and `pull_request` on all branches.
@@ -798,7 +798,7 @@ Triggers: `push` and `pull_request` on all branches.
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.13+
 - Node.js 18+
 - npm
 
@@ -916,10 +916,10 @@ docker compose up --build
 |----------|-------|-------------|
 | `MIN_PLAYERS` | 1 | Minimum players to start |
 | `MAX_PLAYERS` | 6 | Maximum players per room |
-| `INITIAL_BALANCE` | 500000 | Starting cash per player |
+| `INITIAL_BALANCE` | 15000 | Starting cash per player |
 | `BOARD_SIZE` | 40 | Number of board tiles |
-| `GO_REWARD` | 50000 | Salary for passing GO |
-| `JAIL_FINE` | 5000 | Cost to leave jail |
+| `GO_REWARD` | 1500 | Salary for passing GO |
+| `JAIL_FINE` | 500 | Cost to leave jail |
 | `MAX_JAIL_TURNS` | 3 | Max turns in jail |
 | `MAX_DOUBLES` | 3 | Third doubles = jail |
 | `DEFAULT_TURN_TIMER` | 60s | Seconds per turn |
@@ -937,14 +937,14 @@ docker compose up --build
 
 | Color | Per House | Hotel (5×) |
 |-------|-----------|------------|
-| Brown | ₹50,000 | ₹2,50,000 |
-| Light Blue | ₹50,000 | ₹2,50,000 |
-| Pink | ₹1,00,000 | ₹5,00,000 |
-| Orange | ₹1,00,000 | ₹5,00,000 |
-| Red | ₹1,50,000 | ₹7,50,000 |
-| Yellow | ₹1,50,000 | ₹7,50,000 |
-| Green | ₹2,00,000 | ₹10,00,000 |
-| Dark Blue | ₹2,00,000 | ₹10,00,000 |
+| Brown | ₹500 | ₹2,500 |
+| Light Blue | ₹600 | ₹3,000 |
+| Pink | ₹1,000 | ₹5,000 |
+| Orange | ₹1,000 | ₹5,000 |
+| Red | ₹1,500 | ₹7,500 |
+| Yellow | ₹1,500 | ₹7,500 |
+| Green | ₹2,000 | ₹10,000 |
+| Dark Blue | ₹2,000 | ₹10,000 |
 
 ### Bank Supply
 
@@ -958,7 +958,7 @@ docker compose up --build
 | Field | Type | Default | Range |
 |-------|------|---------|-------|
 | `max_players` | int | 6 | 1–6 |
-| `starting_cash` | int | 500000 | 50000–1000000 |
+| `starting_cash` | int | 15000 | 5000–100000 |
 | `auction_enabled` | bool | true | — |
 | `double_rent_enabled` | bool | true | — |
 | `mortgage_enabled` | bool | true | — |
@@ -987,7 +987,7 @@ docker compose up --build
 
 5. **Session persistence** — Sessions persisted to SQLite `sessions` table, survive server restarts. **Status:** Done.
 
-6. **Auth middleware** — `require_session(sid, handler_name)` helper available. Should be adopted by remaining socket handlers. **Status:** Helper done, adoption ongoing.
+6. **Auth middleware** — `require_session(sid, handler_name)` wired into all 26 socket handlers across 5 files. **Status:** Done.
 
 ### Lower Priority / Nice-to-Have
 

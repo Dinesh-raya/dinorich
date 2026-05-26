@@ -4,9 +4,9 @@
 Indian Monopoly-style multiplayer board game. Backend in Python (FastAPI + python-socketio), frontend in React (Vite + zustand + Tailwind). Runs fully offline on LAN.
 
 ## Stack
-- Backend: Python 3.11, FastAPI, python-socketio, pydantic, uvicorn
+- Backend: Python 3.13, FastAPI, python-socketio, pydantic, uvicorn
 - Frontend: React 18, Vite, socket.io-client, zustand, TailwindCSS, framer-motion
-- DB: None (in-memory game state)
+- DB: SQLite (WAL mode, game state persistence)
 - CI: GitHub Actions (pytest backend, tsc + vitest frontend)
 
 ## Economy (÷100 Rebalance Applied)
@@ -14,7 +14,7 @@ Indian Monopoly-style multiplayer board game. Backend in Python (FastAPI + pytho
 - Property prices: ₹600 (brown) → ₹4,000 (dark blue)
 - Income Tax: flat ₹2,400 / 10% | Luxury Tax: flat ₹1,500
 - House prices: ₹500 (brown) / ₹600 (light blue) → ₹2,000 (green/dark blue)
-- Airport rent: ₹250 × 2^(owned-1) | Utility rent: die × ₹40 (1) / die × ₹100 (2)
+- Airport rent: ₹250 × 2^(owned-1) | Utility rent: NTPC=dice²×5/10, Water=dice×30+20×alive/60+40×alive
 - See `docs/GAME_DATA_proposed.md` for full reference
 
 ## Key Files
@@ -38,6 +38,8 @@ Indian Monopoly-style multiplayer board game. Backend in Python (FastAPI + pytho
 - Full CI: `cd frontend && npm run build` (runs codegen + tsc + vite build)
 
 ## Branch History
-- `feature/economy-rebalance` — ÷100 scale rebalance (active)
-- `feature/ui-polish` — CSS, hover effects, ownership borders
-- `feature/center-area` — activity feed, turn status panel
+- `v2` — multiplayer reconnect, tax fix, auction/trade redesign, code quality refactor (merged)
+- `v3` — stable player ID, per-room locks, trade counter-offers, rematch flow, settings lock (current)
+- `feature/economy-rebalance` — ÷100 scale rebalance (merged)
+- `feature/ui-polish` — CSS, hover effects, ownership borders (merged)
+- `feature/center-area` — activity feed, turn status panel (merged)
