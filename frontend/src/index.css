@@ -23,20 +23,43 @@
 
   html {
     @apply scroll-smooth;
+    touch-action: manipulation;
+    overscroll-behavior: none;
   }
 
   body {
     @apply bg-background text-text-main font-sans antialiased;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
   }
 
-  @supports (padding: env(safe-area-inset-bottom)) {
-    .safe-bottom {
-      padding-bottom: env(safe-area-inset-bottom);
-    }
+  /* Safe area support for notched phones */
+  .safe-top { padding-top: env(safe-area-inset-top); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .safe-left { padding-left: env(safe-area-inset-left); }
+  .safe-right { padding-right: env(safe-area-inset-right); }
+  .safe-all {
+    padding-top: env(safe-area-inset-top);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
   }
 
   .board-container {
     touch-action: manipulation;
+  }
+
+  /* Prevent text selection on game elements */
+  .game-board, .game-board * {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* Touch-optimized scrolling */
+  .scroll-touch {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 
   ::-webkit-scrollbar {
@@ -392,3 +415,77 @@
 .feed-item-enter {
   animation: feedSlideIn 0.3s ease-out;
 }
+
+/* ====== Mobile Viewport & Touch Utilities ====== */
+
+/* Mobile viewport units (dvh for dynamic viewport height) */
+.min-h-screen-mobile {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Fix mobile virtual keyboard pushing content up */
+@supports (height: 100dvh) {
+  .min-h-screen {
+    min-height: 100dvh;
+  }
+}
+
+/* Full-height layout that accounts for mobile browser chrome */
+.h-screen-mobile {
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* Prevent iOS rubber-band overscroll on game screens */
+.game-container {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* Mobile input styling — 16px prevents iOS zoom on focus */
+input[type="text"],
+input[type="number"] {
+  font-size: 16px;
+}
+
+/* Touch ripple effect */
+@keyframes touchRipple {
+  from { transform: scale(0); opacity: 0.4; }
+  to { transform: scale(1); opacity: 0; }
+}
+.touch-ripple::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(212, 164, 55, 0.3), transparent 70%);
+  border-radius: inherit;
+  transform: scale(0);
+  opacity: 0;
+  pointer-events: none;
+}
+.touch-ripple:active::after {
+  animation: touchRipple 0.4s ease-out;
+}
+
+/* ====== Mobile Typography Utilities ====== */
+
+/* Board tile text sizes — tighter on small screens */
+@media (max-width: 767px) {
+  .text-board-tile { font-size: 7px; line-height: 1.1; }
+  .text-board-price { font-size: 6px; line-height: 1; }
+  .text-board-icon { font-size: 10px; }
+
+  /* Larger touch-friendly text for important UI */
+  .text-turn-label { font-size: 11px; letter-spacing: 0.1em; }
+  .text-money-display { font-size: 18px; font-weight: 700; }
+  .text-button-primary { font-size: 14px; font-weight: 700; letter-spacing: 0.05em; }
+}
+
+/* Responsive font scaling — viewport-aware min/max clamping */
+.text-responsive-xs { font-size: clamp(0.625rem, 1.5vw, 0.75rem); }
+.text-responsive-sm { font-size: clamp(0.75rem, 2vw, 0.875rem); }
+.text-responsive-base { font-size: clamp(0.875rem, 2.5vw, 1rem); }
+.text-responsive-lg { font-size: clamp(1rem, 3vw, 1.25rem); }
+.text-responsive-xl { font-size: clamp(1.25rem, 4vw, 1.5rem); }

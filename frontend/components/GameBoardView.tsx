@@ -80,7 +80,7 @@ export function GameBoardView({
   return (
     <div className="min-h-screen flex flex-col bg-background overflow-x-hidden">
       {/* Mobile Top Bar */}
-      <div className="lg:hidden flex items-center justify-between p-3 border-b border-white/10 bg-surface/50 backdrop-blur-sm">
+      <div className="lg:hidden flex items-center justify-between p-2 border-b border-white/10 bg-surface/50 backdrop-blur-sm">
         <button
           onClick={() => setShowMobileMenu(!showMobileMenu)}
           className="btn-gold-ghost p-2 rounded-lg min-h-[44px] min-w-[44px] active:scale-95 transition-transform"
@@ -88,12 +88,24 @@ export function GameBoardView({
           <Menu className="w-5 h-5" />
         </button>
 
-        <h1 className="font-cyber text-lg font-bold text-gold-500">DINO-RICHUP</h1>
+        <div className="flex flex-col items-center">
+          <h1 className="font-cyber text-sm font-bold text-gold-500 leading-tight">DINO-RICHUP</h1>
+          <span className="text-[10px] text-text-muted/60 font-cyber tracking-wider hidden sm:block">PAN-INDIA EDITION</span>
+        </div>
 
         <div className="flex items-center gap-2">
-          <div className="text-xs">
-            <span className="text-text-muted">Turn:</span>
-            <span className="text-gold-500 font-bold ml-1">{activePlayerName}</span>
+          <div className="flex flex-col items-end">
+            <span className="text-[10px] text-text-muted">Turn: <span className="text-gold-500 font-bold">{activePlayerName}</span></span>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(room?.room_id || '');
+                showToast('Room code copied!', 'success');
+              }}
+              className="text-[10px] text-text-muted/70 hover:text-gold-500 transition-colors active:scale-95"
+              title="Tap to copy room code"
+            >
+              Room: <span className="font-bold text-gold-500/70">{room?.room_id}</span>
+            </button>
           </div>
         </div>
       </div>
@@ -231,7 +243,14 @@ export function GameBoardView({
               className="absolute top-0 left-0 h-full w-72 max-w-[85vw] bg-surface border-r border-white/10 shadow-lg"
               initial={{ x: -320 }}
               animate={{ x: 0 }}
+              exit={{ x: -320 }}
               transition={{ type: "spring", damping: 25 }}
+              drag="x"
+              dragConstraints={{ left: -288, right: 0 }}
+              dragElastic={0.1}
+              onDragEnd={(_e, info) => {
+                if (info.offset.x < -100) setShowMobileMenu(false);
+              }}
             >
               <div className="p-6">
                 <div className="flex justify-between items-center mb-6">

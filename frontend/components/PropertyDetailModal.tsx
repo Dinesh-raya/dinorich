@@ -69,6 +69,12 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          drag="y"
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={0.2}
+          onDragEnd={(_e, info) => {
+            if (info.offset.y > 100) onClose();
+          }}
         >
           {/* Header */}
           <div

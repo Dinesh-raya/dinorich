@@ -245,6 +245,14 @@ class SoundManager {
 
 export const soundManager = new SoundManager();
 
+// Haptic feedback for mobile devices
+export function hapticFeedback(type: 'light' | 'medium' | 'heavy' = 'light') {
+  if ('vibrate' in navigator) {
+    const patterns: Record<string, number[]> = { light: [10], medium: [20], heavy: [30] };
+    navigator.vibrate(patterns[type]);
+  }
+}
+
 // Hook for React components
 export const useSound = () => {
   return {

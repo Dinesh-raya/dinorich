@@ -87,6 +87,17 @@ export const Board = () => {
   const [landingTile, setLandingTile] = useState<number | null>(null);
   const [boardZoom, setBoardZoom] = useState(1);
   const [isShaking, setIsShaking] = useState(false);
+
+  // Compute mobile cell size dynamically so board fits any phone width
+  const [mobileCellSize, setMobileCellSize] = useState(() =>
+    typeof window !== 'undefined' ? Math.floor((window.innerWidth - 16) / 11) : 44
+  );
+  useEffect(() => {
+    if (!isMobile) return;
+    const recalc = () => setMobileCellSize(Math.floor((window.innerWidth - 16) / 11));
+    window.addEventListener('resize', recalc);
+    return () => window.removeEventListener('resize', recalc);
+  }, [isMobile]);
   const shakenPlayers = useRef(new Set<string>());
   const viewportRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef(game);
@@ -226,12 +237,11 @@ export const Board = () => {
       <motion.div
         className="relative grid border-2 border-gold-500/30 shadow-2xl rounded-2xl overflow-hidden"
         style={{
-          gridTemplateColumns: 'repeat(11, minmax(44px, 1fr))',
-          gridTemplateRows: 'repeat(11, minmax(44px, 1fr))',
+          gridTemplateColumns: `repeat(11, ${isMobile ? `${mobileCellSize}px` : 'minmax(44px, 1fr)'})`,
+          gridTemplateRows: `repeat(11, ${isMobile ? `${mobileCellSize}px` : 'minmax(44px, 1fr)'})`,
           aspectRatio: '1/1',
-          width: '100%',
-          minWidth: isMobile ? '484px' : undefined,
-          maxWidth: isMobile ? '484px' : 'min(calc(100vh - 160px), calc(100vw - 16px))',
+          width: isMobile ? `${mobileCellSize * 11}px` : '100%',
+          maxWidth: isMobile ? `${mobileCellSize * 11}px` : 'min(calc(100vh - 160px), calc(100vw - 16px))',
           maxHeight: 'calc(100vh - 160px)',
           ['--board-max' as any]: 'min(calc(100vh - 160px), calc(100vw - 16px))',
           position: 'relative',
@@ -378,6 +388,7 @@ export const Board = () => {
               pos={getGridPosition(tile.id)}
               isCorner={isCorner}
               isSide={isSide}
+              isMobile={isMobile}
               ownerId={ownerId}
               houses={propState?.houses || 0}
               hotels={propState?.hotels || 0}

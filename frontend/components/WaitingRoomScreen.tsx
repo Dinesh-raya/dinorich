@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Users, Crown, Copy, LogOut, Settings, FolderOpen } from 'lucide-react';
+import { Users, Crown, Copy, LogOut, Settings, FolderOpen, Share2 } from 'lucide-react';
 import { soundManager } from '../utils/audio';
 import { showToast } from './Toast';
 import { RoomSettings } from './RoomSettings';
@@ -25,15 +25,32 @@ export function WaitingRoomScreen({
   const isHost = room.host_id === myId;
   const leaveGame = useGameStore(s => s.leaveGame);
 
+  const handleShare = async () => {
+    const shareUrl = `http://${window.location.host}`;
+    const shareData = {
+      title: 'DINO-RICHUP',
+      text: `Join my room! Code: ${room.room_id}`,
+      url: shareUrl,
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch { /* user cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(shareUrl);
+      showToast('Link copied!', 'success');
+    }
+  };
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-background">
+    <div className="flex min-h-screen-mobile flex-col items-center justify-center p-4 bg-background safe-bottom">
       <motion.div
-        className="panel-dark p-8 rounded-3xl w-full max-w-2xl border-2 border-gold-500/30 shadow-lg"
+        className="panel-dark p-6 sm:p-8 rounded-3xl w-full max-w-2xl border-2 border-gold-500/30 shadow-lg flex flex-col max-h-[calc(100dvh-2rem)]"
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
-        <div className="text-center mb-8">
+        <div className="text-center mb-6 sm:mb-8 flex-shrink-0">
           <motion.div
             className="text-5xl mb-4"
             animate={{ scale: [1, 1.05, 1] }}
@@ -54,12 +71,12 @@ export function WaitingRoomScreen({
             <p className="text-sm text-text-muted mt-3 font-cyber">Room will start when all players join</p>
           </div>
 
-          {/* Network Share Link */}
+          {/* Network Share Link + Mobile Share */}
           <div className="mt-6 panel-dark p-4 rounded-xl border border-gold-800/20 max-w-sm mx-auto">
             <p className="text-gold-500 text-sm font-bold mb-2">LAN Play</p>
             <p className="text-text-muted text-xs mb-3">Friends on same WiFi open this link, then enter room code:</p>
             <div className="flex items-center gap-2 bg-surface/50 rounded-lg p-2">
-              <code className="text-gold-500 text-sm flex-1 font-mono">
+              <code className="text-gold-500 text-sm flex-1 font-mono truncate">
                 {`http://${window.location.host}`}
               </code>
               <button
@@ -67,17 +84,26 @@ export function WaitingRoomScreen({
                   navigator.clipboard.writeText(`http://${window.location.host}`);
                   showToast('Link copied!', 'success');
                 }}
-                className="btn-gold-ghost px-3 py-1.5 rounded-lg text-xs min-h-[32px]"
+                className="btn-gold-ghost px-3 py-1.5 rounded-lg text-xs min-h-[32px] flex-shrink-0"
               >
                 <Copy className="w-4 h-4" /> Copy
               </button>
             </div>
+            {/* Mobile share button */}
+            {typeof navigator.share === 'function' && (
+              <button
+                onClick={handleShare}
+                className="btn-gold-outline w-full mt-3 py-2.5 rounded-lg text-sm min-h-[44px] flex items-center justify-center gap-2"
+              >
+                <Share2 className="w-4 h-4" /> Share Room Link
+              </button>
+            )}
             <p className="text-text-muted/50 text-[10px] mt-2">Room code: {room.room_id}</p>
           </div>
         </div>
 
-        <div className="mb-8">
-          <h3 className="text-xl font-bold text-gold-500 mb-4 flex items-center gap-2">
+        <div className="mb-6 sm:mb-8 flex-1 min-h-0 overflow-y-auto scrollbar-hide">
+          <h3 className="text-xl font-bold text-gold-500 mb-4 flex items-center gap-2 sticky top-0 bg-[#111827] py-2 z-10">
             PLAYERS ({Object.values(room.players).length}/6)
           </h3>
 
@@ -115,7 +141,8 @@ export function WaitingRoomScreen({
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4">
+        {/* Sticky bottom actions */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 flex-shrink-0 pt-4 border-t border-white/5">
           <motion.button
             onClick={() => {
               soundManager.playButtonClick();

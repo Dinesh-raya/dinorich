@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { animations } from '../animations';
-import { soundManager } from '../utils/audio';
+import { soundManager, hapticFeedback } from '../utils/audio';
 import { formatMoney } from '../utils/format';
 import { DiceAnim } from './DiceAnim';
 import { useGameStore } from '../stores/gameStore';
@@ -144,7 +144,7 @@ export const TurnPanel = ({
                   <p className="text-red-300/70 text-xs mt-1">Trade, mortgage, or sell to resolve. Or declare bankruptcy.</p>
                 </div>
                 <motion.button
-                  className="btn-gold py-2.5 px-5 text-xs md:text-sm font-bold rounded-full bg-red-600 hover:bg-red-500 border-red-500 w-full"
+                  className="btn-gold py-2.5 px-5 text-xs md:text-sm font-bold rounded-full bg-red-600 hover:bg-red-500 border-red-500 w-full active:scale-[0.97] transition-transform"
                   onClick={() => {
                     soundManager.playButtonClick();
                     useGameStore.getState().declareBankruptcy();
@@ -171,7 +171,7 @@ export const TurnPanel = ({
                 </div>
                 <div className="flex gap-2 flex-wrap justify-center">
                   <motion.button
-                    className="flex-1 py-2.5 btn-danger-action font-bold text-sm rounded-xl min-h-[44px]"
+                    className="flex-1 py-2.5 btn-danger-action font-bold text-sm rounded-xl min-h-[44px] active:scale-[0.97] transition-transform"
                     onClick={() => {
                       soundManager.playButtonClick();
                       useGameStore.getState().payJailFine();
@@ -202,7 +202,7 @@ export const TurnPanel = ({
 
             {turn.can_roll && !isRolling && !turn.in_debt && (
               <motion.button
-                className="w-full py-3 md:py-4 font-bold text-sm md:text-base rounded-xl min-h-[44px] relative overflow-hidden transition-all duration-300 flex items-center justify-center gap-2"
+                className="w-full py-3 md:py-4 font-bold text-sm md:text-base rounded-xl min-h-[44px] relative overflow-hidden transition-all duration-300 flex items-center justify-center gap-2 active:scale-[0.97]"
                 style={{
                   background: 'linear-gradient(135deg, #d4a437 0%, #b8892e 50%, #d4a437 100%)',
                   color: '#0a0e1a',
@@ -210,7 +210,7 @@ export const TurnPanel = ({
                   textShadow: '0 1px 0 rgba(255,255,255,0.1)',
                   letterSpacing: '0.1em',
                 }}
-                onClick={handleRollDice}
+                onClick={() => { hapticFeedback('medium'); handleRollDice(); }}
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 disabled={isRolling || !!pendingAction}
@@ -222,8 +222,9 @@ export const TurnPanel = ({
 
             {turn.can_end_turn && !turn.in_debt && (
               <motion.button
-                className="w-full py-2.5 btn-gold-ghost font-bold text-sm rounded-xl border border-gold-500/30 min-h-[44px]"
+                className="w-full py-2.5 btn-gold-ghost font-bold text-sm rounded-xl border border-gold-500/30 min-h-[44px] active:scale-[0.97] transition-transform"
                 onClick={() => {
+                  hapticFeedback('light');
                   soundManager.playButtonClick();
                   useGameStore.getState().endTurn();
                 }}
@@ -248,7 +249,7 @@ export const TurnPanel = ({
                 </div>
                 <div className="flex gap-2 flex-wrap justify-center">
                   <motion.button
-                    className="btn-gold-ghost py-2 px-4 text-xs md:text-sm border-danger-500/30 text-danger-400"
+                    className="btn-gold-ghost py-2 px-4 text-xs md:text-sm border-danger-500/30 text-danger-400 min-h-[44px] active:scale-[0.97] transition-transform"
                     onClick={() => {
                       soundManager.playButtonClick();
                       useGameStore.getState().payTax(false);
@@ -259,7 +260,7 @@ export const TurnPanel = ({
                     PAY ₹{turn.pending_tax.amount?.toLocaleString()}
                   </motion.button>
                   <motion.button
-                    className="btn-gold-ghost py-2 px-4 text-xs md:text-sm border-warning-500/30 text-warning-400"
+                    className="btn-gold-ghost py-2 px-4 text-xs md:text-sm border-warning-500/30 text-warning-400 min-h-[44px] active:scale-[0.97] transition-transform"
                     onClick={() => {
                       soundManager.playButtonClick();
                       useGameStore.getState().payTax(true);
@@ -281,13 +282,14 @@ export const TurnPanel = ({
                 <p className="text-text-muted text-xs md:text-sm mb-2">Buy this property?</p>
                 <div className="flex gap-2">
                   <motion.button
-                    className="flex-1 py-2.5 font-bold text-sm rounded-xl min-h-[44px] relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 py-2.5 font-bold text-sm rounded-xl min-h-[44px] relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.97] transition-transform"
                     style={{
                       background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(22, 163, 74, 0.15) 100%)',
                       border: '1px solid rgba(34, 197, 94, 0.3)',
                       color: '#86efac',
                     }}
                     onClick={() => {
+                      hapticFeedback('medium');
                       const me = game.room.players[myId!];
                       useGameStore.getState().buyProperty(me.position);
                     }}
@@ -299,7 +301,7 @@ export const TurnPanel = ({
                   </motion.button>
                   {game.room.settings?.auction_enabled !== false && (
                     <motion.button
-                      className="flex-1 py-2.5 btn-gold-ghost font-bold text-sm rounded-xl min-h-[44px] border border-gold-500/20"
+                      className="flex-1 py-2.5 btn-gold-ghost font-bold text-sm rounded-xl min-h-[44px] border border-gold-500/20 active:scale-[0.97] transition-transform"
                       onClick={() => {
                         const me = game.room.players[myId!];
                         soundManager.playAuctionBid();

@@ -22,14 +22,14 @@ export function LobbyScreen({
   joinRoom: (code: string, name: string) => void;
 }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="flex min-h-screen-mobile items-center justify-center bg-background p-4 safe-bottom">
       <motion.div
-        className="panel-dark p-8 rounded-3xl w-full max-w-md border-2 border-gold-500/30 shadow-lg"
+        className="panel-dark p-6 sm:p-8 rounded-3xl w-full max-w-md border-2 border-gold-500/30 shadow-lg"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
-        <div className="text-center mb-8">
+        <div className="text-center mb-6 sm:mb-8">
           <motion.div
             className="text-6xl mb-4"
             animate={{ y: [0, -8, 0] }}
@@ -53,11 +53,14 @@ export function LobbyScreen({
           </motion.div>
         )}
 
-        <div className="space-y-6">
+        <div className="space-y-5 sm:space-y-6">
           <div>
             <label className="block text-sm text-text-muted mb-2 font-cyber">YOUR NAME</label>
             <input
-              className="w-full bg-surface/50 border-2 border-gold-500/30 rounded-xl p-4 text-white placeholder:text-text-muted focus:border-gold-500 focus:outline-none"
+              type="text"
+              inputMode="text"
+              autoComplete="off"
+              className="w-full bg-surface/50 border-2 border-gold-500/30 rounded-xl p-4 text-white placeholder:text-text-muted focus:border-gold-500 focus:outline-none min-h-[48px]"
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="Enter your name"
@@ -69,7 +72,7 @@ export function LobbyScreen({
           </p>
 
           <motion.button
-            className="w-full btn-gold py-4 text-lg font-bold rounded-xl flex items-center justify-center gap-3 min-h-[56px]"
+            className="w-full btn-gold py-4 text-lg font-bold rounded-xl flex items-center justify-center gap-3 min-h-[56px] touch-ripple relative"
             onClick={() => {
               soundManager.playButtonClick();
               soundManager.playGameStart();
@@ -91,16 +94,20 @@ export function LobbyScreen({
             <div>
               <label className="block text-sm text-text-muted mb-2 font-cyber">ROOM CODE</label>
               <input
-                className="w-full bg-surface/50 border-2 border-gold-500/30 rounded-xl p-4 text-white placeholder:text-text-muted uppercase tracking-widest focus:border-gold-500 focus:outline-none"
+                type="text"
+                inputMode="text"
+                autoCapitalize="characters"
+                autoComplete="off"
+                maxLength={6}
+                className="w-full bg-surface/50 border-2 border-gold-500/30 rounded-xl p-4 text-white placeholder:text-text-muted uppercase tracking-widest focus:border-gold-500 focus:outline-none min-h-[48px]"
                 value={roomCode}
                 onChange={e => setRoomCode(e.target.value.toUpperCase())}
                 placeholder="ABCDEF"
-                maxLength={6}
               />
             </div>
 
             <motion.button
-              className="w-full btn-gold-outline py-4 text-lg font-bold rounded-xl flex items-center justify-center gap-3 min-h-[56px]"
+              className="w-full btn-gold-outline py-4 text-lg font-bold rounded-xl flex items-center justify-center gap-3 min-h-[56px] touch-ripple relative"
               onClick={() => {
                 soundManager.playButtonClick();
                 joinRoom(roomCode, name || getRandomName());

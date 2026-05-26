@@ -210,6 +210,12 @@ export const AuctionModal = () => {
             exit={{ scale: 0.8, y: 50, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="panel-dark p-3 sm:p-8 rounded-2xl sm:rounded-3xl w-[calc(100vw-2rem)] sm:w-full max-w-2xl max-h-[90vh] overflow-y-auto border-2 border-gold-500/30 shadow-2xl gold-glow-strong"
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={0.2}
+            onDragEnd={(_e, info) => {
+              if (info.offset.y > 100) endAuction();
+            }}
           >
             {/* Header */}
             <div className="text-center mb-6">

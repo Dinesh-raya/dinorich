@@ -124,7 +124,6 @@ export interface RoomSettings {
   turn_timer_seconds: number;  // Seconds per turn before timeout
   random_turn_order: boolean;  // Whether turn order is shuffled
   jail_strict_mode: boolean;  // Apply strict jail handling rules
-  bot_enabled: boolean;  // Auto-fill empty player slots with AI bots
   board_theme: string;  // Board theme placeholder
   mode: GameMode;  // Game mode preset (descriptive only — does not auto-override settings)
   disconnect_timeout_seconds: number;  // Seconds before disconnected player is bankrupted

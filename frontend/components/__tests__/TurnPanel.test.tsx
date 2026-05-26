@@ -22,6 +22,7 @@ vi.mock('../../utils/audio', () => ({
     playButtonClick: vi.fn(),
     playAuctionBid: vi.fn(),
   },
+  hapticFeedback: vi.fn(),
 }));
 
 // Mock format utility

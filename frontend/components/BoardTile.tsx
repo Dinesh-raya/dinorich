@@ -20,13 +20,31 @@ export interface BoardTileProps {
   ownerIcon: string;
   isLandingTile: boolean;
   isMyTile: boolean;
+  isMobile: boolean;
   onTileClick: (id: number) => void;
 }
+
+const MOBILE_TILE_ABBREVIATIONS: Record<string, string> = {
+  'Guwahati': 'GUW', 'Goa': 'GOA', 'Ahmedabad': 'AMD', 'Pune': 'PUN',
+  'Hyderabad': 'HYD', 'Jaipur': 'JAI', 'Chandigarh': 'CHD', 'Lucknow': 'LKO',
+  'Kochi': 'KOC', 'Thiruvananthapuram': 'TVM', 'Bengaluru': 'BLR',
+  'Mysuru': 'MYS', 'Delhi': 'DEL', 'Kolkata': 'KOL', 'Mumbai': 'MUM',
+  'Chennai': 'CHN', 'Visakhapatnam': 'VIZ', 'Varanasi': 'VNS',
+  'Amritsar': 'ASR', 'NTPC Power': 'NTPC', 'Delhi Airport': 'DEL✈',
+  'Mumbai Airport': 'BOM✈', 'Chennai Airport': 'MAA✈',
+  'Kolkata Airport': 'CCU✈', 'Income Tax': 'TAX', 'Luxury Tax': 'LUX',
+  'Surprise': '❓', 'Treasury': '🏛️', 'Jail': 'JAIL',
+  'Free Parking': 'PARK', 'Go to Jail': 'G2J', 'GO': 'GO',
+};
+
+const getMobileTileName = (name: string) => {
+  return MOBILE_TILE_ABBREVIATIONS[name] || name.substring(0, 3).toUpperCase();
+};
 
 export const BoardTile = memo(({
   tile, pos, isCorner, isSide, ownerId, houses, hotels,
   isMortgaged, hasMonopolyOnTile, tileColor, tileIcon,
-  playerColor, playerName, ownerIcon, isLandingTile, isMyTile, onTileClick
+  playerColor, playerName, ownerIcon, isLandingTile, isMyTile, isMobile, onTileClick
 }: BoardTileProps) => {
   return (
     <motion.div
@@ -59,6 +77,7 @@ export const BoardTile = memo(({
         transition: 'all 0.2s ease'
       }}
       variants={animations.fadeIn}
+      whileTap={{ scale: 0.95, zIndex: 20 }}
       whileHover={{
         scale: 1.05,
         zIndex: 20,
@@ -105,7 +124,7 @@ export const BoardTile = memo(({
       {/* Color bar for properties */}
       {!isCorner && tile.color && (
         <div
-          className={`h-5 w-full relative ${hasMonopolyOnTile ? 'border-b-2 border-yellow-400' : 'border-b border-white/10'}`}
+          className={`${isMobile ? 'h-3' : 'h-5'} w-full relative ${hasMonopolyOnTile ? 'border-b-2 border-yellow-400' : 'border-b border-white/10'}`}
           style={{
             background: hasMonopolyOnTile
               ? `linear-gradient(90deg, ${tileColor} 0%, ${tileColor}cc 50%, ${tileColor} 100%)`
@@ -131,7 +150,7 @@ export const BoardTile = memo(({
       {/* Special type indicator */}
       {!isCorner && !tile.color && (
         <div
-          className="h-4 w-full border-b border-white/10 flex items-center justify-center"
+          className={`${isMobile ? 'h-3' : 'h-4'} w-full border-b border-white/10 flex items-center justify-center`}
           style={{ backgroundColor: tileColor }}
         >
           {tileIcon && <span className="text-xs">{tileIcon}</span>}
@@ -140,36 +159,39 @@ export const BoardTile = memo(({
 
       <div className={`flex-1 flex flex-col items-center text-center px-0.5 ${isCorner ? '' : 'justify-between py-0.5'}`}>
         {isCorner && tileIcon && (
-          <span className="text-lg md:text-2xl mb-0.5">{tileIcon}</span>
+          <span className={`${isMobile ? 'text-base' : 'text-lg md:text-2xl'} mb-0.5`}>{tileIcon}</span>
         )}
 
-        {!isCorner && tile.type === 'property' && (
+        {!isCorner && tile.type === 'property' && !isMobile && (
           <span className="text-xs md:text-sm mb-0.5">🇮🇳</span>
         )}
 
-        <span className={`font-bold leading-tight ${
-          isCorner
-            ? 'text-xs md:text-sm text-gold-500'
-            : 'text-[9px] md:text-[10px] font-medium leading-tight text-white/90 truncate mt-0.5'
-        }`}>
-          {tile.name}
-        </span>
+        {/* Tile name: full on desktop, abbreviated on mobile */}
+        {isCorner ? (
+          <span className={`${isMobile ? 'text-[8px]' : 'text-xs md:text-sm'} font-bold leading-tight text-gold-500`}>
+            {isMobile ? getMobileTileName(tile.name) : tile.name}
+          </span>
+        ) : (
+          <span className={`${isMobile ? 'text-[7px] leading-[1.1] text-white/80' : 'text-[9px] md:text-[10px] leading-tight text-white/90 truncate mt-0.5'} font-medium`}>
+            {isMobile ? getMobileTileName(tile.name) : tile.name}
+          </span>
+        )}
 
         {tile.price && (
-          <span className="text-[8px] md:text-[9px] text-gold-500/80 font-bold mt-0.5">
-            {formatMoneyShort(tile.price)}
+          <span className={`${isMobile ? 'text-[6px] leading-none' : 'text-[8px] md:text-[9px] mt-0.5'} text-gold-500/80 font-bold`}>
+            {isMobile ? `₹${tile.price}` : formatMoneyShort(tile.price)}
           </span>
         )}
 
         {/* House/Hotel indicators */}
         {(houses > 0 || hotels > 0) && (
           <motion.div
-            className="flex flex-wrap justify-center gap-0.5 mt-0.5"
+            className={`flex flex-wrap justify-center gap-0.5 ${isMobile ? '' : 'mt-0.5'}`}
             variants={animations.scaleIn}
           >
             {hotels > 0 ? (
               <div className="relative">
-                <div className="w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-sm shadow-lg"
+                <div className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3 md:w-4 md:h-4'} bg-red-500 rounded-sm shadow-lg`}
                   style={{ boxShadow: '0 0 6px rgba(239, 68, 68, 0.6)' }}
                 ></div>
               </div>
@@ -177,7 +199,7 @@ export const BoardTile = memo(({
               Array.from({ length: Math.min(houses, 4) }).map((_, i) => (
                 <div
                   key={i}
-                  className="w-2 h-2 md:w-2.5 md:h-2.5 bg-green-500 rounded-sm shadow"
+                  className={`${isMobile ? 'w-1.5 h-1.5' : 'w-2 h-2 md:w-2.5 md:h-2.5'} bg-green-500 rounded-sm shadow`}
                   style={{ boxShadow: '0 0 4px rgba(34, 197, 94, 0.5)' }}
                 ></div>
               ))
@@ -187,7 +209,7 @@ export const BoardTile = memo(({
 
         {/* Owner indicator */}
         {ownerId && ownerIcon && (
-          <div className="absolute top-0.5 right-0.5 text-[10px] z-20 drop-shadow-lg"
+          <div className={`absolute ${isMobile ? 'top-0 right-0 text-sm' : 'top-0.5 right-0.5 text-[10px]'} z-20 drop-shadow-lg`}
             title={`Owned by ${playerName}`}>
             {ownerIcon}
           </div>
@@ -196,22 +218,22 @@ export const BoardTile = memo(({
         {/* Mortgaged indicator */}
         {isMortgaged && (
           <motion.div
-            className="absolute top-0.5 left-0.5 w-3 h-3 md:w-4 md:h-4 bg-gray-700 rounded-full border border-white/50 shadow-lg z-20 flex items-center justify-center"
+            className={`absolute top-0.5 left-0.5 ${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3 md:w-4 md:h-4'} bg-gray-700 rounded-full border border-white/50 shadow-lg z-20 flex items-center justify-center`}
             title="Mortgaged"
             variants={animations.scaleIn}
           >
-            <span className="text-white text-xs font-bold">M</span>
+            <span className={`text-white ${isMobile ? 'text-[8px]' : 'text-xs'} font-bold`}>M</span>
           </motion.div>
         )}
 
         {/* Monopoly crown indicator */}
         {hasMonopolyOnTile && (
           <motion.div
-            className="absolute -top-1 left-1/2 transform -translate-x-1/2 z-30"
+            className={`absolute ${isMobile ? '-top-0.5' : '-top-1'} left-1/2 transform -translate-x-1/2 z-30`}
             variants={animations.float}
             animate="visible"
           >
-            <span className="text-yellow-400 text-xs drop-shadow-lg">👑</span>
+            <span className={`text-yellow-400 ${isMobile ? 'text-[8px]' : 'text-xs'} drop-shadow-lg`}>👑</span>
           </motion.div>
         )}
 
