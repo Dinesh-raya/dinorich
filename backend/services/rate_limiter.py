@@ -38,3 +38,5 @@ class SocketRateLimiter:
 
 
 rate_limiter = SocketRateLimiter()
+# Dedicated connection rate limiter: max 10 connections per 60 seconds per IP
+connection_rate_limiter = SocketRateLimiter(max_calls=10, per_seconds=60)

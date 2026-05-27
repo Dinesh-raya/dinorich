@@ -38,3 +38,31 @@ jobs:
         run: npm run build
       - name: Tests
         run: npm run test
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements.txt pytest pytest-playwright playwright socketio-client
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+      - name: Install Playwright browsers
+        run: playwright install chromium --with-deps
+      - name: Run E2E tests
+        run: python -m pytest e2e/ -v --timeout=300
+      - name: Upload E2E report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: e2e/report.json

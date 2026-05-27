@@ -1,19 +1,52 @@
 from pydantic import BaseModel, Field, field_validator
 
 from schemas.room import RoomSettings
+from utils.input_validation import validate_player_name, validate_room_code, sanitize_player_name
 
 
 class RoomCreatePayload(BaseModel):
-    name: str = Field(default="Player", min_length=1, max_length=30)
+    name: str = Field(default="Player", min_length=1, max_length=20)
     color: str | None = None  # Deprecated - color is auto-assigned
     is_private: bool = Field(default=False)
 
+    @field_validator("name", mode="before")
+    @classmethod
+    def validate_and_sanitize_name(cls, v: str) -> str:
+        if not isinstance(v, str):
+            raise ValueError("Name must be a string")
+        cleaned = sanitize_player_name(v)
+        err = validate_player_name(cleaned)
+        if err:
+            raise ValueError(err)
+        return cleaned
+
 
 class RoomJoinPayload(BaseModel):
-    room_code: str = Field(min_length=4, max_length=8)
-    name: str = Field(default="Player", min_length=1, max_length=30)
+    room_code: str = Field(min_length=5, max_length=5)
+    name: str = Field(default="Player", min_length=1, max_length=20)
     color: str | None = None  # Deprecated - color is auto-assigned
     reconnect_token: str | None = None
+
+    @field_validator("room_code", mode="before")
+    @classmethod
+    def validate_room_code_field(cls, v: str) -> str:
+        if not isinstance(v, str):
+            raise ValueError("Room code must be a string")
+        err = validate_room_code(v)
+        if err:
+            raise ValueError(err)
+        return v.upper().strip()
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def validate_and_sanitize_name(cls, v: str) -> str:
+        if not isinstance(v, str):
+            raise ValueError("Name must be a string")
+        cleaned = sanitize_player_name(v)
+        err = validate_player_name(cleaned)
+        if err:
+            raise ValueError(err)
+        return cleaned
 
 
 class RoomUpdateSettingsPayload(BaseModel):

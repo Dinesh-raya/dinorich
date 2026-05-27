@@ -7,6 +7,7 @@ import asyncio
 import contextlib
 import os
 import logging
+import time
 from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
@@ -220,6 +221,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="DINO-RICHUP: PAN-INDIA EDITION API", lifespan=lifespan)
 
+# Track server start time for uptime calculation
+SERVER_START_TIME = time.time()
+SERVER_VERSION = "5.2"
+
 # Create ASGI application with socketio
 # Mount Socket.IO at /socket.io path
 socket_app = socketio.ASGIApp(sio, other_asgi_app=app)
@@ -227,36 +232,12 @@ socket_app = socketio.ASGIApp(sio, other_asgi_app=app)
 # Endpoint for health check
 @app.get("/health")
 async def health_check():
-    health_status = {"status": "ok", "checks": {}}
-
-    # Check database connectivity
-    try:
-        from persistence.db import get_connection
-        conn = get_connection()
-        conn.execute("SELECT 1").fetchone()
-        conn.close()
-        health_status["checks"]["database"] = "ok"
-    except Exception as e:
-        health_status["checks"]["database"] = f"error: {str(e)}"
-        health_status["status"] = "degraded"
-
-    # Check room manager
-    try:
-        room_count = len(room_manager.rooms)
-        health_status["checks"]["rooms"] = f"ok ({room_count} active)"
-    except Exception as e:
-        health_status["checks"]["rooms"] = f"error: {str(e)}"
-        health_status["status"] = "degraded"
-
-    # Check turn manager
-    try:
-        game_count = len(turn_manager.games)
-        health_status["checks"]["games"] = f"ok ({game_count} active)"
-    except Exception as e:
-        health_status["checks"]["games"] = f"error: {str(e)}"
-        health_status["status"] = "degraded"
-
-    return health_status
+    return {
+        "status": "ok",
+        "version": SERVER_VERSION,
+        "rooms": len(room_manager.rooms),
+        "uptime": int(time.time() - SERVER_START_TIME),
+    }
 
 # Serve frontend statically in production
 frontend_dist = os.path.join(os.path.dirname(__file__), '../frontend/dist')

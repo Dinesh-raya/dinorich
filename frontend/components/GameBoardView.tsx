@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useState } from 'react';
+import { useState, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Copy, Share2, X, Menu, Handshake, Volume2, Settings, Save, Play, Pause, Users, Bug } from 'lucide-react';
 import { soundManager } from '../utils/audio';
@@ -7,17 +7,21 @@ import { showToast } from './Toast';
 import { useGameStore } from '../stores/gameStore';
 import { Board } from './Board';
 import { PlayerSidebar } from './PlayerSidebar';
-import { AuctionModal } from './AuctionModal';
-import { AudioSettings } from './AudioSettings';
-import { BankruptModal, GameOverModal } from './BankruptModal';
-import { TradeModal, TradeNotification } from './TradeModal';
-import { CardDrawModal } from './CardDrawModal';
 import { ErrorBoundary } from './ErrorBoundary';
 import { ReconnectOverlay } from './ReconnectOverlay';
 import { ToastContainer } from './Toast';
-import { QAPanel } from './QAPanel';
 import type { TradeOffer, GameState, RoomState } from '../stores/slices/types';
 import { mapPlayersForSidebar, type Standing } from '../src/utils/helpers';
+
+// Lazy-loaded modals (heavy, only shown on user interaction)
+const AuctionModal = lazy(() => import('./AuctionModal').then(m => ({ default: m.AuctionModal })));
+const AudioSettings = lazy(() => import('./AudioSettings').then(m => ({ default: m.AudioSettings })));
+const BankruptModal = lazy(() => import('./BankruptModal').then(m => ({ default: m.BankruptModal })));
+const GameOverModal = lazy(() => import('./BankruptModal').then(m => ({ default: m.GameOverModal })));
+const TradeModal = lazy(() => import('./TradeModal').then(m => ({ default: m.TradeModal })));
+const TradeNotification = lazy(() => import('./TradeModal').then(m => ({ default: m.TradeNotification })));
+const CardDrawModal = lazy(() => import('./CardDrawModal').then(m => ({ default: m.CardDrawModal })));
+const QAPanel = lazy(() => import('./QAPanel').then(m => ({ default: m.QAPanel })));
 
 // Game board view extracted for readability (all props passed from App)
 export function GameBoardView({
@@ -524,7 +528,8 @@ export function GameBoardView({
         </div>
       </div>
 
-      {/* Modals & Notifications */}
+      {/* Modals & Notifications (lazy-loaded, Suspense with null fallback) */}
+      <Suspense fallback={null}>
       <ToastContainer />
       <ErrorBoundary><AuctionModal /></ErrorBoundary>
       <ErrorBoundary><AudioSettings isOpen={showAudioSettings} onClose={() => setShowAudioSettings(false)} /></ErrorBoundary>
@@ -587,6 +592,7 @@ export function GameBoardView({
           room={room}
         />
       )}
+      </Suspense>
     </div>
   );
 }

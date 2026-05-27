@@ -4,7 +4,8 @@ import asyncio
 import logging
 from typing import Dict
 from services.session_manager import session_manager
-from services.rate_limiter import rate_limiter
+from services.rate_limiter import rate_limiter, connection_rate_limiter
+from utils.input_validation import validate_player_name, sanitize_player_name
 
 logger = logging.getLogger(__name__)
 from constants.game_rules import GameRules
@@ -18,15 +19,26 @@ _disconnect_tasks: Dict[str, asyncio.Task] = {}
 
 @sio.event
 async def connect(sid, environ, auth):
-    # Rate limit by client IP to prevent connection flooding
+    # Rate limit by client IP: max 10 connections per 60 seconds
     client_ip = environ.get("REMOTE_ADDR", "unknown")
-    if not rate_limiter.allow(f"connect:{client_ip}"):
+    if not connection_rate_limiter.allow(f"connect:{client_ip}"):
         logger.warning(f"Connection rate limited for IP {client_ip}")
         raise ConnectionRefusedError("Too many connection attempts")
 
     logger.info(f"Client connected: {sid}")
     auth = auth or {}
-    requested_name = auth.get("name") or get_random_name()
+    raw_name = auth.get("name", "")
+    # Validate and sanitize player name
+    if raw_name:
+        sanitized = sanitize_player_name(raw_name)
+        err = validate_player_name(sanitized)
+        if err:
+            # Fall back to random name if provided name is invalid
+            requested_name = get_random_name()
+        else:
+            requested_name = sanitized
+    else:
+        requested_name = get_random_name()
     signed_session_token = auth.get("sessionToken", "")
     session, signed_token = session_manager.resolve_session(signed_session_token, requested_name)
     session.player_socket_id = sid

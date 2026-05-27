@@ -7,7 +7,7 @@
     "codegen": "python ../backend/scripts/codegen.py",
     "dev": "npm run codegen && vite",
     "typecheck": "tsc --noEmit",
-    "build": "node scripts/check-schemas.js || npm run codegen && tsc && vite build",
+    "build": "node scripts/check-schemas.cjs || npm run codegen && tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run"
   },

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense, lazy } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { useGameStore } from '../stores/gameStore';
 import { ToastContainer } from '../components/Toast';
@@ -6,12 +6,15 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { motion } from 'framer-motion';
 import { Dice5 } from 'lucide-react';
 import { ConnectionScreen } from '../components/ConnectionScreen';
-import { LobbyScreen } from '../components/LobbyScreen';
-import { WaitingRoomScreen } from '../components/WaitingRoomScreen';
-import { GameBoardView } from '../components/GameBoardView';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 import { useBankruptcyAndGameOver } from './hooks/useBankruptcyAndGameOver';
 import type { TradeOffer } from '../stores/slices/types';
 import type { Standing } from './utils/helpers';
+
+// Lazy-loaded route-level components
+const LobbyScreen = lazy(() => import('../components/LobbyScreen').then(m => ({ default: m.LobbyScreen })));
+const WaitingRoomScreen = lazy(() => import('../components/WaitingRoomScreen').then(m => ({ default: m.WaitingRoomScreen })));
+const GameBoardView = lazy(() => import('../components/GameBoardView').then(m => ({ default: m.GameBoardView })));
 
 // Sync zustand room state with URL
 function NavigationEffect() {
@@ -115,6 +118,7 @@ function App() {
 
       <NavigationEffect />
 
+      <Suspense fallback={<LoadingSpinner />}>
       <Routes>
         {/* Lobby: no room yet */}
         <Route
@@ -152,7 +156,7 @@ function App() {
                   />
                 </>
               ) : !game || !game.turn_order ? (
-                /* Loading game spinner */
+                /* Loading game spinner (waiting for server data) */
                 <div className="flex h-screen items-center justify-center bg-background">
                   <motion.div
                     className="text-center"
@@ -223,6 +227,7 @@ function App() {
         {/* Catch-all: redirect to lobby */}
         <Route path="*" element={null} />
       </Routes>
+      </Suspense>
     </ErrorBoundary>
   );
 }
