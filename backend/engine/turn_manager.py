@@ -35,12 +35,17 @@ class TurnManager:
         self.games[room_code] = game_state
         first_player_id = game_state.turn_order[0]
 
+        # QA timer override
+        initial_timer = game_state.room.settings.turn_timer_seconds
+        if game_state.qa_mode and game_state.room.settings.qa_mode.turn_timer_seconds > 0:
+            initial_timer = game_state.room.settings.qa_mode.turn_timer_seconds
+
         self.turn_states[room_code] = TurnState(
             active_player_id=first_player_id,
             phase=TurnPhase.ROLL,
             can_roll=True,
             can_end_turn=False,
-            time_remaining=game_state.room.settings.turn_timer_seconds
+            time_remaining=initial_timer
         )
         self.active_doubles_count[room_code] = 0
 
@@ -86,6 +91,11 @@ class TurnManager:
             can_end_turn=False,
             time_remaining=game.room.settings.turn_timer_seconds
         )
+
+        # QA timer override for subsequent turns
+        if game.qa_mode and game.room.settings.qa_mode.turn_timer_seconds > 0:
+            new_turn.time_remaining = game.room.settings.qa_mode.turn_timer_seconds
+
         self.turn_states[room_code] = new_turn
         return new_turn
 
@@ -101,7 +111,7 @@ class TurnManager:
             return None
 
         player = game.room.players[player_id]
-        dice = roll_dice()
+        dice = roll_dice(game)
 
         jail_escape = False
         if player.is_in_jail:

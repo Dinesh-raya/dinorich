@@ -22,6 +22,7 @@ import sockets.game_events
 import sockets.property_events
 import sockets.auction_events
 import sockets.trade_events
+import sockets.qa_events
 from persistence.db import init_db
 from persistence.repository import save_snapshot, load_snapshot, purge_invalid_snapshots
 from rooms.manager import room_manager

@@ -29,6 +29,14 @@ export interface GameSlice {
   saveGame: () => void;
   loadGame: () => void;
   listSaves: () => void;
+
+  // QA mode actions
+  qaSetDice: (die1: number, die2: number) => void;
+  qaJumpToTile: (playerId: string, tileId: number) => void;
+  qaForceJail: (playerId: string) => void;
+  qaSeedProperty: (playerId: string, tileId: number) => void;
+  qaForceAuction: (tileId: number) => void;
+  qaAddMoney: (playerId: string, amount: number) => void;
 }
 
 export const createGameSlice: StateCreator<StoreState, [], [], GameSlice> = (set, get) => ({
@@ -272,6 +280,43 @@ export const createGameSlice: StateCreator<StoreState, [], [], GameSlice> = (set
       if (response.status === 'success') {
         set({ hasSave: (response.saves || []).length > 0 });
       }
+    });
+  },
+
+  // QA mode actions
+  qaSetDice: (die1, die2) => {
+    socket.emit('qa:set_dice', { die1, die2 }, (response: any) => {
+      if (response.status === 'error') set({ error: response.message });
+    });
+  },
+
+  qaJumpToTile: (playerId, tileId) => {
+    socket.emit('qa:jump_to_tile', { player_id: playerId, tile_id: tileId }, (response: any) => {
+      if (response.status === 'error') set({ error: response.message });
+    });
+  },
+
+  qaForceJail: (playerId) => {
+    socket.emit('qa:force_jail', { player_id: playerId }, (response: any) => {
+      if (response.status === 'error') set({ error: response.message });
+    });
+  },
+
+  qaSeedProperty: (playerId: string, tileId: number) => {
+    socket.emit('qa:seed_property', { player_id: playerId, tile_id: tileId }, (response: any) => {
+      if (response.status === 'error') set({ error: response.message });
+    });
+  },
+
+  qaForceAuction: (tileId: number) => {
+    socket.emit('qa:force_auction', { tile_id: tileId }, (response: any) => {
+      if (response.status === 'error') set({ error: response.message });
+    });
+  },
+
+  qaAddMoney: (playerId, amount) => {
+    socket.emit('qa:add_money', { player_id: playerId, amount }, (response: any) => {
+      if (response.status === 'error') set({ error: response.message });
     });
   },
 });

@@ -59,6 +59,7 @@ export interface GameState {
   surprise_deck: Record<string, any>[];  // Surprise card deck for this game
   houses_remaining: number;  // Houses remaining in the bank supply
   hotels_remaining: number;  // Hotels remaining in the bank supply
+  qa_mode: boolean;  // Whether this game has QA mode enabled
 }
 
 
@@ -99,6 +100,18 @@ export interface PropertyState {
 }
 
 
+export interface QAMode {
+  enabled: boolean;  // Whether QA mode is active for this room
+  dice_mode: string;  // Dice mode: random, sequence, or fixed
+  dice_sequence: any[];  // Pre-set dice rolls for sequence mode
+  fixed_dice: any;  // Fixed dice values for fixed mode
+  card_mode: string;  // Card mode: random, top, or index
+  card_index: number;  // Card index for index mode
+  turn_timer_seconds: number;  // QA timer override (0 = use room default)
+  auto_buy_disabled: boolean;  // Disable auto-buy on timeout
+}
+
+
 export interface RoomCreatePayload {
   name: string;  // Default: 'Player'
   color?: string | null;
@@ -128,6 +141,7 @@ export interface RoomSettings {
   mode: GameMode;  // Game mode preset (descriptive only — does not auto-override settings)
   disconnect_timeout_seconds: number;  // Seconds before disconnected player is bankrupted
   game_paused: boolean;  // Whether the game is currently paused
+  qa_mode: QAMode;  // QA testing mode settings
 }
 
 

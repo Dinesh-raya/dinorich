@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from schemas.room import RoomState
 
 class PropertyState(BaseModel):
@@ -23,6 +23,9 @@ class GameState(BaseModel):
     surprise_deck: List[Dict] = Field(default_factory=list, description="Surprise card deck for this game")
     houses_remaining: int = Field(32, description="Houses remaining in the bank supply")
     hotels_remaining: int = Field(12, description="Hotels remaining in the bank supply")
+    qa_dice_queue: List[Tuple[int, int]] = Field(default_factory=list, description="Queued dice rolls for QA mode", exclude=True)
+    qa_dice_index: int = Field(0, description="Current index in QA dice sequence", exclude=True)
+    qa_mode: bool = Field(False, description="Whether this game has QA mode enabled")
 
     def add_log(self, message: str):
         """Add a history log entry and cap the log size."""

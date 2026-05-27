@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../stores/gameStore';
 import { animations } from '../animations';
 import { formatMoneyShort } from '../utils/format';
+import type { QAMode } from '../stores/slices/types';
 
 interface RoomSettingsProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ interface RoomSettingsType {
   jail_strict_mode: boolean;
   board_theme: string;
   mode: string;
+  qa_mode?: QAMode;
 }
 
 export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
@@ -41,6 +43,16 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
     jail_strict_mode: true,
     board_theme: 'pan_india',
     mode: 'classic',
+    qa_mode: {
+      enabled: false,
+      dice_mode: 'random',
+      dice_sequence: [],
+      fixed_dice: [3, 4],
+      card_mode: 'random',
+      card_index: 0,
+      turn_timer_seconds: 0,
+      auto_buy_disabled: false,
+    },
   };
 
   // Use room settings if available, otherwise use defaults
@@ -387,6 +399,86 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                     </div>
                   ))}
                 </div>
+              </motion.div>
+
+              {/* QA Testing Mode */}
+              <motion.div
+                className="panel-dark p-4 sm:p-6 rounded-2xl border border-purple-500/30"
+                variants={animations.fadeIn}
+                style={{
+                  background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.12) 0%, rgba(15, 23, 42, 0.9) 100%)',
+                  boxShadow: '0 0 30px rgba(168, 85, 247, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+                }}
+              >
+                <h3 className="text-base sm:text-lg font-bold text-purple-300 mb-4 sm:mb-5 flex items-center gap-2 font-cyber">
+                  <span className="text-lg sm:text-xl">🧪</span>
+                  QA TESTING MODE
+                </h3>
+
+                <div className="space-y-0 divide-y divide-white/5">
+                  {/* QA Mode Toggle */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0 py-4 first:pt-0 last:pb-0">
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg">🐛</span>
+                      <div>
+                        <p className="font-medium text-text-main">Enable QA Mode</p>
+                        <p className="text-xs text-text-muted">Deterministic testing with dice/card overrides</p>
+                      </div>
+                    </div>
+                    <motion.button
+                      onClick={() => {
+                        const currentQa = settings.qa_mode || {
+                          enabled: false,
+                          dice_mode: 'random',
+                          dice_sequence: [],
+                          fixed_dice: [3, 4] as [number, number],
+                          card_mode: 'random',
+                          card_index: 0,
+                          turn_timer_seconds: 0,
+                          auto_buy_disabled: false,
+                        };
+                        handleSettingChange('qa_mode', { ...currentQa, enabled: !currentQa.enabled });
+                      }}
+                      role="switch"
+                      aria-checked={settings.qa_mode?.enabled ?? false}
+                      aria-label="Enable QA Mode"
+                      className={`relative inline-flex h-9 w-14 items-center rounded-full transition-all ${
+                        settings.qa_mode?.enabled ?? false
+                          ? 'bg-purple-500 shadow-lg shadow-purple-500/30'
+                          : 'bg-surface border border-white/20'
+                      }`}
+                      whileTap={isHost && !isLocked ? { scale: 0.95 } : undefined}
+                      disabled={!isHost || isLocked}
+                    >
+                      <span
+                        className={`inline-block h-7 w-7 rounded-full bg-white shadow-md transition-transform duration-200 ${
+                          (settings.qa_mode?.enabled ?? false) ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </motion.button>
+                  </div>
+                </div>
+
+                {(settings.qa_mode?.enabled ?? false) && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    className="mt-4 p-3 rounded-xl bg-purple-500/10 border border-purple-500/20"
+                  >
+                    <p className="text-xs text-purple-300 font-bold mb-2">QA Controls (during game):</p>
+                    <ul className="text-[10px] text-text-muted space-y-1">
+                      <li>- Override dice rolls (fixed values or sequence)</li>
+                      <li>- Jump players to any tile</li>
+                      <li>- Add/remove money from players</li>
+                      <li>- Assign properties to players</li>
+                      <li>- Force auctions on any property</li>
+                      <li>- Send players to jail</li>
+                    </ul>
+                    <p className="text-[10px] text-purple-400 mt-2">
+                      The QA panel button appears in-game for the host.
+                    </p>
+                  </motion.div>
+                )}
               </motion.div>
 
               {/* Player Management */}

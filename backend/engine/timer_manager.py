@@ -40,6 +40,10 @@ class TimerManager:
 
         # Handle BUY phase with its own timeout to prevent deadlock
         if turn.phase == TurnPhase.BUY:
+            # QA: skip auto-buy if disabled
+            if game.qa_mode and game.room.settings.qa_mode.auto_buy_disabled:
+                return turn, None, None
+
             timer, prop_id = self._buy_timers.get(room_code, (GameRules.get_buy_timeout(game.room.settings.turn_timer_seconds), None))
             timer -= 1
             if timer <= 0:

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Tuple
 from enum import Enum
 
 from schemas.player import PlayerState
@@ -16,6 +16,16 @@ class GameMode(str, Enum):
     TURBO = "turbo"
     CHAOS = "chaos"
 
+class QAMode(BaseModel):
+    enabled: bool = Field(False, description="Whether QA mode is active for this room")
+    dice_mode: str = Field("random", description="Dice mode: random, sequence, or fixed")
+    dice_sequence: List[Tuple[int, int]] = Field(default_factory=list, description="Pre-set dice rolls for sequence mode")
+    fixed_dice: Tuple[int, int] = Field((3, 4), description="Fixed dice values for fixed mode")
+    card_mode: str = Field("random", description="Card mode: random, top, or index")
+    card_index: int = Field(0, description="Card index for index mode")
+    turn_timer_seconds: int = Field(0, ge=0, le=600, description="QA timer override (0 = use room default)")
+    auto_buy_disabled: bool = Field(False, description="Disable auto-buy on timeout")
+
 class RoomSettings(BaseModel):
     max_players: int = Field(6, ge=2, le=6, description="Maximum players allowed (2-6)")
     starting_cash: int = Field(15000, ge=5000, le=100000, description="Initial money for each player")
@@ -30,6 +40,7 @@ class RoomSettings(BaseModel):
     mode: GameMode = Field(GameMode.CLASSIC, description="Game mode preset (descriptive only — does not auto-override settings)")
     disconnect_timeout_seconds: int = Field(120, ge=30, le=300, description="Seconds before disconnected player is bankrupted")
     game_paused: bool = Field(False, description="Whether the game is currently paused")
+    qa_mode: QAMode = Field(default_factory=QAMode, description="QA testing mode settings")
 
     @staticmethod
     def get_mode_preset(mode: GameMode) -> dict:

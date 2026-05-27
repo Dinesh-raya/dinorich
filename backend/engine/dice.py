@@ -1,13 +1,33 @@
 import secrets
+from typing import Optional
 from schemas.action import DiceState
 from schemas.game import GameState
 from schemas.player import PlayerState
 from constants.game_rules import GameRules
 
-def roll_dice() -> DiceState:
-    """Roll two six-sided dice using cryptographically secure random."""
-    die1 = secrets.randbelow(6) + 1
-    die2 = secrets.randbelow(6) + 1
+
+def roll_dice(game_state: Optional[GameState] = None) -> DiceState:
+    """Roll two six-sided dice. Supports QA mode overrides."""
+    die1 = die2 = None
+
+    # 1. Check explicit queue (qa:set_dice pushes here)
+    if game_state and game_state.qa_dice_queue:
+        die1, die2 = game_state.qa_dice_queue.pop(0)
+    # 2. Check QA mode settings
+    elif game_state and game_state.qa_mode:
+        qa = game_state.room.settings.qa_mode
+        if qa.dice_mode == "fixed":
+            die1, die2 = qa.fixed_dice
+        elif qa.dice_mode == "sequence" and qa.dice_sequence:
+            idx = game_state.qa_dice_index % len(qa.dice_sequence)
+            die1, die2 = qa.dice_sequence[idx]
+            game_state.qa_dice_index += 1
+
+    # 3. Random fallback
+    if die1 is None:
+        die1 = secrets.randbelow(6) + 1
+        die2 = secrets.randbelow(6) + 1
+
     return DiceState(
         die1=die1,
         die2=die2,

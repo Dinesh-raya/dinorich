@@ -62,5 +62,15 @@
     "REJECTED": "trade:rejected",
     "CANCELLED": "trade:cancelled",
     "COUNTER": "trade:counter"
+  },
+  "QA": {
+    "SET_DICE": "qa:set_dice",
+    "JUMP_TO_TILE": "qa:jump_to_tile",
+    "FORCE_CARD": "qa:force_card",
+    "FORCE_JAIL": "qa:force_jail",
+    "SEED_PROPERTY": "qa:seed_property",
+    "FORCE_AUCTION": "qa:force_auction",
+    "ADD_MONEY": "qa:add_money",
+    "GET_STATE": "qa:get_state"
   }
 }

@@ -66,6 +66,20 @@ class CardEngine:
     """Stateless card engine - operates on decks stored in GameState."""
 
     def draw_treasury(self, game_state: GameState, player_id: str) -> Dict[str, Any]:
+        # QA mode override
+        if game_state.qa_mode:
+            qa = game_state.room.settings.qa_mode
+            deck = game_state.treasury_deck
+            if qa.card_mode == "top" and deck:
+                card = deck.pop(0)
+                self.execute_card(game_state, player_id, card)
+                return card
+            elif qa.card_mode == "index" and deck:
+                idx = qa.card_index % len(deck)
+                card = deck.pop(idx)
+                self.execute_card(game_state, player_id, card)
+                return card
+
         deck = game_state.treasury_deck
         if not deck:
             game_state.add_log("Treasury deck is empty, reshuffling...")
@@ -89,6 +103,20 @@ class CardEngine:
         return card
 
     def draw_surprise(self, game_state: GameState, player_id: str) -> Dict[str, Any]:
+        # QA mode override
+        if game_state.qa_mode:
+            qa = game_state.room.settings.qa_mode
+            deck = game_state.surprise_deck
+            if qa.card_mode == "top" and deck:
+                card = deck.pop(0)
+                self.execute_card(game_state, player_id, card)
+                return card
+            elif qa.card_mode == "index" and deck:
+                idx = qa.card_index % len(deck)
+                card = deck.pop(idx)
+                self.execute_card(game_state, player_id, card)
+                return card
+
         deck = game_state.surprise_deck
         if not deck:
             game_state.add_log("Surprise deck is empty, reshuffling...")

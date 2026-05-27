@@ -42,6 +42,9 @@ async def game_start(sid, data):
 
             # Initialize Game State
             game_state = init_game_state(room)
+            # Set QA mode flag from room settings
+            if room.settings.qa_mode.enabled:
+                game_state.qa_mode = True
             turn_manager.start_game(room_code, game_state)
 
             turn_state = turn_manager.get_turn_state(room_code)

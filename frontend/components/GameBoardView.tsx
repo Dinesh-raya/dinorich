@@ -1,6 +1,7 @@
 import type React from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Copy, Share2, X, Menu, Handshake, Volume2, Settings, Save, Play, Pause, Users } from 'lucide-react';
+import { Copy, Share2, X, Menu, Handshake, Volume2, Settings, Save, Play, Pause, Users, Bug } from 'lucide-react';
 import { soundManager } from '../utils/audio';
 import { showToast } from './Toast';
 import { useGameStore } from '../stores/gameStore';
@@ -14,6 +15,7 @@ import { CardDrawModal } from './CardDrawModal';
 import { ErrorBoundary } from './ErrorBoundary';
 import { ReconnectOverlay } from './ReconnectOverlay';
 import { ToastContainer } from './Toast';
+import { QAPanel } from './QAPanel';
 import type { TradeOffer, GameState, RoomState } from '../stores/slices/types';
 import { mapPlayersForSidebar, type Standing } from '../src/utils/helpers';
 
@@ -77,6 +79,8 @@ export function GameBoardView({
   const isMyTurn = activePlayerId === myId;
   const isHost = room.host_id === myId;
   const connected = useGameStore(s => s.connected);
+  const [showQAPanel, setShowQAPanel] = useState(false);
+  const isQAMode = game.room.settings.qa_mode?.enabled === true;
 
   return (
     <div className="min-h-screen flex flex-col bg-background overflow-x-hidden">
@@ -163,6 +167,22 @@ export function GameBoardView({
             >
               <Handshake className="w-4 h-4" /> <span className="text-text-muted">Trade</span>
             </motion.button>
+
+            {/* QA Panel button - visible only to host when QA mode is enabled */}
+            {isQAMode && isHost && (
+              <motion.button
+                onClick={() => {
+                  soundManager.playButtonClick();
+                  setShowQAPanel(true);
+                }}
+                className="px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 min-h-[36px] bg-purple-500/10 border border-purple-500/30 text-purple-300 hover:bg-purple-500/20 transition-colors"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                title="QA Testing Panel"
+              >
+                <Bug className="w-4 h-4" /> <span className="text-purple-300">QA</span>
+              </motion.button>
+            )}
           </div>
 
           <div className="h-8 w-px bg-gradient-to-b from-transparent via-gold-500/20 to-transparent mx-2"></div>
@@ -453,6 +473,20 @@ export function GameBoardView({
                 <Handshake className="w-5 h-5" />
               </button>
 
+              {/* QA Panel button for mobile */}
+              {isQAMode && isHost && (
+                <button
+                  onClick={() => {
+                    soundManager.playButtonClick();
+                    setShowQAPanel(true);
+                  }}
+                  className="p-3 rounded-xl min-h-[44px] min-w-[44px] active:scale-95 transition-transform bg-purple-500/10 border border-purple-500/30 text-purple-300"
+                  title="QA Testing Panel"
+                >
+                  <Bug className="w-5 h-5" />
+                </button>
+              )}
+
               <button
                 onClick={() => {
                   soundManager.playButtonClick();
@@ -543,6 +577,16 @@ export function GameBoardView({
       {/* Card Draw Modal */}
       <CardDrawModal />
       <ReconnectOverlay connected={connected} hasRoom={!!room} />
+
+      {/* QA Panel - host-only testing controls */}
+      {isQAMode && isHost && (
+        <QAPanel
+          isOpen={showQAPanel}
+          onClose={() => setShowQAPanel(false)}
+          game={game}
+          room={room}
+        />
+      )}
     </div>
   );
 }

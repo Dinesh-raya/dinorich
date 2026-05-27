@@ -30,6 +30,7 @@ export interface RoomSettings {
   mode: string;
   disconnect_timeout_seconds?: number;
   game_paused?: boolean;
+  qa_mode?: QAMode;
 }
 
 export interface RoomState {
@@ -73,6 +74,8 @@ export interface GameState {
   houses_remaining?: number;
   hotels_remaining?: number;
   free_parking_pool?: number;
+  qa_mode?: boolean;
+  qa_dice_queue?: [number, number][];
 }
 
 export interface TurnState {
@@ -125,4 +128,15 @@ export interface MoneyChange {
   amount: number;
   playerId: string;
   timestamp: number;
+}
+
+export interface QAMode {
+  enabled: boolean;
+  dice_mode: 'random' | 'sequence' | 'fixed';
+  dice_sequence: [number, number][];
+  fixed_dice: [number, number];
+  card_mode: 'random' | 'top' | 'index';
+  card_index: number;
+  turn_timer_seconds: number;
+  auto_buy_disabled: boolean;
 }
