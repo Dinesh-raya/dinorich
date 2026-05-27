@@ -51,13 +51,12 @@ class TestHealthEndpoint:
         data = resp.json()
         assert data["status"] in ("ok", "degraded")
 
-    def test_health_has_checks(self):
+    def test_health_has_fields(self):
         from fastapi.testclient import TestClient
         from main import app
         client = TestClient(app)
         resp = client.get("/health")
         data = resp.json()
-        assert "checks" in data
-        assert "database" in data["checks"]
-        assert "rooms" in data["checks"]
-        assert "games" in data["checks"]
+        assert "status" in data
+        assert "rooms" in data
+        assert "uptime" in data
