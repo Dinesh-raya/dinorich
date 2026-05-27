@@ -95,7 +95,8 @@ async def game_dice_roll(sid, data):
             await persist_game(room_code)
             return {"status": "success"}
     except Exception as exc:
-        return {"status": "error", "message": f"Dice roll failed: {exc}"}
+        logger.exception(f"Dice roll error for {sid}")
+        return {"status": "error", "message": "Dice roll failed. Please try again."}
 
 @sio.on("game:end_turn")
 async def game_end_turn(sid, data):
@@ -154,14 +155,16 @@ async def game_declare_bankruptcy(sid, data):
                     {"winner_id": winner.id if winner else None, "winner_name": winner.name if winner else "Unknown"},
                     room=room_code
                 )
-
-            new_turn = turn_manager.next_turn(room_code)
-            if game and new_turn:
-                await emit_game_state(room_code, game, new_turn)
+            else:
+                # Only advance turn if game is NOT over
+                new_turn = turn_manager.next_turn(room_code)
+                if game and new_turn:
+                    await emit_game_state(room_code, game, new_turn)
             await persist_game(room_code)
             return {"status": "success"}
     except Exception as exc:
-        return {"status": "error", "message": f"Bankruptcy failed: {exc}"}
+        logger.exception(f"Bankruptcy error for {sid}")
+        return {"status": "error", "message": "Bankruptcy declaration failed. Please try again."}
 
 @sio.on("game:pay_jail_fine")
 async def game_pay_jail_fine(sid, data):
@@ -344,6 +347,7 @@ async def game_rematch(sid, data):
                 player.jail_turns = 0
                 player.get_out_of_jail_cards = 0
                 player.goojf_sources = []
+                player.connected = True
 
             # Broadcast state update to all players
             await sio.emit(

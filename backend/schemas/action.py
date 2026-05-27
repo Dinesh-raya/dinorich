@@ -32,6 +32,6 @@ class AuctionState(BaseModel):
     property_id: int = Field(..., description="ID of the tile being auctioned")
     highest_bidder_id: Optional[str] = Field(None, description="Socket ID of highest bidder")
     current_bid: int = Field(0, description="Current highest bid amount")
-    time_remaining: int = Field(15, description="Seconds remaining in auction")
+    time_remaining: int = Field(9, description="Seconds remaining in auction")
     active: bool = Field(False, description="Whether an auction is currently running")
     participants: List[str] = Field(default_factory=list, description="IDs of players eligible to bid")

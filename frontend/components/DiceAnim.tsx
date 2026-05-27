@@ -22,6 +22,8 @@ export const DiceAnim = ({
   const total = die1 + die2;
   const soundTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onRollCompleteRef = useRef(onRollComplete);
+  onRollCompleteRef.current = onRollComplete;
   const [displayDie1, setDisplayDie1] = useState(die1);
   const [displayDie2, setDisplayDie2] = useState(die2);
   const [hasLanded, setHasLanded] = useState(false);
@@ -136,7 +138,7 @@ export const DiceAnim = ({
 
       // Fire onRollComplete after animation finishes
       completeTimerRef.current = setTimeout(() => {
-        onRollComplete?.();
+        onRollCompleteRef.current?.();
       }, 1500);
     }
 
@@ -144,7 +146,7 @@ export const DiceAnim = ({
       if (soundTimerRef.current) clearTimeout(soundTimerRef.current);
       if (completeTimerRef.current) clearTimeout(completeTimerRef.current);
     };
-  }, [isRolling, die1, die2, onRollComplete]);
+  }, [isRolling, die1, die2]);
 
   return (
     <div className="flex flex-col items-center gap-4">

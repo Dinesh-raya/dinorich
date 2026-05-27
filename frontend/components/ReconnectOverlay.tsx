@@ -31,7 +31,7 @@ export function ReconnectOverlay({ connected, hasRoom }: ReconnectOverlayProps) 
           ⚡
         </motion.div>
         
-        <h2 className="font-cyber text-2xl font-bold text-danger-400  mb-3 font-cyber">
+        <h2 className="font-cyber text-2xl font-bold text-danger-400 mb-3">
           CONNECTION LOST
         </h2>
         

@@ -162,77 +162,77 @@ async def handle_disconnect_timeout(sid: str, session_id: str, room_code: str):
         timeout_seconds = room.settings.disconnect_timeout_seconds if room else GameRules.DISCONNECT_TIMEOUT
         await asyncio.sleep(timeout_seconds)
 
-        # Check if room still exists (may have been cleaned up)
-        room = room_manager.get_room(room_code)
-        if not room:
-            session_manager.set_room_code(session_id, None)
-            return
+        # Acquire room lock for all state mutations
+        async with room_manager.get_lock(room_code):
+            # Check if room still exists (may have been cleaned up)
+            room = room_manager.get_room(room_code)
+            if not room:
+                session_manager.set_room_code(session_id, None)
+                return
 
-        # Check if player still in room
-        if session_id not in room.players:
-            session_manager.set_room_code(session_id, None)
-            return
+            # Check if player still in room
+            if session_id not in room.players:
+                session_manager.set_room_code(session_id, None)
+                return
 
-        # Check if still disconnected or already bankrupt
-        if room.players[session_id].connected or room.players[session_id].is_bankrupt:
-            session_manager.set_room_code(session_id, None)
-            return
+            # Check if still disconnected or already bankrupt
+            if room.players[session_id].connected or room.players[session_id].is_bankrupt:
+                session_manager.set_room_code(session_id, None)
+                return
 
-        from engine.turn_manager import turn_manager
-        from engine.bankruptcy import declare_bankruptcy
+            from engine.turn_manager import turn_manager
+            from engine.bankruptcy import declare_bankruptcy
 
-        game = turn_manager.get_game(room_code)
-        if not game:
-            return
+            game = turn_manager.get_game(room_code)
+            if not game:
+                return
 
-        # Check if the disconnected player was the active player (needed for turn fixup after bankruptcy)
-        turn = turn_manager.get_turn_state(room_code)
-        was_active_player = turn and turn.active_player_id == session_id
+            # Check if the disconnected player was the active player (needed for turn fixup after bankruptcy)
+            turn = turn_manager.get_turn_state(room_code)
+            was_active_player = turn and turn.active_player_id == session_id
 
-        # Declare bankruptcy for the disconnected player
-        player_name = room.players[session_id].name
-        declare_bankruptcy(game, session_id, None)
-        game.add_log(f"{player_name} declared bankrupt (disconnected too long)")
+            # Declare bankruptcy for the disconnected player
+            player_name = room.players[session_id].name
+            declare_bankruptcy(game, session_id, None)
+            game.add_log(f"{player_name} declared bankrupt (disconnected too long)")
 
-        # Check if game is over (only 1 player remaining)
-        if game.room.status == RoomStatus.FINISHED:
-            active_players = [p for p in game.room.players.values() if not p.is_bankrupt]
-            winner = active_players[0] if active_players else None
-            await sio.emit(
-                "game:over",
-                {"winner_id": winner.id if winner else None, "winner_name": winner.name if winner else "Unknown"},
-                room=room_code
+            # Check if game is over (only 1 player remaining)
+            if game.room.status == RoomStatus.FINISHED:
+                active_players = [p for p in game.room.players.values() if not p.is_bankrupt]
+                winner = active_players[0] if active_players else None
+                await sio.emit(
+                    "game:over",
+                    {"winner_id": winner.id if winner else None, "winner_name": winner.name if winner else "Unknown"},
+                    room=room_code
+                )
+            elif was_active_player:
+                # Only advance the turn if the bankrupt player was the active player
+                # and the game is NOT over.
+                new_turn = turn_manager.next_turn(room_code)
+                if game and new_turn:
+                    await emit_game_state(room_code, game, new_turn)
+            await persist_room(room_code)
+            await persist_game(room_code)
+
+            # Clean up abandoned games: if all players are disconnected or bankrupt, remove from memory
+            all_gone = all(
+                p.is_bankrupt or not p.connected
+                for p in room.players.values()
             )
+            if all_gone:
+                room_manager.leave_room(session_id)
+                turn_manager.cleanup_room(room_code)
+                from engine.auction import auction_manager
+                auction_manager.auctions.pop(room_code, None)
+                from engine.trade_manager import trade_manager
+                trade_manager.cleanup_room(room_code)
+                from persistence import repository
+                repository.delete_room(room_code)
+                repository.delete_game(room_code)
+                logger.info(f"Cleaned up abandoned room {room_code}")
 
-        # Only advance the turn if the bankrupt player was the active player.
-        # declare_bankruptcy already adjusts current_turn_index to (idx-1)%len
-        # so one next_turn() call lands on the correct next player.
-        if was_active_player:
-            new_turn = turn_manager.next_turn(room_code)
-            if game and new_turn:
-                await emit_game_state(room_code, game, new_turn)
-        await persist_room(room_code)
-        await persist_game(room_code)
-
-        # Clean up abandoned games: if all players are disconnected or bankrupt, remove from memory
-        all_gone = all(
-            p.is_bankrupt or not p.connected
-            for p in room.players.values()
-        )
-        if all_gone:
-            room_manager.leave_room(session_id)
-            turn_manager.cleanup_room(room_code)
-            from engine.auction import auction_manager
-            auction_manager.auctions.pop(room_code, None)
-            from engine.trade_manager import trade_manager
-            trade_manager.cleanup_room(room_code)
-            from persistence import repository
-            repository.delete_room(room_code)
-            repository.delete_game(room_code)
-            logger.info(f"Cleaned up abandoned room {room_code}")
-
-        # Clean up session mapping
-        session_manager.set_room_code(session_id, None)
+            # Clean up session mapping
+            session_manager.set_room_code(session_id, None)
     except asyncio.CancelledError:
         raise  # Allow task cancellation (on reconnect) to propagate
     except Exception:

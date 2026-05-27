@@ -58,7 +58,7 @@ export const PlayerSidebar = ({
   }, [players, expandedPlayer]);
 
   // Sort players based on selected criteria
-  const sortedPlayers = [...players].sort((a, b) => {
+  const sortedPlayers = useMemo(() => [...players].sort((a, b) => {
     switch (sortBy) {
       case 'money':
         return b.money - a.money;
@@ -69,7 +69,7 @@ export const PlayerSidebar = ({
       default:
         return 0;
     }
-  });
+  }), [players, sortBy]);
 
   // Calculate player stats
   const totalMoney = players.reduce((sum, p) => sum + p.money, 0);

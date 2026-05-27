@@ -20,7 +20,6 @@ interface RoomSettingsType {
   turn_timer_seconds: number;
   random_turn_order: boolean;
   jail_strict_mode: boolean;
-  bot_enabled: boolean;
   board_theme: string;
   mode: string;
 }
@@ -40,7 +39,6 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
     turn_timer_seconds: 60,
     random_turn_order: true,
     jail_strict_mode: true,
-    bot_enabled: false,
     board_theme: 'pan_india',
     mode: 'classic',
   };

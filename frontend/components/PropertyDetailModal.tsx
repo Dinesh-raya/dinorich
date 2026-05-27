@@ -90,7 +90,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
             <button
               onClick={onClose}
               aria-label="Close"
-              className="absolute top-4 right-4 text-text-muted hover:text-white transition-colors text-xl"
+              className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-lg text-text-muted hover:text-white hover:bg-white/10 transition-colors text-xl"
             >
               ✕
             </button>

@@ -26,7 +26,7 @@ export function WaitingRoomScreen({
   const leaveGame = useGameStore(s => s.leaveGame);
 
   const handleShare = async () => {
-    const shareUrl = `http://${window.location.host}`;
+    const shareUrl = window.location.origin;
     const shareData = {
       title: 'DINO-RICHUP',
       text: `Join my room! Code: ${room.room_id}`,
@@ -84,7 +84,7 @@ export function WaitingRoomScreen({
                   navigator.clipboard.writeText(`http://${window.location.host}`);
                   showToast('Link copied!', 'success');
                 }}
-                className="btn-gold-ghost px-3 py-1.5 rounded-lg text-xs min-h-[32px] flex-shrink-0"
+                className="btn-gold-ghost px-3 py-1.5 rounded-lg text-xs min-h-[44px] flex-shrink-0"
               >
                 <Copy className="w-4 h-4" /> Copy
               </button>

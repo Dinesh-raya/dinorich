@@ -473,8 +473,8 @@ input[type="number"] {
 
 /* Board tile text sizes — tighter on small screens */
 @media (max-width: 768px) {
-  .text-board-tile { font-size: 7px; line-height: 1.1; }
-  .text-board-price { font-size: 6px; line-height: 1; }
+  .text-board-tile { font-size: 8px; line-height: 1.1; }
+  .text-board-price { font-size: 7px; line-height: 1; }
   .text-board-icon { font-size: 10px; }
 
   /* Larger touch-friendly text for important UI */
@@ -499,12 +499,12 @@ input[type="number"] {
 }
 
 .text-tile-name {
-  font-size: clamp(6px, calc(var(--cell) * 0.22), 12px);
+  font-size: clamp(7px, calc(var(--cell) * 0.22), 12px);
   line-height: 1.1;
 }
 
 .text-tile-price {
-  font-size: clamp(5px, calc(var(--cell) * 0.18), 10px);
+  font-size: clamp(6px, calc(var(--cell) * 0.18), 10px);
   line-height: 1;
 }
 
@@ -515,4 +515,13 @@ input[type="number"] {
 
 .color-bar {
   height: calc(var(--cell) * 0.18);
+}
+
+/* ====== Reduced Motion ====== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

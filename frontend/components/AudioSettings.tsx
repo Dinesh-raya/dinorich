@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { soundManager } from '../utils/audio';
 
 interface AudioSettingsProps {
@@ -33,10 +33,11 @@ export const AudioSettings = ({ isOpen, onClose }: AudioSettingsProps) => {
     soundManager.playButtonClick();
   };
 
-  if (!isOpen) return null;
-
   return (
+    <AnimatePresence>
+      {isOpen && (
     <motion.div
+      key="audio-settings"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -69,6 +70,9 @@ export const AudioSettings = ({ isOpen, onClose }: AudioSettingsProps) => {
               </div>
               <button
                 onClick={handleSoundToggle}
+                role="switch"
+                aria-checked={soundEnabled}
+                aria-label="Sound effects"
                 className={`relative w-14 h-8 rounded-full transition-colors ${soundEnabled ? 'bg-accent-500' : 'bg-surface'}`}
               >
                 <motion.div
@@ -169,5 +173,7 @@ export const AudioSettings = ({ isOpen, onClose }: AudioSettingsProps) => {
         </div>
       </motion.div>
     </motion.div>
+      )}
+    </AnimatePresence>
   );
 };

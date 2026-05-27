@@ -38,7 +38,7 @@ export const TurnPanel = ({
     <div
       className={
         isMobile
-          ? "fixed bottom-[calc(64px+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[92%] max-w-md z-30"
+          ? "fixed bottom-[calc(72px+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[92%] max-w-md z-30"
           : "absolute bottom-4 left-1/2 -translate-x-1/2 w-[92%] max-w-md mx-auto z-10"
       }
     >

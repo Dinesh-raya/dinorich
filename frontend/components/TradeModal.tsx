@@ -307,7 +307,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                           <button
                             type="button"
                             onClick={() => setOfferingMoney(Math.max(0, offeringMoney - 1000))}
-                            className="w-8 h-8 rounded bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[32px]"
+                            className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[44px]"
                           >
                             -
                           </button>
@@ -323,7 +323,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                           <button
                             type="button"
                             onClick={() => setOfferingMoney(Math.min(myPlayer.money, offeringMoney + 1000))}
-                            className="w-8 h-8 rounded bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[32px]"
+                            className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[44px]"
                           >
                             +
                           </button>
@@ -410,7 +410,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                           <button
                             type="button"
                             onClick={() => setRequestingMoney(Math.max(0, requestingMoney - 1000))}
-                            className="w-8 h-8 rounded bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[32px]"
+                            className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[44px]"
                           >
                             -
                           </button>
@@ -426,7 +426,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                           <button
                             type="button"
                             onClick={() => setRequestingMoney(Math.min(selectedPlayerData.money, requestingMoney + 1000))}
-                            className="w-8 h-8 rounded bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[32px]"
+                            className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[44px]"
                           >
                             +
                           </button>
@@ -673,7 +673,7 @@ export const TradeNotification = ({ trade, onAccept, onReject, onCounter }: Trad
         <div className="flex gap-2 mt-4">
           <motion.button
             onClick={onAccept}
-            className="flex-1 py-2 rounded-lg bg-success-500/20 text-success-400 font-bold text-sm border border-success-500/30 min-h-[36px]"
+            className="flex-1 py-2 rounded-lg bg-success-500/20 text-success-400 font-bold text-sm border border-success-500/30 min-h-[44px]"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
@@ -681,7 +681,7 @@ export const TradeNotification = ({ trade, onAccept, onReject, onCounter }: Trad
           </motion.button>
           <motion.button
             onClick={onCounter}
-            className="flex-1 py-2 rounded-lg bg-purple-500/20 text-purple-400 font-bold text-sm border border-purple-500/30 min-h-[36px]"
+            className="flex-1 py-2 rounded-lg bg-purple-500/20 text-purple-400 font-bold text-sm border border-purple-500/30 min-h-[44px]"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
@@ -689,7 +689,7 @@ export const TradeNotification = ({ trade, onAccept, onReject, onCounter }: Trad
           </motion.button>
           <motion.button
             onClick={onReject}
-            className="flex-1 py-2 rounded-lg bg-danger-500/20 text-danger-400 font-bold text-sm border border-danger-500/30 min-h-[36px]"
+            className="flex-1 py-2 rounded-lg bg-danger-500/20 text-danger-400 font-bold text-sm border border-danger-500/30 min-h-[44px]"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >

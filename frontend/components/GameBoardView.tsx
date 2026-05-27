@@ -1,3 +1,4 @@
+import type React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Copy, Share2, X, Menu, Handshake, Volume2, Settings, Save, Play, Pause, Users } from 'lucide-react';
 import { soundManager } from '../utils/audio';
@@ -80,7 +81,7 @@ export function GameBoardView({
   return (
     <div className="min-h-screen flex flex-col bg-background overflow-x-hidden">
       {/* Mobile Top Bar */}
-      <div className="lg:hidden flex items-center justify-between p-2 border-b border-white/10 bg-surface/50 backdrop-blur-sm">
+      <div className="lg:hidden flex items-center justify-between p-2 pt-[calc(0.5rem+env(safe-area-inset-top))] border-b border-white/10 bg-surface/50 backdrop-blur-sm">
         <button
           onClick={() => setShowMobileMenu(!showMobileMenu)}
           className="btn-gold-ghost p-2 rounded-lg min-h-[44px] min-w-[44px] active:scale-95 transition-transform"
@@ -233,6 +234,7 @@ export function GameBoardView({
       {/* Main Content - Fullscreen Board Layout */}
       <div className="flex-1 relative pb-16 lg:pb-0">
         {/* Mobile Sidebar (Drawer) */}
+        <AnimatePresence>
         {showMobileMenu && (
           <div className="lg:hidden fixed inset-0 z-40">
             <div
@@ -314,6 +316,7 @@ export function GameBoardView({
             </motion.div>
           </div>
         )}
+        </AnimatePresence>
 
         {/* Board - Centered Fullscreen */}
         <div className="absolute inset-0 flex items-center justify-center p-2 lg:p-4">
@@ -377,7 +380,7 @@ export function GameBoardView({
           transition={{ delay: 0.3, type: 'spring', damping: 25 }}
         >
           <div className="h-full overflow-y-auto scrollbar-hide rounded-xl opacity-90 hover:opacity-100 transition-all duration-300 hover:shadow-lg"
-            style={{ '--hover-glow': '0 0 15px rgba(212, 164, 55, 0.08)' } as any}
+            style={{ '--hover-glow': '0 0 15px rgba(212, 164, 55, 0.08)' } as React.CSSProperties}
           >
             <ErrorBoundary>
             <PlayerSidebar
@@ -417,7 +420,11 @@ export function GameBoardView({
                     navigator.share({
                       title: 'DINO-RICHUP',
                       text: `Join my game! Room code: ${room?.room_id}`,
-                    });
+                    }).catch(() => {});
+                  } else {
+                    navigator.clipboard.writeText(window.location.origin).then(() => {
+                      showToast('Link copied!', 'success');
+                    }).catch(() => {});
                   }
                 }}
                 className="btn-gold-ghost p-3 rounded-lg text-xs min-h-[44px] min-w-[44px] active:scale-95 transition-transform"

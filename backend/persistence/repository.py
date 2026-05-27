@@ -132,92 +132,95 @@ def delete_game(room_code: str):
 def purge_invalid_snapshots():
     """Purge any rooms or games that fail validation to prevent startup errors or desync."""
     conn = get_connection()
-    cursor = conn.cursor()
-    
-    rooms_to_delete = []
     try:
-        cursor.execute('SELECT room_code, state_json FROM rooms')
-        for row in cursor.fetchall():
-            room_code = row['room_code']
-            try:
-                RoomState.model_validate_json(row['state_json'])
-            except Exception as e:
-                logger.warning(f"Room {room_code} failed validation during purge: {e}. Marking for deletion.")
-                rooms_to_delete.append(room_code)
-    except Exception as e:
-        logger.error(f"Error checking rooms during purge: {e}", exc_info=True)
+        cursor = conn.cursor()
 
-    games_to_delete = []
-    try:
-        cursor.execute('SELECT room_code, state_json, turn_json FROM games')
-        for row in cursor.fetchall():
-            room_code = row['room_code']
-            try:
-                GameState.model_validate_json(row['state_json'])
-                TurnState.model_validate_json(row['turn_json'])
-            except Exception as e:
-                logger.warning(f"Game {room_code} failed validation during purge: {e}. Marking for deletion.")
-                games_to_delete.append(room_code)
-    except Exception as e:
-        logger.error(f"Error checking games during purge: {e}", exc_info=True)
+        rooms_to_delete = []
+        try:
+            cursor.execute('SELECT room_code, state_json FROM rooms')
+            for row in cursor.fetchall():
+                room_code = row['room_code']
+                try:
+                    RoomState.model_validate_json(row['state_json'])
+                except Exception as e:
+                    logger.warning(f"Room {room_code} failed validation during purge: {e}. Marking for deletion.")
+                    rooms_to_delete.append(room_code)
+        except Exception as e:
+            logger.error(f"Error checking rooms during purge: {e}", exc_info=True)
 
-    all_to_delete = list(set(rooms_to_delete + games_to_delete))
-    
-    if all_to_delete:
-        def _do_delete():
-            conn_write = get_connection()
-            try:
-                cursor_write = conn_write.cursor()
-                for room_code in all_to_delete:
-                    logger.info(f"Purging stale/invalid data for room {room_code}")
-                    cursor_write.execute('DELETE FROM games WHERE room_code = ?', (room_code,))
-                    cursor_write.execute('DELETE FROM rooms WHERE room_code = ?', (room_code,))
-                    cursor_write.execute('DELETE FROM sessions WHERE room_code = ?', (room_code,))
-                conn_write.commit()
-            except Exception as e:
-                logger.error(f"Failed to delete purged rows: {e}", exc_info=True)
-            finally:
-                conn_write.close()
-        with_db_lock(_do_delete)
-        
-    conn.close()
+        games_to_delete = []
+        try:
+            cursor.execute('SELECT room_code, state_json, turn_json FROM games')
+            for row in cursor.fetchall():
+                room_code = row['room_code']
+                try:
+                    GameState.model_validate_json(row['state_json'])
+                    TurnState.model_validate_json(row['turn_json'])
+                except Exception as e:
+                    logger.warning(f"Game {room_code} failed validation during purge: {e}. Marking for deletion.")
+                    games_to_delete.append(room_code)
+        except Exception as e:
+            logger.error(f"Error checking games during purge: {e}", exc_info=True)
+
+        all_to_delete = list(set(rooms_to_delete + games_to_delete))
+
+        if all_to_delete:
+            def _do_delete():
+                conn_write = get_connection()
+                try:
+                    cursor_write = conn_write.cursor()
+                    for room_code in all_to_delete:
+                        logger.info(f"Purging stale/invalid data for room {room_code}")
+                        cursor_write.execute('DELETE FROM games WHERE room_code = ?', (room_code,))
+                        cursor_write.execute('DELETE FROM rooms WHERE room_code = ?', (room_code,))
+                        cursor_write.execute('DELETE FROM sessions WHERE room_code = ?', (room_code,))
+                    conn_write.commit()
+                except Exception as e:
+                    logger.error(f"Failed to delete purged rows: {e}", exc_info=True)
+                finally:
+                    conn_write.close()
+            with_db_lock(_do_delete)
+    finally:
+        conn.close()
 
 def load_snapshot() -> Tuple[Dict[str, RoomState], Dict[str, GameState], Dict[str, TurnState], Dict[str, dict], Dict[str, dict]]:
     conn = get_connection()
-    cursor = conn.cursor()
-    
-    rooms = {}
-    games = {}
-    turns = {}
-    runtime_auctions = {}
-    runtime_trades = {}
-    
-    cursor.execute('SELECT room_code, state_json FROM rooms')
-    for row in cursor.fetchall():
-        try:
-            rooms[row['room_code']] = RoomState.model_validate_json(row['state_json'])
-        except Exception as e:
-            logger.error(f"Error loading room {row['room_code']}: {e}", exc_info=True)
+    try:
+        cursor = conn.cursor()
 
-    cursor.execute('SELECT room_code, state_json, turn_json, runtime_json FROM games')
-    for row in cursor.fetchall():
-        try:
-            games[row['room_code']] = GameState.model_validate_json(row['state_json'])
-            turns[row['room_code']] = TurnState.model_validate_json(row['turn_json'])
-            runtime_raw = row['runtime_json'] if row['runtime_json'] else '{}'
-            runtime = json.loads(runtime_raw)
-            if runtime.get("auction"):
-                runtime_auctions[row['room_code']] = runtime["auction"]
-            if runtime.get("trades"):
-                runtime_trades[row['room_code']] = {
-                    "trades": runtime["trades"],
-                    "player_trades": runtime.get("player_trades", {}),
-                }
-        except Exception as e:
-            logger.error(f"Error loading game {row['room_code']}: {e}", exc_info=True)
-            
-    conn.close()
-    return rooms, games, turns, runtime_auctions, runtime_trades
+        rooms = {}
+        games = {}
+        turns = {}
+        runtime_auctions = {}
+        runtime_trades = {}
+
+        cursor.execute('SELECT room_code, state_json FROM rooms')
+        for row in cursor.fetchall():
+            try:
+                rooms[row['room_code']] = RoomState.model_validate_json(row['state_json'])
+            except Exception as e:
+                logger.error(f"Error loading room {row['room_code']}: {e}", exc_info=True)
+
+        cursor.execute('SELECT room_code, state_json, turn_json, runtime_json FROM games')
+        for row in cursor.fetchall():
+            try:
+                games[row['room_code']] = GameState.model_validate_json(row['state_json'])
+                turns[row['room_code']] = TurnState.model_validate_json(row['turn_json'])
+                runtime_raw = row['runtime_json'] if row['runtime_json'] else '{}'
+                runtime = json.loads(runtime_raw)
+                if runtime.get("auction"):
+                    runtime_auctions[row['room_code']] = runtime["auction"]
+                if runtime.get("trades"):
+                    runtime_trades[row['room_code']] = {
+                        "trades": runtime["trades"],
+                        "player_trades": runtime.get("player_trades", {}),
+                    }
+            except Exception as e:
+                logger.error(f"Error loading game {row['room_code']}: {e}", exc_info=True)
+
+        return rooms, games, turns, runtime_auctions, runtime_trades
+    finally:
+        conn.close()
 
 
 def get_game_save_info(room_code: str) -> Optional[dict]:

@@ -1,5 +1,8 @@
+import logging
 from typing import Callable, Tuple
 from pydantic import ValidationError
+
+logger = logging.getLogger(__name__)
 from sockets.server import sio
 from rooms.manager import room_manager
 from engine.turn_manager import turn_manager
@@ -51,8 +54,9 @@ def _make_property_handler(action_fn: Callable, event_name: str, require_buy_pha
 
             try:
                 success, msg = action_fn(game, session_id, property_id)
-            except Exception as exc:
-                return {"status": "error", "message": f"Action failed: {exc}"}
+            except Exception:
+                logger.exception(f"Property action error for {sid}")
+                return {"status": "error", "message": "Property action failed. Please try again."}
 
             if not success:
                 return {"status": "error", "message": msg}

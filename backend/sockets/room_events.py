@@ -244,6 +244,10 @@ async def room_leave(sid):
                 import asyncio
                 from sockets.connection import handle_disconnect_timeout, _disconnect_tasks
                 session_manager.set_room_code(session_id, room_code)
+                # Cancel any existing disconnect task for this session to prevent duplicates
+                existing_task = _disconnect_tasks.get(session_id)
+                if existing_task and not existing_task.done():
+                    existing_task.cancel()
                 task = asyncio.create_task(handle_disconnect_timeout(sid, session_id, room_code))
                 _disconnect_tasks[session_id] = task
 

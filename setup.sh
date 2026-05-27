@@ -36,14 +36,20 @@ else
 fi
 echo ""
 
-# Install backend dependencies
+# Install backend dependencies (inside virtual environment)
 echo "[4/5] Installing backend dependencies..."
 cd backend
-python3 -m pip install -r requirements.txt
+if [ ! -d ".venv" ]; then
+    echo "Creating virtual environment..."
+    python3 -m venv .venv
+fi
+source .venv/bin/activate
+pip install -r requirements.txt
 if [ $? -ne 0 ]; then
     echo "ERROR: Failed to install Python dependencies"
     exit 1
 fi
+deactivate
 cd ..
 echo "Backend dependencies installed!"
 echo ""

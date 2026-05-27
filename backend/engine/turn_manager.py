@@ -37,7 +37,7 @@ class TurnManager:
 
         self.turn_states[room_code] = TurnState(
             active_player_id=first_player_id,
-            phase="roll",
+            phase=TurnPhase.ROLL,
             can_roll=True,
             can_end_turn=False,
             time_remaining=game_state.room.settings.turn_timer_seconds

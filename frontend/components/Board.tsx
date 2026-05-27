@@ -167,7 +167,7 @@ export const Board = () => {
     if (!game) return;
     const timers: ReturnType<typeof setTimeout>[] = [];
     for (const [pid, player] of Object.entries(game.room.players)) {
-      if ((player as any).is_bankrupt && !shakenPlayers.current.has(pid)) {
+      if (player.is_bankrupt && !shakenPlayers.current.has(pid)) {
         shakenPlayers.current.add(pid);
         setIsShaking(true);
         timers.push(setTimeout(() => setIsShaking(false), 500));

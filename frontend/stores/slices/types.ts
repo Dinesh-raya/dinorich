@@ -26,7 +26,6 @@ export interface RoomSettings {
   turn_timer_seconds: number;
   random_turn_order: boolean;
   jail_strict_mode: boolean;
-  bot_enabled: boolean;
   board_theme: string;
   mode: string;
   disconnect_timeout_seconds?: number;

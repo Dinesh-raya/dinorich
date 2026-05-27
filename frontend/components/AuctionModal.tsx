@@ -163,7 +163,7 @@ export const AuctionModal = () => {
 
   const isActive = !!auction && auction.active;
   const timeLeft = auction?.time_remaining ?? 0;
-  const amIParticipating = !!myId && auction?.participants.includes(myId) || false;
+  const amIParticipating = !!myId && (auction?.participants.includes(myId) ?? false);
   const currentHighestBidder = auction?.highest_bidder_id ?
     game?.room.players[auction.highest_bidder_id]?.name : 'No bids yet';
   const myMoney = myId ? (game?.room.players[myId]?.money || 0) : 0;
