@@ -7,6 +7,7 @@ import { useGameStore } from '../stores/gameStore';
 
 export interface TurnPanelProps {
   isMobile: boolean;
+  cellSize?: number;
   turn: any;
   myId: string | null;
   game: any;
@@ -20,6 +21,7 @@ export interface TurnPanelProps {
 
 export const TurnPanel = ({
   isMobile,
+  cellSize: _cellSize = 44,
   turn,
   myId,
   game,
@@ -36,8 +38,8 @@ export const TurnPanel = ({
     <div
       className={
         isMobile
-          ? "absolute bottom-[76px] left-1/2 transform -translate-x-1/2 w-[92%] max-w-md z-30"
-          : "absolute bottom-4 left-1/2 transform -translate-x-1/2 w-[92%] max-w-md mx-auto z-10"
+          ? "fixed bottom-[calc(64px+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[92%] max-w-md z-30"
+          : "absolute bottom-4 left-1/2 -translate-x-1/2 w-[92%] max-w-md mx-auto z-10"
       }
     >
       {turn?.active_player_id === myId ? (

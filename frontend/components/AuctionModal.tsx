@@ -209,7 +209,7 @@ export const AuctionModal = () => {
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.8, y: 50, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="panel-dark p-3 sm:p-8 rounded-2xl sm:rounded-3xl w-[calc(100vw-2rem)] sm:w-full max-w-2xl max-h-[90vh] overflow-y-auto border-2 border-gold-500/30 shadow-2xl gold-glow-strong"
+            className="panel-dark p-3 sm:p-8 rounded-2xl sm:rounded-3xl w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto border-2 border-gold-500/30 shadow-2xl gold-glow-strong"
             drag="y"
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={0.2}

@@ -64,7 +64,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
           exit={{ opacity: 0 }}
         />
         <motion.div
-          className="relative bg-surface border-2 border-gold-500/30 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto overflow-hidden"
+          className="relative bg-surface border-2 border-gold-500/30 rounded-2xl shadow-2xl w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto overflow-hidden"
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}

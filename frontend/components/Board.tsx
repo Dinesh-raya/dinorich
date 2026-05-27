@@ -9,18 +9,17 @@ import { BoardTile } from './BoardTile';
 import { CenterGameLog } from './CenterGameLog';
 import { TurnPanel } from './TurnPanel';
 
-// Hook: detect mobile viewport (below lg breakpoint)
-const useIsMobile = () => {
-  const [isMobile, setIsMobile] = useState(
-    typeof window !== 'undefined' ? window.innerWidth < 1024 : false
-  );
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 1023px)');
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
-  return isMobile;
+// Calculate board cell size based on viewport dimensions
+const calculateCellSize = (): number => {
+  if (typeof window === 'undefined') return 44;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  if (vw < 1024) {
+    // Mobile: board fills width with 8px padding each side
+    return Math.floor((vw - 16) / 11);
+  }
+  // Desktop: board capped by height and width, leaving room for sidebar/header
+  return Math.floor(Math.min(vh - 120, vw - 320) / 11);
 };
 
 import boardData from '../../shared/configs/board_config.json';
@@ -79,25 +78,20 @@ const getTileIcon = (tile: any) => {
 
 export const Board = () => {
   const { game, myId, turn, diceResult, moneyChange, pendingAction } = useGameStore();
-  const isMobile = useIsMobile();
   const [isRolling, setIsRolling] = useState(false);
   const [diceValues, setDiceValues] = useState({ die1: 1, die2: 1 });
   const [isMoving, setIsMoving] = useState(false);
   const [selectedTile, setSelectedTile] = useState<number | null>(null);
   const [landingTile, setLandingTile] = useState<number | null>(null);
-  const [boardZoom, setBoardZoom] = useState(1);
   const [isShaking, setIsShaking] = useState(false);
 
-  // Compute mobile cell size dynamically so board fits any phone width
-  const [mobileCellSize, setMobileCellSize] = useState(() =>
-    typeof window !== 'undefined' ? Math.floor((window.innerWidth - 16) / 11) : 44
-  );
+  // Fluid cell size — recalculates on resize
+  const [cellSize, setCellSize] = useState(calculateCellSize);
   useEffect(() => {
-    if (!isMobile) return;
-    const recalc = () => setMobileCellSize(Math.floor((window.innerWidth - 16) / 11));
+    const recalc = () => setCellSize(calculateCellSize());
     window.addEventListener('resize', recalc);
     return () => window.removeEventListener('resize', recalc);
-  }, [isMobile]);
+  }, []);
   const shakenPlayers = useRef(new Set<string>());
   const viewportRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef(game);
@@ -206,48 +200,23 @@ export const Board = () => {
 
   if (!game) return null;
 
+  const isMobile = cellSize < 40;
+
   return (
     <div ref={viewportRef} className={`flex-1 flex items-center justify-center p-1 lg:p-4 relative board-container ${isShaking ? 'animate-shake' : ''}`}>
-      {/* Mobile Zoom Toggle */}
-      <motion.button
-        className="lg:hidden absolute top-2 right-2 z-30 w-10 h-10 rounded-xl bg-surface/80 border border-gold-500/30 text-gold-500 flex items-center justify-center backdrop-blur-sm shadow-lg"
-        onClick={() => setBoardZoom(prev => prev === 1 ? 1.5 : 1)}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        title={boardZoom === 1 ? 'Zoom In' : 'Zoom Out'}
-      >
-        <span className="text-lg">{boardZoom === 1 ? '🔍' : '🔎'}</span>
-      </motion.button>
-
       <motion.div
-        drag={isMobile || boardZoom > 1}
-        dragConstraints={viewportRef}
-        dragElastic={0.1}
-        animate={{
-          scale: boardZoom,
-          x: boardZoom === 1 ? 0 : undefined,
-          y: boardZoom === 1 ? 0 : undefined,
-        }}
-        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+        className="relative grid border-2 border-gold-500/30 shadow-2xl rounded-2xl overflow-visible"
         style={{
-          transformOrigin: 'center center',
-        }}
-        className="flex items-center justify-center touch-none w-full h-full"
-      >
-      <motion.div
-        className="relative grid border-2 border-gold-500/30 shadow-2xl rounded-2xl overflow-hidden"
-        style={{
-          gridTemplateColumns: `repeat(11, ${isMobile ? `${mobileCellSize}px` : 'minmax(44px, 1fr)'})`,
-          gridTemplateRows: `repeat(11, ${isMobile ? `${mobileCellSize}px` : 'minmax(44px, 1fr)'})`,
+          '--cell': `${cellSize}px`,
+          gridTemplateColumns: 'repeat(11, var(--cell))',
+          gridTemplateRows: 'repeat(11, var(--cell))',
           aspectRatio: '1/1',
-          width: isMobile ? `${mobileCellSize * 11}px` : '100%',
-          maxWidth: isMobile ? `${mobileCellSize * 11}px` : 'min(calc(100vh - 160px), calc(100vw - 16px))',
-          maxHeight: 'calc(100vh - 160px)',
-          ['--board-max' as any]: 'min(calc(100vh - 160px), calc(100vw - 16px))',
+          width: `${cellSize * 11}px`,
+          maxWidth: `${cellSize * 11}px`,
           position: 'relative',
           background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%)',
           boxShadow: '0 0 60px rgba(34, 211, 238, 0.1), 0 0 120px rgba(168, 85, 247, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
-        }}
+        } as React.CSSProperties}
         variants={animations.fadeIn}
         initial="hidden"
         animate="visible"
@@ -273,6 +242,7 @@ export const Board = () => {
           currentPlayerId={turn?.active_player_id}
           isMoving={isMoving}
           onMoveComplete={handleMoveComplete}
+          cellSize={cellSize}
         />
 
         {/* Center Area */}
@@ -356,6 +326,7 @@ export const Board = () => {
           {!isMobile && (
             <TurnPanel
               isMobile={false}
+              cellSize={cellSize}
               turn={turn}
               myId={myId}
               game={game}
@@ -388,7 +359,7 @@ export const Board = () => {
               pos={getGridPosition(tile.id)}
               isCorner={isCorner}
               isSide={isSide}
-              isMobile={isMobile}
+              cellSize={cellSize}
               ownerId={ownerId}
               houses={propState?.houses || 0}
               hotels={propState?.hotels || 0}
@@ -407,12 +378,12 @@ export const Board = () => {
         })}
 
       </motion.div>
-      </motion.div>
 
       {/* Mobile-only viewport turn panel */}
       {isMobile && (
         <TurnPanel
           isMobile={true}
+          cellSize={cellSize}
           turn={turn}
           myId={myId}
           game={game}

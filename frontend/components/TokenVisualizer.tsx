@@ -16,6 +16,7 @@ interface TokenVisualizerProps {
   currentPlayerId?: string;
   isMoving?: boolean;
   onMoveComplete?: () => void;
+  cellSize?: number;
 }
 
 // Get grid position matching Board.tsx logic
@@ -31,8 +32,10 @@ export const TokenVisualizer = ({
   players,
   currentPlayerId,
   isMoving = false,
-  onMoveComplete
+  onMoveComplete,
+  cellSize = 44
 }: TokenVisualizerProps) => {
+  const tokenScale = cellSize < 35 ? 0.6 : 0.7;
   const [highlightedPlayer, setHighlightedPlayer] = useState<string | null>(null);
 
   // Handle movement animation
@@ -50,7 +53,7 @@ export const TokenVisualizer = ({
   const getPlayerOffset = (playerIndex: number, totalOnTile: number) => {
     if (totalOnTile <= 1) return { x: 0, y: 0 };
 
-    const radius = 20;
+    const radius = cellSize * 0.15;
     const angle = (playerIndex / totalOnTile) * Math.PI * 2;
 
     return {
@@ -95,8 +98,8 @@ export const TokenVisualizer = ({
                   style={{
                     left: `calc(50% + ${offset.x}px)`,
                     top: `calc(50% + ${offset.y}px)`,
-                    width: isCurrent ? '40px' : '36px',
-                    height: isCurrent ? '40px' : '36px',
+                    width: `${cellSize * tokenScale}px`,
+                    height: `${cellSize * tokenScale}px`,
                     backgroundColor: player.color,
                     transform: 'translate(-50%, -50%)',
                     zIndex: isCurrent ? 50 : 40,

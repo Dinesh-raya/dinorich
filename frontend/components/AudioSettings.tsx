@@ -47,7 +47,7 @@ export const AudioSettings = ({ isOpen, onClose }: AudioSettingsProps) => {
         animate={{ scale: 1, y: 0, opacity: 1 }}
         exit={{ scale: 0.8, y: 50, opacity: 0 }}
         transition={{ type: 'spring', damping: 25 }}
-        className="panel-dark p-5 sm:p-8 rounded-2xl sm:rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto border-2 border-gold-500/30 shadow-2xl"
+        className="panel-dark p-5 sm:p-8 rounded-2xl sm:rounded-3xl w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto border-2 border-gold-500/30 shadow-2xl"
       >
         <div className="flex items-center justify-between mb-6 sm:mb-8">
           <h2 className="font-cyber text-xl sm:text-2xl font-bold text-gold-500">Audio Settings</h2>

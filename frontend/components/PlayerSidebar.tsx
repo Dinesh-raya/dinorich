@@ -157,7 +157,7 @@ export const PlayerSidebar = ({
       </div>
 
       {/* Players list */}
-      <div className="overflow-y-auto max-h-[500px]">
+      <div className="overflow-y-auto max-h-[calc(100dvh-200px)]">
         <AnimatePresence mode="popLayout">
           {sortedPlayers.map((player, index) => {
             const isCurrent = player.id === currentPlayerId;

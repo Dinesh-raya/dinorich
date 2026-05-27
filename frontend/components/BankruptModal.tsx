@@ -33,7 +33,7 @@ export const BankruptModal = ({ isOpen, playerName, creditorName, onClose }: Ban
 
           {/* Modal */}
           <motion.div
-            className="relative w-full max-w-md rounded-2xl border-2 border-danger-500/30 p-6 sm:p-8 text-center max-h-[90vh] overflow-y-auto"
+            className="relative w-[95vw] max-w-lg rounded-2xl border-2 border-danger-500/30 p-6 sm:p-8 text-center max-h-[90vh] overflow-y-auto"
             style={{
               background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 20, 40, 0.98) 100%)',
               boxShadow: '0 0 60px rgba(239, 68, 68, 0.2), 0 0 120px rgba(239, 68, 68, 0.1)'
@@ -152,7 +152,7 @@ export const GameOverModal = ({ isOpen, winnerName, isWinner, standings, onClose
 
           {/* Modal */}
           <motion.div
-            className="relative w-full max-w-lg rounded-2xl border-2 border-gold-500/30 p-6 sm:p-8 text-center max-h-[90vh] overflow-y-auto"
+            className="relative w-[95vw] max-w-lg rounded-2xl border-2 border-gold-500/30 p-6 sm:p-8 text-center max-h-[90vh] overflow-y-auto"
             style={{
               background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 20, 60, 0.98) 100%)',
               boxShadow: '0 0 60px rgba(168, 85, 247, 0.2), 0 0 120px rgba(168, 85, 247, 0.1)'

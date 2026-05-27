@@ -44,7 +44,7 @@ export const CenterGameLog = ({ historyLog }: { historyLog: string[] }) => {
   if (historyLog.length === 0) return null;
 
   return (
-    <div className="absolute bottom-[42%] left-1/2 transform -translate-x-1/2 w-[85%] max-w-xs z-[5] pointer-events-none">
+    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-[85%] max-w-xs z-[5] pointer-events-none">
       <div className="text-[9px] text-gold-500/40 font-cyber tracking-widest uppercase mb-1 px-2">
         Activity
       </div>

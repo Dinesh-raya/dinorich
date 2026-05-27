@@ -67,7 +67,7 @@ export const CardDrawModal = () => {
         exit={{ opacity: 0 }}
       >
         <motion.div
-          className={`relative w-72 rounded-2xl border-2 ${cardStyle.border} overflow-hidden pointer-events-auto perspective-1000`}
+          className={`relative w-[95vw] max-w-lg rounded-2xl border-2 ${cardStyle.border} overflow-hidden pointer-events-auto perspective-1000`}
           style={{
             background: `linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 20, 60, 0.95) 100%)`,
             boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(168, 85, 247, 0.2)'

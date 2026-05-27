@@ -178,7 +178,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
 
           {/* Modal */}
           <motion.div
-            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border-2 border-gold-500/30"
+            className="relative w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border-2 border-gold-500/30"
             style={{
               background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 20, 60, 0.98) 100%)',
               boxShadow: '0 0 60px rgba(168, 85, 247, 0.15), 0 0 120px rgba(168, 85, 247, 0.05)'
@@ -618,7 +618,7 @@ export const TradeNotification = ({ trade, onAccept, onReject, onCounter }: Trad
 
   return (
     <motion.div
-      className="fixed bottom-24 right-2 sm:right-4 z-40 w-[calc(100vw-1rem)] sm:w-80 max-w-80"
+      className="fixed bottom-[calc(64px+env(safe-area-inset-bottom)+8px)] right-2 sm:right-4 z-40 w-[calc(100vw-1rem)] sm:w-80 max-w-80"
       initial={{ x: 320, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: 320, opacity: 0 }}
