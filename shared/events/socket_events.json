@@ -12,7 +12,8 @@
     "UPDATE_SETTINGS": "room:update_settings",
     "STATE_UPDATE": "room:state_update",
     "KICK_PLAYER": "room:kick_player",
-    "KICKED": "room:kicked"
+    "KICKED": "room:kicked",
+    "REMATCH": "room:rematch"
   },
   "GAME": {
     "START": "game:start",
@@ -72,5 +73,9 @@
     "FORCE_AUCTION": "qa:force_auction",
     "ADD_MONEY": "qa:add_money",
     "GET_STATE": "qa:get_state"
+  },
+  "CHAT": {
+    "QUICK": "chat:quick",
+    "QUICK_MESSAGE": "chat:quick_message"
   }
 }

@@ -5,7 +5,7 @@ from schemas.contracts import RoomCreatePayload, RoomJoinPayload, RoomUpdateSett
 from schemas.room import RoomStatus
 from services.session_manager import session_manager
 from services.rate_limiter import rate_limiter
-from sockets.events import ROOM_EVENTS
+from sockets.events import ROOM_EVENTS, GAME_EVENTS
 from sockets.helpers import get_room_code_or_error, persist_room, persist_game, require_session
 
 @sio.on('room:create')
@@ -333,4 +333,61 @@ async def room_kick_player(sid, data):
         )
 
         await persist_room(room_code)
+        return {"status": "success"}
+
+@sio.on('room:rematch')
+async def room_rematch(sid):
+    """Reset game state and return to waiting room. Only host can trigger."""
+    session = await require_session(sid, "room_rematch")
+    if not session:
+        return {"status": "error", "message": "Not authenticated"}
+    session_id = session["session_id"]
+    if not rate_limiter.allow(f"{session_id}:room_rematch"):
+        return {"status": "error", "message": "Too many requests"}
+
+    room_code = room_manager.get_player_room_code(session_id)
+    if not room_code:
+        return {"status": "error", "message": "Not in a room"}
+
+    async with room_manager.get_lock(room_code):
+        room = room_manager.get_room(room_code)
+        if not room:
+            return {"status": "error", "message": "Room not found"}
+        if room.host_id != session_id:
+            return {"status": "error", "message": "Only host can trigger rematch"}
+
+        # Reset room status back to waiting
+        room.status = RoomStatus.WAITING
+
+        # Clear game engine state
+        from engine.turn_manager import turn_manager
+        from engine.trade_manager import trade_manager
+        from engine.auction import auction_manager
+        from persistence import repository
+
+        turn_manager.games.pop(room_code, None)
+        turn_manager.turn_states.pop(room_code, None)
+        auction_manager.auctions.pop(room_code, None)
+        trade_manager.cleanup_room(room_code)
+
+        # Reset all player state while keeping them in the room
+        for player in list(room.players.values()):
+            player.properties_owned = []
+            player.money = room.settings.starting_cash
+            player.position = 0
+            player.is_bankrupt = False
+            player.is_in_jail = False
+            player.jail_turns = 0
+            player.get_out_of_jail_cards = 0
+            player.goojf_sources = []
+            player.connected = True
+
+        # Broadcast the reset room state to all players
+        await sio.emit(
+            ROOM_EVENTS["STATE_UPDATE"],
+            room.model_dump(),
+            room=room_code
+        )
+        await persist_room(room_code)
+        repository.delete_game(room_code)
         return {"status": "success"}

@@ -324,6 +324,7 @@ export const Board = () => {
 
           {/* Center cell turn panel (desktop only) */}
           {!isMobile && (
+            <div data-tutorial="turn-panel">
             <TurnPanel
               isMobile={false}
               cellSize={cellSize}
@@ -337,6 +338,7 @@ export const Board = () => {
               handleRollDice={handleRollDice}
               setIsRolling={setIsRolling}
             />
+            </div>
           )}
         </div>
 

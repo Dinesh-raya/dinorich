@@ -10,6 +10,8 @@ import { PlayerSidebar } from './PlayerSidebar';
 import { ErrorBoundary } from './ErrorBoundary';
 import { ReconnectOverlay } from './ReconnectOverlay';
 import { ToastContainer } from './Toast';
+import { Tutorial } from './Tutorial';
+import { QuickChat } from './QuickChat';
 import type { TradeOffer, GameState, RoomState } from '../stores/slices/types';
 import { mapPlayersForSidebar, type Standing } from '../src/utils/helpers';
 
@@ -134,7 +136,7 @@ export function GameBoardView({
             </div>
           </div>
 
-          <div className="panel-dark px-4 py-2 rounded-xl flex items-center gap-2">
+          <div data-tutorial="money" className="panel-dark px-4 py-2 rounded-xl flex items-center gap-2">
             <div className="flex flex-col">
               <span className="text-text-muted text-[10px] font-cyber tracking-wider uppercase">Money</span>
               <span className="text-success-400 font-bold font-cyber text-sm">{'\u20B9'}{myMoney ?? 0}</span>
@@ -343,7 +345,7 @@ export function GameBoardView({
         </AnimatePresence>
 
         {/* Board - Centered Fullscreen */}
-        <div className="absolute inset-0 flex items-center justify-center p-2 lg:p-4">
+        <div data-tutorial="board" className="absolute inset-0 flex items-center justify-center p-2 lg:p-4">
           <ErrorBoundary>
             <Board />
           </ErrorBoundary>
@@ -403,7 +405,7 @@ export function GameBoardView({
           animate={{ x: 0, opacity: 1 }}
           transition={{ delay: 0.3, type: 'spring', damping: 25 }}
         >
-          <div className="h-full overflow-y-auto scrollbar-hide rounded-xl opacity-90 hover:opacity-100 transition-all duration-300 hover:shadow-lg"
+          <div data-tutorial="sidebar" className="h-full overflow-y-auto scrollbar-hide rounded-xl opacity-90 hover:opacity-100 transition-all duration-300 hover:shadow-lg"
             style={{ '--hover-glow': '0 0 15px rgba(212, 164, 55, 0.08)' } as React.CSSProperties}
           >
             <ErrorBoundary>
@@ -593,6 +595,12 @@ export function GameBoardView({
         />
       )}
       </Suspense>
+
+      {/* First-time tutorial overlay */}
+      <Tutorial />
+
+      {/* Quick chat floating messages + button */}
+      {game && room && <QuickChat />}
     </div>
   );
 }
