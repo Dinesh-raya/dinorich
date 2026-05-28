@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Dice5, MapPin, Building2, Layers, Bug } from 'lucide-react';
 import { useGameStore } from '../stores/gameStore';
@@ -61,6 +61,16 @@ interface QAPanelProps {
 
 export function QAPanel({ isOpen, onClose, game, room: _room }: QAPanelProps) {
   const { qaSetDice, qaJumpToTile, qaForceJail, qaSeedProperty, qaForceAuction, qaAddMoney } = useGameStore();
+
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   // Dice override state
   const [die1, setDie1] = useState(1);
@@ -191,7 +201,7 @@ export function QAPanel({ isOpen, onClose, game, room: _room }: QAPanelProps) {
                             <button
                               key={v}
                               onClick={() => setDie1(v)}
-                              className={`w-8 h-8 rounded-lg text-sm font-bold transition-all ${
+                              className={`w-11 h-11 min-h-[44px] min-w-[44px] rounded-lg text-sm font-bold transition-all ${
                                 die1 === v
                                   ? 'bg-purple-500/30 border border-purple-500 text-purple-300'
                                   : 'bg-surface/50 border border-white/10 text-text-muted hover:border-purple-500/30'
@@ -209,7 +219,7 @@ export function QAPanel({ isOpen, onClose, game, room: _room }: QAPanelProps) {
                             <button
                               key={v}
                               onClick={() => setDie2(v)}
-                              className={`w-8 h-8 rounded-lg text-sm font-bold transition-all ${
+                              className={`w-11 h-11 min-h-[44px] min-w-[44px] rounded-lg text-sm font-bold transition-all ${
                                 die2 === v
                                   ? 'bg-purple-500/30 border border-purple-500 text-purple-300'
                                   : 'bg-surface/50 border border-white/10 text-text-muted hover:border-purple-500/30'
@@ -223,7 +233,7 @@ export function QAPanel({ isOpen, onClose, game, room: _room }: QAPanelProps) {
                     </div>
                     <button
                       onClick={handleQueueDice}
-                      className="w-full py-2 rounded-xl bg-purple-500/20 border border-purple-500/30 text-purple-300 text-sm font-bold hover:bg-purple-500/30 transition-colors"
+                      className="w-full py-2 min-h-[44px] rounded-xl bg-purple-500/20 border border-purple-500/30 text-purple-300 text-sm font-bold hover:bg-purple-500/30 transition-colors"
                     >
                       Queue [{die1}, {die2}]
                     </button>
@@ -279,7 +289,7 @@ export function QAPanel({ isOpen, onClose, game, room: _room }: QAPanelProps) {
                         <button
                           onClick={handleJumpToTile}
                           disabled={!selectedPlayer}
-                          className="px-3 py-2 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-bold hover:bg-purple-500/30 transition-colors disabled:opacity-40"
+                          className="px-3 py-2 min-h-[44px] rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-bold hover:bg-purple-500/30 transition-colors disabled:opacity-40"
                         >
                           Jump
                         </button>
@@ -301,14 +311,14 @@ export function QAPanel({ isOpen, onClose, game, room: _room }: QAPanelProps) {
                         <button
                           onClick={handleAddMoney}
                           disabled={!selectedPlayer}
-                          className="px-3 py-2 rounded-lg bg-success-500/20 border border-success-500/30 text-success-400 text-xs font-bold hover:bg-success-500/30 transition-colors disabled:opacity-40"
+                          className="px-3 py-2 min-h-[44px] rounded-lg bg-success-500/20 border border-success-500/30 text-success-400 text-xs font-bold hover:bg-success-500/30 transition-colors disabled:opacity-40"
                         >
                           + Add
                         </button>
                         <button
                           onClick={handleRemoveMoney}
                           disabled={!selectedPlayer}
-                          className="px-3 py-2 rounded-lg bg-danger-500/20 border border-danger-500/30 text-danger-400 text-xs font-bold hover:bg-danger-500/30 transition-colors disabled:opacity-40"
+                          className="px-3 py-2 min-h-[44px] rounded-lg bg-danger-500/20 border border-danger-500/30 text-danger-400 text-xs font-bold hover:bg-danger-500/30 transition-colors disabled:opacity-40"
                         >
                           - Remove
                         </button>
@@ -319,7 +329,7 @@ export function QAPanel({ isOpen, onClose, game, room: _room }: QAPanelProps) {
                     <button
                       onClick={handleForceJail}
                       disabled={!selectedPlayer}
-                      className="w-full py-2 rounded-xl bg-danger-500/20 border border-danger-500/30 text-danger-400 text-sm font-bold hover:bg-danger-500/30 transition-colors disabled:opacity-40"
+                      className="w-full py-2 min-h-[44px] rounded-xl bg-danger-500/20 border border-danger-500/30 text-danger-400 text-sm font-bold hover:bg-danger-500/30 transition-colors disabled:opacity-40"
                     >
                       Send to Jail
                     </button>
@@ -373,7 +383,7 @@ export function QAPanel({ isOpen, onClose, game, room: _room }: QAPanelProps) {
                         <button
                           onClick={handleSeedProperty}
                           disabled={selectedProperty === '' || !propertyOwner}
-                          className="px-3 py-2 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-bold hover:bg-purple-500/30 transition-colors disabled:opacity-40"
+                          className="px-3 py-2 min-h-[44px] rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-bold hover:bg-purple-500/30 transition-colors disabled:opacity-40"
                         >
                           Assign
                         </button>
@@ -384,7 +394,7 @@ export function QAPanel({ isOpen, onClose, game, room: _room }: QAPanelProps) {
                     <button
                       onClick={handleForceAuction}
                       disabled={selectedProperty === ''}
-                      className="w-full py-2 rounded-xl bg-warning-500/20 border border-warning-500/30 text-warning-400 text-sm font-bold hover:bg-warning-500/30 transition-colors disabled:opacity-40"
+                      className="w-full py-2 min-h-[44px] rounded-xl bg-warning-500/20 border border-warning-500/30 text-warning-400 text-sm font-bold hover:bg-warning-500/30 transition-colors disabled:opacity-40"
                     >
                       Force Auction
                     </button>

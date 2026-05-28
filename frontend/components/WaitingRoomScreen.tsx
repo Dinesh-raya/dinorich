@@ -148,6 +148,7 @@ export function WaitingRoomScreen({
               soundManager.playButtonClick();
               leaveGame();
             }}
+            aria-label="Leave the game room"
             className="btn-gold-ghost flex-1 py-4 rounded-xl border border-danger-500/30 text-danger-400 hover:bg-danger-500/10 min-h-[56px]"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -160,6 +161,7 @@ export function WaitingRoomScreen({
               soundManager.playButtonClick();
               setShowRoomSettings(true);
             }}
+            aria-label="Open room settings"
             className="btn-gold-ghost flex-1 py-4 rounded-xl min-h-[56px]"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -184,6 +186,7 @@ export function WaitingRoomScreen({
           {isHost && (
             <motion.button
               className="btn-gold flex-1 py-4 text-lg font-bold rounded-xl min-h-[56px]"
+              aria-label="Start the game"
               onClick={() => {
                 soundManager.playButtonClick();
                 soundManager.playGameStart();

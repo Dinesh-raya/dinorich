@@ -11,6 +11,16 @@ export const AudioSettings = ({ isOpen, onClose }: AudioSettingsProps) => {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [soundVolume, setSoundVolume] = useState(() => Math.round(soundManager.getVolume() * 100));
 
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   useEffect(() => {
     if (isOpen) {
       setSoundEnabled(soundManager.isSoundEnabled());
@@ -54,7 +64,7 @@ export const AudioSettings = ({ isOpen, onClose }: AudioSettingsProps) => {
           <h2 className="font-cyber text-xl sm:text-2xl font-bold text-gold-500">Audio Settings</h2>
           <button
             onClick={onClose}
-            className="btn-gold-ghost p-3 rounded-xl text-text-muted hover:text-white transition-colors"
+            className="btn-gold-ghost p-3 min-h-[44px] min-w-[44px] rounded-xl text-text-muted hover:text-white transition-colors"
           >
             ✕
           </button>
@@ -102,7 +112,7 @@ export const AudioSettings = ({ isOpen, onClose }: AudioSettingsProps) => {
 
             <button
               onClick={handleTestSound}
-              className="w-full py-3 bg-surface/50 rounded-xl text-white hover:bg-surface/70 transition-colors flex items-center justify-center gap-2"
+              className="w-full py-3 min-h-[44px] bg-surface/50 rounded-xl text-white hover:bg-surface/70 transition-colors flex items-center justify-center gap-2"
             >
               <span className="text-xl">🔊</span>
               Test Sound
@@ -119,7 +129,7 @@ export const AudioSettings = ({ isOpen, onClose }: AudioSettingsProps) => {
                   setSoundEnabled(true);
                   soundManager.setSoundEnabled(true);
                 }}
-                className="py-3 bg-gold-500/20 border border-gold-500/30 rounded-xl text-accent-300 hover:bg-accent-500/30 transition-colors"
+                className="py-3 min-h-[44px] bg-gold-500/20 border border-gold-500/30 rounded-xl text-accent-300 hover:bg-accent-500/30 transition-colors"
               >
                 Loud
               </button>
@@ -129,7 +139,7 @@ export const AudioSettings = ({ isOpen, onClose }: AudioSettingsProps) => {
                   setSoundEnabled(true);
                   soundManager.setSoundEnabled(true);
                 }}
-                className="py-3 bg-surface/50 border border-white/10 rounded-xl text-white hover:bg-surface/70 transition-colors"
+                className="py-3 min-h-[44px] bg-surface/50 border border-white/10 rounded-xl text-white hover:bg-surface/70 transition-colors"
               >
                 Balanced
               </button>
@@ -139,7 +149,7 @@ export const AudioSettings = ({ isOpen, onClose }: AudioSettingsProps) => {
                   setSoundEnabled(true);
                   soundManager.setSoundEnabled(true);
                 }}
-                className="py-3 bg-surface/50 border border-white/10 rounded-xl text-white hover:bg-surface/70 transition-colors"
+                className="py-3 min-h-[44px] bg-surface/50 border border-white/10 rounded-xl text-white hover:bg-surface/70 transition-colors"
               >
                 Quiet
               </button>
@@ -148,7 +158,7 @@ export const AudioSettings = ({ isOpen, onClose }: AudioSettingsProps) => {
                   setSoundEnabled(false);
                   soundManager.setSoundEnabled(false);
                 }}
-                className="py-3 bg-danger-500/20 border border-danger-500/30 rounded-xl text-danger-300 hover:bg-danger-500/30 transition-colors"
+                className="py-3 min-h-[44px] bg-danger-500/20 border border-danger-500/30 rounded-xl text-danger-300 hover:bg-danger-500/30 transition-colors"
               >
                 Mute All
               </button>
@@ -166,7 +176,7 @@ export const AudioSettings = ({ isOpen, onClose }: AudioSettingsProps) => {
         <div className="mt-8 flex gap-4">
           <button
             onClick={onClose}
-            className="flex-1 py-3 bg-surface/50 rounded-xl text-white hover:bg-surface/70 transition-colors"
+            className="flex-1 py-3 min-h-[44px] bg-surface/50 rounded-xl text-white hover:bg-surface/70 transition-colors"
           >
             Close
           </button>

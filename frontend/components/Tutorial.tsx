@@ -92,6 +92,16 @@ export function Tutorial() {
     soundManager.playButtonClick();
   }, []);
 
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, close]);
+
   const next = useCallback(() => {
     soundManager.playButtonClick();
     if (step < TUTORIAL_STEPS.length - 1) {

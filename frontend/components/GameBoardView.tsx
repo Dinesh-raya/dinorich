@@ -96,6 +96,8 @@ export function GameBoardView({
       <div className="lg:hidden flex items-center justify-between p-2 pt-[calc(0.5rem+env(safe-area-inset-top))] border-b border-white/10 bg-surface/50 backdrop-blur-sm">
         <button
           onClick={() => setShowMobileMenu(!showMobileMenu)}
+          aria-label={showMobileMenu ? 'Close menu' : 'Open menu'}
+          aria-expanded={showMobileMenu}
           className="btn-gold-ghost p-2 rounded-lg min-h-[44px] min-w-[44px] active:scale-95 transition-transform"
         >
           <Menu className="w-5 h-5" />
@@ -168,6 +170,7 @@ export function GameBoardView({
                 soundManager.playButtonClick();
                 setShowTradeModal(true);
               }}
+              aria-label="Open trade dialog"
               className="btn-gold-ghost px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 min-h-[36px]"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -191,6 +194,7 @@ export function GameBoardView({
                   soundManager.playButtonClick();
                   setShowQAPanel(true);
                 }}
+                aria-label="Open QA testing panel"
                 className="px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 min-h-[36px] bg-purple-500/10 border border-purple-500/30 text-purple-300 hover:bg-purple-500/20 transition-colors"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -210,6 +214,7 @@ export function GameBoardView({
                 soundManager.playButtonClick();
                 setShowAudioSettings(true);
               }}
+              aria-label="Open audio settings"
               className="btn-gold-ghost px-3 py-2 rounded-xl min-h-[36px]"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -222,6 +227,7 @@ export function GameBoardView({
                 soundManager.playButtonClick();
                 setShowRoomSettings(true);
               }}
+              aria-label="Open room settings"
               className="btn-gold-ghost px-3 py-2 rounded-xl min-h-[36px]"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -235,6 +241,7 @@ export function GameBoardView({
                   soundManager.playButtonClick();
                   saveGame();
                 }}
+                aria-label="Save game"
                 className="btn-gold-ghost px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 min-h-[36px] border border-gold-500/30"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -255,6 +262,7 @@ export function GameBoardView({
                   if (isPaused) resumeGame();
                   else pauseGame();
                 }}
+                aria-label={isPaused ? 'Resume game' : 'Pause game'}
                 className={`btn-gold-ghost px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 min-h-[36px] ${isPaused ? 'border border-success-500/50' : 'border border-warning-500/50'}`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -295,6 +303,7 @@ export function GameBoardView({
                   <h2 className="text-xl font-bold text-gold-500">Game Menu</h2>
                   <button
                     onClick={() => setShowMobileMenu(false)}
+                    aria-label="Close menu"
                     className="text-2xl text-text-muted"
                   >
                     <X className="w-5 h-5" />
@@ -488,6 +497,7 @@ export function GameBoardView({
             <div className="flex gap-1.5">
               <button
                 onClick={() => setShowMobileMenu(true)}
+                aria-label="Open players menu"
                 className="btn-gold-ghost p-3 rounded-xl min-h-[44px] min-w-[44px] active:scale-95 transition-transform"
               >
                 <Users className="w-5 h-5" />
@@ -498,6 +508,7 @@ export function GameBoardView({
                   soundManager.playButtonClick();
                   setShowTradeModal(true);
                 }}
+                aria-label="Open trade dialog"
                 className="btn-gold-ghost p-3 rounded-xl min-h-[44px] min-w-[44px] active:scale-95 transition-transform"
                 title="Trade"
               >
@@ -511,6 +522,7 @@ export function GameBoardView({
                     soundManager.playButtonClick();
                     setShowQAPanel(true);
                   }}
+                  aria-label="Open QA testing panel"
                   className="p-3 rounded-xl min-h-[44px] min-w-[44px] active:scale-95 transition-transform bg-purple-500/10 border border-purple-500/30 text-purple-300"
                   title="QA Testing Panel"
                 >
@@ -523,6 +535,7 @@ export function GameBoardView({
                   soundManager.playButtonClick();
                   setShowGameHistory(true);
                 }}
+                aria-label={`View game history, ${game.history_log.length} events`}
                 className="btn-gold-ghost p-3 rounded-xl min-h-[44px] min-w-[44px] active:scale-95 transition-transform relative"
                 title="Game History"
               >
@@ -538,6 +551,7 @@ export function GameBoardView({
                   soundManager.playButtonClick();
                   setShowAudioSettings(true);
                 }}
+                aria-label="Open audio settings"
                 className="btn-gold-ghost p-3 rounded-xl min-h-[44px] min-w-[44px] active:scale-95 transition-transform"
               >
                 <Volume2 className="w-5 h-5" />
@@ -548,6 +562,7 @@ export function GameBoardView({
                   soundManager.playButtonClick();
                   setShowRoomSettings(true);
                 }}
+                aria-label="Open room settings"
                 className="btn-gold-ghost p-3 rounded-xl min-h-[44px] min-w-[44px] active:scale-95 transition-transform"
               >
                 <Settings className="w-5 h-5" />
@@ -559,6 +574,7 @@ export function GameBoardView({
                     if (isPaused) resumeGame();
                     else pauseGame();
                   }}
+                  aria-label={isPaused ? 'Resume game' : 'Pause game'}
                   className={`btn-gold-ghost p-3 rounded-xl min-h-[44px] min-w-[44px] active:scale-95 transition-transform ${isPaused ? 'border border-success-500/50' : 'border border-warning-500/50'}`}
                   title={isPaused ? 'Resume Game' : 'Pause Game'}
                 >

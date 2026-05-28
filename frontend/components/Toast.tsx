@@ -40,7 +40,7 @@ export const ToastContainer = () => {
   }, []);
 
   return (
-    <div className="fixed top-16 sm:top-4 right-2 sm:right-4 z-50 flex flex-col gap-3 w-[calc(100vw-1rem)] sm:w-auto sm:max-w-sm">
+    <div className="fixed top-16 sm:top-4 right-2 sm:right-4 z-50 flex flex-col gap-3 w-[calc(100vw-1rem)] sm:w-auto sm:max-w-sm" role="status" aria-live="polite" aria-label="Notifications">
       <AnimatePresence>
         {toasts.map(toast => (
           <ToastItem key={toast.id} toast={toast} onRemove={removeToast} />

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { GameState } from '../../stores/slices/types';
 import { calculateStandings, type Standing } from '../utils/helpers';
+import { recordGameEnd } from '../../utils/playerProfile';
 
 // Custom hook for Bankruptcy and Game Over detection
 export function useBankruptcyAndGameOver(
@@ -45,6 +46,19 @@ export function useBankruptcyAndGameOver(
       const standings = calculateStandings(players, game);
       setGameStandings(standings);
       setShowGameOverModal(true);
+
+      // Record stats for the current player
+      const me = players[myId!];
+      if (me) {
+        const isWinner = winner.id === myId;
+        const myStanding = standings.find(s => s.id === myId);
+        recordGameEnd(
+          isWinner,
+          myStanding?.money ?? me.money,
+          me.properties_owned?.length ?? 0,
+          me.jail_turns ?? 0
+        );
+      }
     }
   }, [game, myId, setBankruptPlayer, setShowBankruptModal, setGameWinner, setGameStandings, setShowGameOverModal]);
 }

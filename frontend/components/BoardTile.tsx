@@ -52,6 +52,10 @@ export const BoardTile = memo(({
       className={`flex flex-col relative overflow-hidden cursor-pointer ${
         isCorner ? 'p-1.5 justify-center items-center' : ''
       } ${hasMonopolyOnTile ? 'monopoly-glow' : ''}`}
+      role="button"
+      tabIndex={0}
+      aria-label={`${tile.name}${ownerId ? `, owned by ${playerName}` : ''}${isMortgaged ? ', mortgaged' : ''}${houses > 0 ? `, ${houses} house${houses > 1 ? 's' : ''}` : ''}${hotels > 0 ? ', hotel' : ''}`}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onTileClick(tile.id); } }}
       style={{
         ...pos,
         border: isCorner
@@ -211,7 +215,8 @@ export const BoardTile = memo(({
         {/* Owner indicator */}
         {ownerId && ownerIcon && (
           <div className={`absolute ${isCompact ? 'top-0 right-0 text-sm' : 'top-0.5 right-0.5 text-[10px]'} z-20 drop-shadow-lg`}
-            title={`Owned by ${playerName}`}>
+            title={`Owned by ${playerName}`}
+            aria-label={`Owned by ${playerName}`}>
             {ownerIcon}
           </div>
         )}
@@ -221,6 +226,7 @@ export const BoardTile = memo(({
           <motion.div
             className={`absolute top-0.5 left-0.5 ${isCompact ? 'w-2.5 h-2.5' : 'w-3 h-3 md:w-4 md:h-4'} bg-gray-700 rounded-full border border-white/50 shadow-lg z-20 flex items-center justify-center`}
             title="Mortgaged"
+            aria-label="Mortgaged"
             variants={animations.scaleIn}
           >
             <span className={`text-white ${isCompact ? 'text-[8px]' : 'text-xs'} font-bold`}>M</span>

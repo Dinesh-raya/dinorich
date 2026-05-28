@@ -212,12 +212,13 @@ export const TurnPanel = ({
                   textShadow: '0 1px 0 rgba(255,255,255,0.1)',
                   letterSpacing: '0.1em',
                 }}
+                aria-label={myId && game.room.players[myId]?.is_in_jail ? 'Roll for doubles to escape jail' : 'Roll dice'}
                 onClick={() => { hapticFeedback('medium'); handleRollDice(); }}
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 disabled={isRolling || !!pendingAction}
               >
-                <span className="text-sm md:text-lg">🎲</span>
+                <span className="text-sm md:text-lg" aria-hidden="true">🎲</span>
                 {myId && game.room.players[myId]?.is_in_jail ? 'ROLL FOR DOUBLES' : 'ROLL DICE'}
               </motion.button>
             )}
@@ -225,6 +226,7 @@ export const TurnPanel = ({
             {turn.can_end_turn && !turn.in_debt && (
               <motion.button
                 className="w-full py-2.5 btn-gold-ghost font-bold text-sm rounded-xl border border-gold-500/30 min-h-[44px] active:scale-[0.97] transition-transform"
+                aria-label="End your turn"
                 onClick={() => {
                   hapticFeedback('light');
                   soundManager.playButtonClick();
@@ -280,6 +282,8 @@ export const TurnPanel = ({
               <motion.div
                 className="mt-1 text-center"
                 variants={animations.fadeIn}
+                role="group"
+                aria-label="Property purchase options"
               >
                 <p className="text-text-muted text-xs md:text-sm mb-2">Buy this property?</p>
                 <div className="flex gap-2">
@@ -290,6 +294,7 @@ export const TurnPanel = ({
                       border: '1px solid rgba(34, 197, 94, 0.3)',
                       color: '#86efac',
                     }}
+                    aria-label="Buy this property"
                     onClick={() => {
                       hapticFeedback('medium');
                       const me = game.room.players[myId!];
@@ -304,6 +309,7 @@ export const TurnPanel = ({
                   {game.room.settings?.auction_enabled !== false && (
                     <motion.button
                       className="flex-1 py-2.5 btn-gold-ghost font-bold text-sm rounded-xl min-h-[44px] border border-gold-500/20 active:scale-[0.97] transition-transform"
+                      aria-label="Start auction for this property"
                       onClick={() => {
                         const me = game.room.players[myId!];
                         soundManager.playAuctionBid();

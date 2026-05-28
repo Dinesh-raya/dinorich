@@ -9,7 +9,7 @@ export function ReconnectOverlay({ connected, hasRoom }: ReconnectOverlayProps) 
   if (connected || !hasRoom) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-md" role="alert" aria-live="assertive">
       <motion.div
         className="panel-dark p-8 rounded-3xl border-2 border-danger-500/30 max-w-sm w-full text-center shadow-2xl mx-4"
         initial={{ opacity: 0, scale: 0.9 }}

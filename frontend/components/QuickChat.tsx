@@ -145,6 +145,8 @@ export function QuickChat() {
             soundManager.playButtonClick();
             setIsExpanded(!isExpanded);
           }}
+          aria-label={isExpanded ? 'Close quick chat' : 'Open quick chat'}
+          aria-expanded={isExpanded}
           className="w-12 h-12 rounded-full bg-surface border border-gold-500/30 text-gold-500 flex items-center justify-center shadow-lg hover:border-gold-500/60 transition-colors min-h-[44px] min-w-[44px]"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}

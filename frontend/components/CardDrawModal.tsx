@@ -68,6 +68,9 @@ export const CardDrawModal = () => {
       >
         <motion.div
           className={`relative w-[95vw] max-w-lg rounded-2xl border-2 ${cardStyle.border} overflow-hidden pointer-events-auto perspective-1000`}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${card_type === 'treasury' ? 'Treasury' : 'Surprise'} card: ${card?.text ?? ''}`}
           style={{
             background: `linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 20, 60, 0.95) 100%)`,
             boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(168, 85, 247, 0.2)'

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../stores/gameStore';
 import { animations } from '../animations';
@@ -162,6 +162,18 @@ export const AuctionModal = () => {
   }, [auction?.current_bid]);
 
   const isActive = !!auction && auction.active;
+
+  // Close on Escape key
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape' && isActive) endAuction();
+  }, [isActive, endAuction]);
+
+  useEffect(() => {
+    if (isActive) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isActive, handleKeyDown]);
   const timeLeft = auction?.time_remaining ?? 0;
   const amIParticipating = !!myId && (auction?.participants.includes(myId) ?? false);
   const currentHighestBidder = auction?.highest_bidder_id ?
@@ -210,6 +222,9 @@ export const AuctionModal = () => {
             exit={{ scale: 0.8, y: 50, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="panel-dark p-3 sm:p-8 rounded-2xl sm:rounded-3xl w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto border-2 border-gold-500/30 shadow-2xl gold-glow-strong"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Auction for ${propertyName}`}
             drag="y"
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={0.2}
@@ -361,12 +376,13 @@ export const AuctionModal = () => {
                     
                     <motion.button
                       onClick={handleBid}
+                      aria-label={`Place bid of ${formatMoney(bidAmount)}`}
                       className="btn-gold w-full sm:w-auto px-6 py-3 text-base font-bold rounded-xl flex items-center justify-center gap-2 min-h-[44px]"
                       whileHover={{ scale: canAffordBid ? 1.02 : 1 }}
                       whileTap={{ scale: canAffordBid ? 0.98 : 1 }}
                       disabled={bidAmount <= auction.current_bid || bidAmount > myMoney}
                     >
-                      <span>⚡</span>
+                      <span aria-hidden="true">⚡</span>
                       PLACE BID
                     </motion.button>
                   </div>

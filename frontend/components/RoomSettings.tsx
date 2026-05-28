@@ -30,6 +30,16 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
   const { room, myId, updateRoomSettings, kickPlayer } = useGameStore();
   const [saving, setSaving] = useState(false);
 
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   // Default settings
   const defaultSettings: RoomSettingsType = {
     max_players: 6,
@@ -125,6 +135,9 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
             exit={{ scale: 0.9, y: 30, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border-2 border-purple-500/30 shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Room settings"
             style={{
               background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 20, 60, 0.98) 100%)',
               boxShadow: '0 0 60px rgba(168, 85, 247, 0.15), 0 0 120px rgba(168, 85, 247, 0.05)'
@@ -155,7 +168,8 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
 
                 <motion.button
                   onClick={onClose}
-                  className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-danger-400 hover:border-danger-500/30 transition-all flex items-center justify-center"
+                  aria-label="Close room settings"
+                  className="w-11 h-11 min-h-[44px] min-w-[44px] rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-danger-400 hover:border-danger-500/30 transition-all flex items-center justify-center"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                 >
@@ -329,7 +343,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                         <motion.button
                           key={seconds}
                           onClick={() => handleSettingChange('turn_timer_seconds', seconds)}
-                          className={`px-2.5 py-1.5 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                          className={`px-2.5 py-1.5 sm:px-3 min-h-[44px] rounded-lg text-xs sm:text-sm font-medium transition-all ${
                             settings.turn_timer_seconds === seconds
                               ? 'bg-purple-500/30 border border-purple-500 text-purple-300 shadow-lg shadow-purple-500/20'
                               : 'bg-surface/50 border border-white/10 text-text-muted hover:border-purple-500/30'

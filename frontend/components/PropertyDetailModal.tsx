@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useCallback } from 'react';
 import { useGameStore } from '../stores/gameStore';
 import { soundManager } from '../utils/audio';
 import boardData from '../../shared/configs/board_config.json';
@@ -39,6 +40,18 @@ const RENT_LABELS = ['Base', '1 House', '2 Houses', '3 Houses', '4 Houses', 'Hot
 export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProps) => {
   const { game, myId } = useGameStore();
 
+  // Close on Escape key
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') onClose();
+  }, [onClose]);
+
+  useEffect(() => {
+    if (tileId !== null) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [tileId, handleKeyDown]);
+
   const tileConfig = tileId !== null && game ? boardData.tiles.find((t: any) => t.id === tileId) : null;
   const propState = tileId !== null && game ? game.properties?.[tileId] : null;
   const owner = propState?.owner_id && game ? game.room.players[propState.owner_id] : null;
@@ -65,6 +78,9 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
         />
         <motion.div
           className="relative bg-surface border-2 border-gold-500/30 rounded-2xl shadow-2xl w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto overflow-hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Property details for ${tileConfig?.name || ''}`}
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
@@ -90,7 +106,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
             <button
               onClick={onClose}
               aria-label="Close"
-              className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-lg text-text-muted hover:text-white hover:bg-white/10 transition-colors text-xl"
+              className="absolute top-4 right-4 w-11 h-11 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-text-muted hover:text-white hover:bg-white/10 transition-colors text-xl"
             >
               ✕
             </button>
@@ -238,7 +254,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                 {game.room?.settings?.mortgage_enabled && (
                   propState.is_mortgaged ? (
                     <motion.button
-                      className="w-full py-2 px-4 bg-gold-500/20 border border-gold-500/30 rounded-xl text-accent-300 font-bold text-sm hover:bg-accent-500/30 transition-colors"
+                      className="w-full py-2 px-4 min-h-[44px] bg-gold-500/20 border border-gold-500/30 rounded-xl text-accent-300 font-bold text-sm hover:bg-accent-500/30 transition-colors"
                       onClick={() => {
                         soundManager.playButtonClick();
                         useGameStore.getState().unmortgageProperty(tileId);
@@ -250,7 +266,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                     </motion.button>
                   ) : (
                     <motion.button
-                      className="w-full py-2 px-4 bg-warning-500/20 border border-warning-500/30 rounded-xl text-warning-300 font-bold text-sm hover:bg-warning-500/30 transition-colors"
+                      className="w-full py-2 px-4 min-h-[44px] bg-warning-500/20 border border-warning-500/30 rounded-xl text-warning-300 font-bold text-sm hover:bg-warning-500/30 transition-colors"
                       onClick={() => {
                         soundManager.playButtonClick();
                         useGameStore.getState().mortgageProperty(tileId);
@@ -277,7 +293,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                       {/* Build House */}
                       {propState.hotels === 0 && propState.houses < 4 && (
                         <motion.button
-                          className="flex-1 py-2 px-3 bg-success-500/20 border border-success-500/30 rounded-xl text-success-300 font-bold text-xs hover:bg-success-500/30 transition-colors"
+                          className="flex-1 py-2 px-3 min-h-[44px] bg-success-500/20 border border-success-500/30 rounded-xl text-success-300 font-bold text-xs hover:bg-success-500/30 transition-colors"
                           onClick={() => {
                             soundManager.playButtonClick();
                             useGameStore.getState().buildHouse(tileId);
@@ -292,7 +308,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                       {/* Build Hotel */}
                       {propState.houses === 4 && propState.hotels === 0 && (
                         <motion.button
-                          className="flex-1 py-2 px-3 bg-danger-500/20 border border-danger-500/30 rounded-xl text-danger-300 font-bold text-xs hover:bg-danger-500/30 transition-colors"
+                          className="flex-1 py-2 px-3 min-h-[44px] bg-danger-500/20 border border-danger-500/30 rounded-xl text-danger-300 font-bold text-xs hover:bg-danger-500/30 transition-colors"
                           onClick={() => {
                             soundManager.playButtonClick();
                             useGameStore.getState().buildHotel(tileId);
@@ -307,7 +323,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                       {/* Sell Hotel */}
                       {propState.hotels > 0 && (
                         <motion.button
-                          className="flex-1 py-2 px-3 bg-warning-500/20 border border-warning-500/30 rounded-xl text-warning-300 font-bold text-xs hover:bg-warning-500/30 transition-colors"
+                          className="flex-1 py-2 px-3 min-h-[44px] bg-warning-500/20 border border-warning-500/30 rounded-xl text-warning-300 font-bold text-xs hover:bg-warning-500/30 transition-colors"
                           onClick={() => {
                             soundManager.playButtonClick();
                             useGameStore.getState().sellHotel(tileId);
@@ -322,7 +338,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                       {/* Sell House */}
                       {propState.hotels === 0 && propState.houses > 0 && (
                         <motion.button
-                          className="flex-1 py-2 px-3 bg-warning-500/20 border border-warning-500/30 rounded-xl text-warning-300 font-bold text-xs hover:bg-warning-500/30 transition-colors"
+                          className="flex-1 py-2 px-3 min-h-[44px] bg-warning-500/20 border border-warning-500/30 rounded-xl text-warning-300 font-bold text-xs hover:bg-warning-500/30 transition-colors"
                           onClick={() => {
                             soundManager.playButtonClick();
                             useGameStore.getState().sellHouse(tileId);
@@ -344,7 +360,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
           <div className="p-4 border-t border-white/10">
             <button
               onClick={onClose}
-              className="w-full py-3 bg-gold-500/20 border border-gold-500/30 rounded-xl text-gold-500 font-bold hover:bg-primary-500/30 transition-colors"
+              className="w-full py-3 min-h-[44px] bg-gold-500/20 border border-gold-500/30 rounded-xl text-gold-500 font-bold hover:bg-primary-500/30 transition-colors"
             >
               Close
             </button>

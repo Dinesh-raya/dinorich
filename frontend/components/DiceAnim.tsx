@@ -150,7 +150,7 @@ export const DiceAnim = ({
 
   return (
     <div className="flex flex-col items-center gap-4">
-      <div className="flex items-center gap-5" role="img" aria-label={`Die 1: ${isRolling ? 'rolling' : displayDie1}, Die 2: ${isRolling ? 'rolling' : displayDie2}${!isRolling ? `, total: ${displayDie1 + displayDie2}` : ''}`}>
+      <div className="flex items-center gap-5" role="img" aria-label={`Die 1: ${isRolling ? 'rolling' : displayDie1}, Die 2: ${isRolling ? 'rolling' : displayDie2}${!isRolling ? `, total: ${displayDie1 + displayDie2}` : ''}`} aria-live="polite">
         {/* Die 1 */}
         <motion.div
           className={`relative ${sizeClasses[size]} rounded-xl overflow-hidden border-2`}

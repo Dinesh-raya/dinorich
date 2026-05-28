@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { animations } from '../animations';
 import { useState, useMemo, useEffect } from 'react';
 import { formatMoneyShort } from '../utils/format';
+import { loadAvatar } from '../utils/playerProfile';
 
 // Map color hex to icon
 const COLOR_ICONS: Record<string, string> = {
@@ -46,6 +47,7 @@ export const PlayerSidebar = ({
 }: PlayerSidebarProps) => {
   const [expandedPlayer, setExpandedPlayer] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'money' | 'name' | 'position'>('money');
+  const myAvatar = loadAvatar();
 
   // Collapse expanded panel if the player is no longer in the game or has disconnected/gone bankrupt
   useEffect(() => {
@@ -126,10 +128,12 @@ export const PlayerSidebar = ({
           </div>
           
           {/* Sort controls */}
-          <div className="flex gap-1 bg-surface/50 rounded-lg p-1">
+          <div className="flex gap-1 bg-surface/50 rounded-lg p-1" role="group" aria-label="Sort players by">
             {(['money', 'name', 'position'] as const).map((sortType) => (
               <button
                 key={sortType}
+                aria-label={`Sort by ${sortType}`}
+                aria-pressed={sortBy === sortType}
                 className={`px-3 py-2 text-xs rounded-md transition-colors min-h-[44px] ${sortBy === sortType ? 'bg-primary-500/30 text-gold-500' : 'text-text-muted hover:text-text-main'}`}
                 onClick={() => setSortBy(sortType)}
               >
@@ -185,13 +189,13 @@ export const PlayerSidebar = ({
                         {rank}
                       </div>
 
-                      {/* Player color indicator with icon */}
+                      {/* Player color indicator with avatar or icon */}
                       <div className="relative">
                         <div
                           className={`w-10 h-10 rounded-full border-2 border-white/50 shadow-lg flex items-center justify-center text-xl ${!player.connected ? 'filter grayscale brightness-50' : ''}`}
                           style={{ backgroundColor: player.color + '40' }}
                         >
-                          {getColorIcon(player.color)}
+                          {isCurrent ? myAvatar : getColorIcon(player.color)}
                           {isCurrent && player.connected && (
                             <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary-500 rounded-full border border-white animate-pulse"></div>
                           )}

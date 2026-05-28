@@ -157,7 +157,7 @@ function App() {
                 </>
               ) : !game || !game.turn_order ? (
                 /* Loading game spinner (waiting for server data) */
-                <div className="flex h-screen items-center justify-center bg-background">
+                <div className="flex h-screen items-center justify-center bg-background" role="status" aria-live="polite">
                   <motion.div
                     className="text-center"
                     initial={{ opacity: 0, scale: 0.9 }}
@@ -168,6 +168,7 @@ function App() {
                       className="mb-6 flex justify-center"
                       animate={{ rotate: [0, 360] }}
                       transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                      aria-hidden="true"
                     >
                       <Dice5 className="w-16 h-16 text-gold-500" />
                     </motion.div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../stores/gameStore';
 import { soundManager } from '../utils/audio';
@@ -42,6 +42,18 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
 
   const myPlayer = myId ? game?.room.players[myId] : null;
   const otherPlayers = game ? Object.values(game.room.players).filter(p => p.id !== myId && !p.is_bankrupt) : [];
+
+  // Close on Escape key
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') onClose();
+  }, [onClose]);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, handleKeyDown]);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -179,6 +191,9 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
           {/* Modal */}
           <motion.div
             className="relative w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border-2 border-gold-500/30"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Trade with player"
             style={{
               background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 20, 60, 0.98) 100%)',
               boxShadow: '0 0 60px rgba(168, 85, 247, 0.15), 0 0 120px rgba(168, 85, 247, 0.05)'
@@ -202,6 +217,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
               </div>
               <motion.button
                 onClick={onClose}
+                aria-label="Close trade dialog"
                 className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-danger-400 hover:border-danger-500/30 transition-all flex items-center justify-center text-sm"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
@@ -287,7 +303,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                         setRequestingJailCards(0);
                         setStep('select-player');
                       }}
-                      className="text-xs text-text-muted hover:text-accent-400"
+                      className="text-xs text-text-muted hover:text-accent-400 min-h-[44px] px-3"
                       whileHover={{ scale: 1.05 }}
                     >
                       Change
@@ -543,6 +559,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                         <motion.button
                           onClick={handleSubmitTrade}
                           disabled={buttonDisabled}
+                          aria-label={isEmpty ? 'Add items to trade' : isInvalid ? 'Fix invalid amounts' : 'Send trade offer'}
                           className="w-full py-3 rounded-xl font-cyber font-bold text-base sm:text-lg text-white transition-opacity"
                           style={{
                             background: buttonDisabled ? 'rgba(168, 85, 247, 0.2)' : 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
@@ -673,6 +690,7 @@ export const TradeNotification = ({ trade, onAccept, onReject, onCounter }: Trad
         <div className="flex gap-2 mt-4">
           <motion.button
             onClick={onAccept}
+            aria-label="Accept trade offer"
             className="flex-1 py-2 rounded-lg bg-success-500/20 text-success-400 font-bold text-sm border border-success-500/30 min-h-[44px]"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -681,6 +699,7 @@ export const TradeNotification = ({ trade, onAccept, onReject, onCounter }: Trad
           </motion.button>
           <motion.button
             onClick={onCounter}
+            aria-label="Counter trade offer"
             className="flex-1 py-2 rounded-lg bg-purple-500/20 text-purple-400 font-bold text-sm border border-purple-500/30 min-h-[44px]"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -689,6 +708,7 @@ export const TradeNotification = ({ trade, onAccept, onReject, onCounter }: Trad
           </motion.button>
           <motion.button
             onClick={onReject}
+            aria-label="Reject trade offer"
             className="flex-1 py-2 rounded-lg bg-danger-500/20 text-danger-400 font-bold text-sm border border-danger-500/30 min-h-[44px]"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
