@@ -41,13 +41,13 @@ class TestConnection:
     def test_create_room_button_visible(self, host_page: Page):
         """The CREATE NEW ROOM button is visible on the lobby."""
         host_page.wait_for_load_state("networkidle")
-        create_btn = host_page.get_by_role("button", name="CREATE NEW ROOM")
+        create_btn = host_page.get_by_role("button", name="Create a new game room")
         expect(create_btn).to_be_visible()
 
     def test_join_room_button_visible(self, host_page: Page):
         """The JOIN ROOM button is visible on the lobby."""
         host_page.wait_for_load_state("networkidle")
-        join_btn = host_page.get_by_role("button", name="JOIN ROOM")
+        join_btn = host_page.get_by_role("button", name=re.compile("Join room"))
         expect(join_btn).to_be_visible()
 
 
@@ -69,7 +69,7 @@ class TestRoomCreation:
         host_page.screenshot(path=f"{SCREENSHOT_DIR}/02-name-entered.png")
 
         # Click Create Room
-        create_btn = host_page.get_by_role("button", name="CREATE NEW ROOM")
+        create_btn = host_page.get_by_role("button", name="Create a new game room")
         create_btn.click()
 
         # Wait for the waiting room to appear
@@ -103,7 +103,7 @@ class TestRoomJoin:
         host_page.wait_for_load_state("networkidle")
         name_input = host_page.get_by_placeholder("Enter your name")
         name_input.fill("HostPlayer")
-        host_page.get_by_role("button", name="CREATE NEW ROOM").click()
+        host_page.get_by_role("button", name="Create a new game room").click()
         host_page.wait_for_timeout(2000)
 
         # Get room code from waiting room
@@ -127,7 +127,7 @@ class TestRoomJoin:
         player2_page.screenshot(path=f"{SCREENSHOT_DIR}/05-p2-code-entered.png")
 
         # Click Join Room
-        player2_page.get_by_role("button", name="JOIN ROOM").click()
+        player2_page.get_by_role("button", name=re.compile("Join room")).click()
         player2_page.wait_for_timeout(2000)
 
         # Player 2 should now see the waiting room
@@ -157,7 +157,7 @@ class TestGameStart:
         host_page.wait_for_load_state("networkidle")
         name_input = host_page.get_by_placeholder("Enter your name")
         name_input.fill("HostPlayer")
-        host_page.get_by_role("button", name="CREATE NEW ROOM").click()
+        host_page.get_by_role("button", name="Create a new game room").click()
         host_page.wait_for_timeout(2000)
 
         # Get room code
@@ -169,14 +169,14 @@ class TestGameStart:
         player2_page.wait_for_load_state("networkidle")
         player2_page.get_by_placeholder("Enter your name").fill("Player2")
         player2_page.get_by_placeholder("ABCDEF").fill(room_code)
-        player2_page.get_by_role("button", name="JOIN ROOM").click()
+        player2_page.get_by_role("button", name=re.compile("Join room")).click()
         player2_page.wait_for_timeout(2000)
 
         # Wait for player 2 to appear in host's player list
         expect(host_page.get_by_text(re.compile(r"PLAYERS \(2/6\)"))).to_be_visible(timeout=10000)
 
         # --- Host starts game ---
-        start_btn = host_page.get_by_role("button", name="START GAME")
+        start_btn = host_page.get_by_role("button", name="Start the game")
         expect(start_btn).to_be_visible()
         start_btn.click()
 

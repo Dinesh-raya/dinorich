@@ -57,8 +57,8 @@ def backend_server():
          "--host", "127.0.0.1", "--port", str(BACKEND_PORT)],
         cwd=BACKEND_DIR,
         env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
     )
     try:
         _wait_for_url(f"{BACKEND_URL}/health")
@@ -82,8 +82,8 @@ def frontend_server():
         cwd=FRONTEND_DIR,
         env=env,
         shell=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
     )
     try:
         _wait_for_url(FRONTEND_URL)
