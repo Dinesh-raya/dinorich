@@ -304,7 +304,7 @@ export function GameBoardView({
                   <button
                     onClick={() => setShowMobileMenu(false)}
                     aria-label="Close menu"
-                    className="text-2xl text-text-muted"
+                    className="text-2xl text-text-muted min-h-[44px] min-w-[44px] flex items-center justify-center"
                   >
                     <X className="w-5 h-5" />
                   </button>

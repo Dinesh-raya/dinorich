@@ -218,7 +218,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
               <motion.button
                 onClick={onClose}
                 aria-label="Close trade dialog"
-                className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-danger-400 hover:border-danger-500/30 transition-all flex items-center justify-center text-sm"
+                className="min-w-[44px] min-h-[44px] rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-danger-400 hover:border-danger-500/30 transition-all flex items-center justify-center text-sm"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
               >
@@ -323,7 +323,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                           <button
                             type="button"
                             onClick={() => setOfferingMoney(Math.max(0, offeringMoney - 1000))}
-                            className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[44px]"
+                            className="min-w-[44px] min-h-[44px] rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
                           >
                             -
                           </button>
@@ -339,7 +339,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                           <button
                             type="button"
                             onClick={() => setOfferingMoney(Math.min(myPlayer.money, offeringMoney + 1000))}
-                            className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[44px]"
+                            className="min-w-[44px] min-h-[44px] rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
                           >
                             +
                           </button>
@@ -397,7 +397,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => setOfferingJailCards(Math.max(0, offeringJailCards - 1))}
-                              className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[44px]"
+                              className="min-w-[44px] min-h-[44px] rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
                             >
                               -
                             </button>
@@ -406,7 +406,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                             </span>
                             <button
                               onClick={() => setOfferingJailCards(Math.min(myPlayer.get_out_of_jail_cards, offeringJailCards + 1))}
-                              className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[44px]"
+                              className="min-w-[44px] min-h-[44px] rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
                             >
                               +
                             </button>
@@ -426,7 +426,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                           <button
                             type="button"
                             onClick={() => setRequestingMoney(Math.max(0, requestingMoney - 1000))}
-                            className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[44px]"
+                            className="min-w-[44px] min-h-[44px] rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
                           >
                             -
                           </button>
@@ -442,7 +442,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                           <button
                             type="button"
                             onClick={() => setRequestingMoney(Math.min(selectedPlayerData.money, requestingMoney + 1000))}
-                            className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[44px]"
+                            className="min-w-[44px] min-h-[44px] rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
                           >
                             +
                           </button>
@@ -500,7 +500,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => setRequestingJailCards(Math.max(0, requestingJailCards - 1))}
-                              className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[44px]"
+                              className="min-w-[44px] min-h-[44px] rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
                             >
                               -
                             </button>
@@ -509,7 +509,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                             </span>
                             <button
                               onClick={() => setRequestingJailCards(Math.min(selectedPlayerData.get_out_of_jail_cards, requestingJailCards + 1))}
-                              className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold min-h-[44px]"
+                              className="min-w-[44px] min-h-[44px] rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-text-main flex items-center justify-center font-bold"
                             >
                               +
                             </button>
@@ -560,7 +560,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                           onClick={handleSubmitTrade}
                           disabled={buttonDisabled}
                           aria-label={isEmpty ? 'Add items to trade' : isInvalid ? 'Fix invalid amounts' : 'Send trade offer'}
-                          className="w-full py-3 rounded-xl font-cyber font-bold text-base sm:text-lg text-white transition-opacity"
+                          className="w-full py-3 rounded-xl font-cyber font-bold text-base sm:text-lg text-white transition-opacity min-h-[44px]"
                           style={{
                             background: buttonDisabled ? 'rgba(168, 85, 247, 0.2)' : 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
                             boxShadow: buttonDisabled ? 'none' : '0 4px 20px rgba(168, 85, 247, 0.3)'
@@ -577,7 +577,7 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                     {outgoingTradeId && (
                       <motion.button
                         onClick={() => cancelTrade(outgoingTradeId)}
-                        className="w-full py-2 rounded-lg text-xs sm:text-sm text-danger-400 border border-danger-500/30 hover:bg-danger-500/10 transition-all font-semibold font-cyber min-h-[36px]"
+                        className="w-full py-2 rounded-lg text-xs sm:text-sm text-danger-400 border border-danger-500/30 hover:bg-danger-500/10 transition-all font-semibold font-cyber min-h-[44px]"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                       >

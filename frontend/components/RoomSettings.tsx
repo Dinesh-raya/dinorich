@@ -278,7 +278,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                         <motion.button
                           key={num}
                           onClick={() => handleSettingChange('max_players', num)}
-                          className={`w-10 h-10 sm:w-11 sm:h-11 rounded-lg font-bold text-sm transition-all ${
+                          className={`min-w-[44px] min-h-[44px] rounded-lg font-bold text-sm transition-all ${
                             settings.max_players === num
                               ? 'bg-purple-500/30 border border-purple-500 text-purple-300 shadow-lg shadow-purple-500/20'
                               : 'bg-surface/50 border border-white/10 text-text-muted hover:border-purple-500/30'
@@ -305,7 +305,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                     <div className="flex items-center gap-3">
                       <motion.button
                         onClick={() => handleSettingChange('starting_cash', Math.max(5000, settings.starting_cash - 500))}
-                        className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-purple-300 hover:bg-purple-500/20 hover:border-purple-500/30 transition-all"
+                        className="min-w-[44px] min-h-[44px] rounded-lg bg-surface/50 border border-white/10 text-purple-300 hover:bg-purple-500/20 hover:border-purple-500/30 transition-all"
                         whileHover={isHost && !isLocked ? { scale: 1.1 } : undefined}
                         whileTap={isHost && !isLocked ? { scale: 0.9 } : undefined}
                         disabled={!isHost || isLocked || settings.starting_cash <= 5000}
@@ -319,7 +319,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
 
                       <motion.button
                         onClick={() => handleSettingChange('starting_cash', Math.min(100000, settings.starting_cash + 500))}
-                        className="w-10 h-10 rounded-lg bg-surface/50 border border-white/10 text-purple-300 hover:bg-purple-500/20 hover:border-purple-500/30 transition-all"
+                        className="min-w-[44px] min-h-[44px] rounded-lg bg-surface/50 border border-white/10 text-purple-300 hover:bg-purple-500/20 hover:border-purple-500/30 transition-all"
                         whileHover={isHost && !isLocked ? { scale: 1.1 } : undefined}
                         whileTap={isHost && !isLocked ? { scale: 0.9 } : undefined}
                         disabled={!isHost || isLocked || settings.starting_cash >= 100000}
@@ -396,7 +396,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                         role="switch"
                         aria-checked={settings[key]}
                         aria-label={label}
-                        className={`relative inline-flex h-9 w-14 items-center rounded-full transition-all ${
+                        className={`relative inline-flex h-11 w-16 items-center rounded-full transition-all min-h-[44px] ${
                           settings[key]
                             ? 'bg-purple-500 shadow-lg shadow-purple-500/30'
                             : 'bg-surface border border-white/20'
@@ -405,8 +405,8 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                         disabled={!isHost || isLocked}
                       >
                         <span
-                          className={`inline-block h-7 w-7 rounded-full bg-white shadow-md transition-transform duration-200 ${
-                            settings[key] ? 'translate-x-6' : 'translate-x-1'
+                          className={`inline-block h-8 w-8 rounded-full bg-white shadow-md transition-transform duration-200 ${
+                            settings[key] ? 'translate-x-7' : 'translate-x-1'
                           }`}
                         />
                       </motion.button>
@@ -456,7 +456,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                       role="switch"
                       aria-checked={settings.qa_mode?.enabled ?? false}
                       aria-label="Enable QA Mode"
-                      className={`relative inline-flex h-9 w-14 items-center rounded-full transition-all ${
+                      className={`relative inline-flex h-11 w-16 items-center rounded-full transition-all min-h-[44px] ${
                         settings.qa_mode?.enabled ?? false
                           ? 'bg-purple-500 shadow-lg shadow-purple-500/30'
                           : 'bg-surface border border-white/20'
@@ -465,8 +465,8 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                       disabled={!isHost || isLocked}
                     >
                       <span
-                        className={`inline-block h-7 w-7 rounded-full bg-white shadow-md transition-transform duration-200 ${
-                          (settings.qa_mode?.enabled ?? false) ? 'translate-x-6' : 'translate-x-1'
+                        className={`inline-block h-8 w-8 rounded-full bg-white shadow-md transition-transform duration-200 ${
+                          (settings.qa_mode?.enabled ?? false) ? 'translate-x-7' : 'translate-x-1'
                         }`}
                       />
                     </motion.button>
@@ -536,7 +536,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                           ) : (
                             <motion.button
                               onClick={() => kickPlayer(player.id)}
-                              className="px-3 py-1.5 bg-danger-500/10 text-danger-400 text-xs rounded-lg hover:bg-danger-500/20 transition-colors border border-danger-500/20"
+                              className="px-3 py-1.5 min-h-[44px] flex items-center bg-danger-500/10 text-danger-400 text-xs rounded-lg hover:bg-danger-500/20 transition-colors border border-danger-500/20"
                               whileHover={!isLocked ? { scale: 1.05 } : undefined}
                               whileTap={!isLocked ? { scale: 0.95 } : undefined}
                               disabled={isLocked}
@@ -567,7 +567,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                   <>
                     <motion.button
                       onClick={handleReset}
-                      className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 rounded-xl bg-surface/50 border border-white/10 text-text-muted hover:bg-white/10 hover:border-white/20 transition-all text-sm"
+                      className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 min-h-[44px] rounded-xl bg-surface/50 border border-white/10 text-text-muted hover:bg-white/10 hover:border-white/20 transition-all text-sm"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       disabled={!isHost}
@@ -577,7 +577,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
 
                     <motion.button
                       onClick={handleSave}
-                      className="flex-1 sm:flex-none px-5 sm:px-6 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      className="flex-1 sm:flex-none px-5 sm:px-6 py-2.5 min-h-[44px] rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                       style={{
                         background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
                         boxShadow: '0 4px 14px rgba(168, 85, 247, 0.3)'
