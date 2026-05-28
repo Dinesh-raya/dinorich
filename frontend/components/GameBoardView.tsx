@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useState, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Copy, Share2, X, Menu, Handshake, Volume2, Settings, Save, Play, Pause, Users, Bug } from 'lucide-react';
+import { Copy, Share2, X, Menu, Handshake, Volume2, Settings, Save, Play, Pause, Users, Bug, History } from 'lucide-react';
 import { soundManager } from '../utils/audio';
 import { showToast } from './Toast';
 import { useGameStore } from '../stores/gameStore';
@@ -12,6 +12,7 @@ import { ReconnectOverlay } from './ReconnectOverlay';
 import { ToastContainer } from './Toast';
 import { Tutorial } from './Tutorial';
 import { QuickChat } from './QuickChat';
+import { GameHistory, GameHistoryButton } from './GameHistory';
 import type { TradeOffer, GameState, RoomState } from '../stores/slices/types';
 import { mapPlayersForSidebar, type Standing } from '../src/utils/helpers';
 
@@ -86,6 +87,7 @@ export function GameBoardView({
   const isHost = room.host_id === myId;
   const connected = useGameStore(s => s.connected);
   const [showQAPanel, setShowQAPanel] = useState(false);
+  const [showGameHistory, setShowGameHistory] = useState(false);
   const isQAMode = game.room.settings.qa_mode?.enabled === true;
 
   return (
@@ -173,6 +175,14 @@ export function GameBoardView({
             >
               <Handshake className="w-4 h-4" /> <span className="text-text-muted">Trade</span>
             </motion.button>
+
+            <GameHistoryButton
+              historyLog={game.history_log}
+              onClick={() => {
+                soundManager.playButtonClick();
+                setShowGameHistory(true);
+              }}
+            />
 
             {/* QA Panel button - visible only to host when QA mode is enabled */}
             {isQAMode && isHost && (
@@ -293,6 +303,21 @@ export function GameBoardView({
 
                 {/* Mobile Menu Options */}
                 <div className="space-y-3 mb-6">
+                  <button
+                    onClick={() => {
+                      soundManager.playButtonClick();
+                      setShowGameHistory(true);
+                      setShowMobileMenu(false);
+                    }}
+                    className="w-full btn-gold-ghost p-4 rounded-xl flex items-center gap-3 min-h-[52px]"
+                  >
+                    <History className="w-5 h-5" />
+                    <span className="font-medium">Game History</span>
+                    {game.history_log.length > 0 && (
+                      <span className="ml-auto text-xs text-text-muted/60">{game.history_log.length}</span>
+                    )}
+                  </button>
+
                   <button
                     onClick={() => {
                       soundManager.playButtonClick();
@@ -496,6 +521,21 @@ export function GameBoardView({
               <button
                 onClick={() => {
                   soundManager.playButtonClick();
+                  setShowGameHistory(true);
+                }}
+                className="btn-gold-ghost p-3 rounded-xl min-h-[44px] min-w-[44px] active:scale-95 transition-transform relative"
+                title="Game History"
+              >
+                <History className="w-5 h-5" />
+                {game.history_log.length > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-gold-500 text-[9px] text-background font-bold flex items-center justify-center">
+                    {game.history_log.length > 99 ? '99+' : game.history_log.length}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  soundManager.playButtonClick();
                   setShowAudioSettings(true);
                 }}
                 className="btn-gold-ghost p-3 rounded-xl min-h-[44px] min-w-[44px] active:scale-95 transition-transform"
@@ -594,6 +634,13 @@ export function GameBoardView({
           room={room}
         />
       )}
+
+      {/* Game History Panel */}
+      <GameHistory
+        historyLog={game.history_log}
+        isOpen={showGameHistory}
+        onClose={() => setShowGameHistory(false)}
+      />
       </Suspense>
 
       {/* First-time tutorial overlay */}
