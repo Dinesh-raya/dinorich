@@ -5,6 +5,14 @@ echo   Starting Servers...
 echo ========================================
 echo.
 
+:: Auto-create .env if missing
+if not exist "%~dp0.env" (
+    if exist "%~dp0.env.example" (
+        copy "%~dp0.env.example" "%~dp0.env" >nul
+        echo Created .env from .env.example
+    )
+)
+
 :: Resolve Python — prefer venv, then resolve system path (avoids Microsoft Store shim mismatch)
 if exist "%~dp0backend\.venv\Scripts\python.exe" (
     set "PYTHON_PATH=%~dp0backend\.venv\Scripts\python.exe"

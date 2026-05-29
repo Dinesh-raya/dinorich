@@ -8,6 +8,12 @@ echo ""
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# Auto-create .env if missing
+if [ ! -f "$SCRIPT_DIR/.env" ] && [ -f "$SCRIPT_DIR/.env.example" ]; then
+    cp "$SCRIPT_DIR/.env.example" "$SCRIPT_DIR/.env"
+    echo "Created .env from .env.example"
+fi
+
 # Resolve Python — prefer venv, then system
 if [ -f "$SCRIPT_DIR/backend/.venv/bin/python" ]; then
     PYTHON_PATH="$SCRIPT_DIR/backend/.venv/bin/python"

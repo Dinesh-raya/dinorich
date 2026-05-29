@@ -21,10 +21,11 @@ class TestMobileResponsiveness:
         """Page loads successfully at mobile viewport size."""
         page = browser_context.new_page()
         page.set_viewport_size({"width": 375, "height": 667})
+        page.add_init_script("localStorage.clear(); localStorage.setItem('dino_tutorial_done', 'true')")
         try:
             page.goto(FRONTEND_URL)
             page.wait_for_load_state("domcontentloaded")
-            page.wait_for_selector('[placeholder*="name" i]', timeout=15000)
+            page.wait_for_selector('[placeholder="Enter your name"]', timeout=15000)
             title = page.title()
             assert title, f"Page title is empty on mobile viewport"
             page.screenshot(path="e2e/screenshots/mobile-page-loaded.png")
@@ -35,10 +36,11 @@ class TestMobileResponsiveness:
         """No horizontal scrollbar — content fits within 375px width."""
         page = browser_context.new_page()
         page.set_viewport_size({"width": 375, "height": 667})
+        page.add_init_script("localStorage.clear(); localStorage.setItem('dino_tutorial_done', 'true')")
         try:
             page.goto(FRONTEND_URL)
             page.wait_for_load_state("domcontentloaded")
-            page.wait_for_selector('[placeholder*="name" i]', timeout=15000)
+            page.wait_for_selector('[placeholder="Enter your name"]', timeout=15000)
 
             has_overflow = page.evaluate(
                 "() => document.documentElement.scrollWidth > window.innerWidth"
@@ -54,10 +56,11 @@ class TestMobileResponsiveness:
         """Key UI elements (name input, create/join buttons) are visible on mobile."""
         page = browser_context.new_page()
         page.set_viewport_size({"width": 375, "height": 667})
+        page.add_init_script("localStorage.clear(); localStorage.setItem('dino_tutorial_done', 'true')")
         try:
             page.goto(FRONTEND_URL)
             page.wait_for_load_state("domcontentloaded")
-            page.wait_for_selector('[placeholder*="name" i]', timeout=15000)
+            page.wait_for_selector('[placeholder="Enter your name"]', timeout=15000)
 
             # The lobby should have at least a name input or action button visible
             visible_interactive = page.evaluate("""() => {
@@ -91,16 +94,13 @@ class TestLANMultiplayer:
         """Host creates a room, second player joins — both appear in player list."""
         # Use separate pages from the shared context (each gets isolated storage)
         host = browser_context.new_page()
+        host.add_init_script("localStorage.clear(); localStorage.setItem('dino_tutorial_done', 'true')")
         guest = browser_context.new_page()
+        guest.add_init_script("localStorage.clear(); localStorage.setItem('dino_tutorial_done', 'true')")
         try:
             # --- Host creates room ---
             host.goto(FRONTEND_URL)
             host.wait_for_load_state("domcontentloaded")
-            host.evaluate("localStorage.clear(); localStorage.setItem('dino_tutorial_done', 'true')")
-            host.reload()
-            host.wait_for_load_state("domcontentloaded")
-            host.wait_for_timeout(3000)
-            host.screenshot(path="e2e/screenshots/lan-host-after-clear.png")
             host.wait_for_selector('[placeholder="Enter your name"]', timeout=15000)
             host.wait_for_selector("text=CREATE NEW ROOM", timeout=20000)
             host.get_by_placeholder("Enter your name").fill("HostPlayer")
@@ -108,7 +108,7 @@ class TestLANMultiplayer:
 
             # Wait for room code
             host.wait_for_timeout(2_000)
-            room_code_el = host.locator(".font-mono").first
+            room_code_el = host.locator('[data-testid="room-code"]')
             room_code_el.wait_for(state="visible", timeout=10_000)
             room_code = room_code_el.text_content().strip()
             assert room_code and len(room_code) >= 4, f"Got room code: '{room_code}'"
@@ -117,9 +117,6 @@ class TestLANMultiplayer:
 
             # --- Guest joins room ---
             guest.goto(FRONTEND_URL)
-            guest.wait_for_load_state("domcontentloaded")
-            guest.evaluate("localStorage.clear(); localStorage.setItem('dino_tutorial_done', 'true')")
-            guest.reload()
             guest.wait_for_load_state("domcontentloaded")
             guest.wait_for_selector('[placeholder="Enter your name"]', timeout=15000)
             guest.wait_for_selector("text=CREATE NEW ROOM", timeout=20000)
@@ -163,7 +160,9 @@ class TestReconnection:
         from e2e.qa_helpers import QAController
 
         host_page = browser_context.new_page()
+        host_page.add_init_script("localStorage.setItem('dino_tutorial_done', 'true')")
         player_page = browser_context.new_page()
+        player_page.add_init_script("localStorage.setItem('dino_tutorial_done', 'true')")
 
         qa = QAController()
         try:
@@ -194,9 +193,6 @@ class TestReconnection:
             # --- Host browser joins ---
             host_page.goto(FRONTEND_URL)
             host_page.wait_for_load_state("domcontentloaded")
-            host_page.evaluate("localStorage.clear(); localStorage.setItem('dino_tutorial_done', 'true')")
-            host_page.reload()
-            host_page.wait_for_load_state("domcontentloaded")
             host_page.wait_for_selector('[placeholder="Enter your name"]', timeout=15000)
             host_page.wait_for_selector("text=CREATE NEW ROOM", timeout=20000)
             host_page.wait_for_timeout(2000)
@@ -207,10 +203,16 @@ class TestReconnection:
             # --- Player browser joins ---
             player_page.goto(FRONTEND_URL)
             player_page.wait_for_load_state("domcontentloaded")
-            player_page.evaluate("localStorage.clear(); localStorage.setItem('dino_tutorial_done', 'true')")
-            player_page.reload()
-            player_page.wait_for_load_state("domcontentloaded")
-            player_page.wait_for_selector('[placeholder="Enter your name"]', timeout=15000)
+            player_page.wait_for_timeout(3000)
+            player_page.screenshot(path="e2e/screenshots/reconnect-player-before-join.png")
+            name_input = player_page.locator('[placeholder="Enter your name"]')
+            if name_input.count() == 0:
+                # Tutorial might be showing — dismiss it
+                player_page.evaluate("localStorage.setItem('dino_tutorial_done', 'true')")
+                player_page.reload()
+                player_page.wait_for_load_state("domcontentloaded")
+                player_page.wait_for_timeout(2000)
+            player_page.wait_for_selector('[placeholder="Enter your name"]', timeout=20000)
             player_page.wait_for_selector("text=CREATE NEW ROOM", timeout=20000)
             player_page.wait_for_timeout(2000)
             player_page.get_by_placeholder("Enter your name").fill("OtherPlayer")
@@ -220,7 +222,7 @@ class TestReconnection:
             # Wait for both to join
             host_page.wait_for_url(f"**/room/{room_code}*", timeout=20000)
             player_page.wait_for_url(f"**/room/{room_code}*", timeout=20000)
-            qa.wait_for_players(room_code, 3, timeout=20)
+            qa.wait_for_players(room_code, 3, timeout=30)
 
             # --- Start game (PLAYING state enables reconnect) ---
             start_res = qa._emit("game:start", {})

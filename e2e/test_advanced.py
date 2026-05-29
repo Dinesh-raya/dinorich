@@ -87,7 +87,7 @@ def _setup_game(host_page: Page, player2_page: Page, qa: QAController):
     # --- 5. Wait for waiting room ---
     host_page.wait_for_url(f"**/room/{room_code}*", timeout=20000)
     player2_page.wait_for_url(f"**/room/{room_code}*", timeout=20000)
-    host_page.wait_for_selector("text=Leave Room", timeout=10000)
+    host_page.wait_for_selector('[aria-label="Leave the game room"]', timeout=10000)
 
     # --- 6. Wait for backend to register both players ---
     players = qa.wait_for_players(room_code, 3, timeout=20)  # QAHost + PlayerA + PlayerB

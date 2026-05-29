@@ -62,6 +62,7 @@ export function WaitingRoomScreen({
           <p className="text-text-muted font-cyber">Share this code with friends:</p>
           <div className="inline-block mt-4">
             <motion.div
+              data-testid="room-code"
               className="text-3xl sm:text-5xl font-bold tracking-[0.15em] sm:tracking-[0.3em] text-gold-500 bg-surface/50 px-6 sm:px-10 py-3 sm:py-5 rounded-2xl border-2 border-gold-500/30 gold-glow-accent font-mono"
               animate={{ boxShadow: ['0 0 15px rgba(168, 85, 247, 0.3)', '0 0 30px rgba(168, 85, 247, 0.5)', '0 0 15px rgba(168, 85, 247, 0.3)'] }}
               transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}

@@ -1,25 +1,34 @@
-version: '3.8'
 services:
   backend:
     build:
-      context: ./backend
-      dockerfile: ../Dockerfile.backend
+      context: .
+      dockerfile: Dockerfile.backend
     ports:
       - "8000:8000"
     volumes:
-      - game-data:/app/data
+      - game-data:/app/backend/persistence
     environment:
-      - HOST=0.0.0.0
-      - PORT=8000
+      - DINO_SECRET_KEY=${DINO_SECRET_KEY:-change-me-in-production}
+      - DINO_CORS_ORIGINS=*
+      - DINO_LOG_LEVEL=INFO
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: ../Dockerfile.frontend
+      context: .
+      dockerfile: Dockerfile.frontend
     ports:
       - "3000:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   game-data:

@@ -30,7 +30,7 @@ A real-time multiplayer Monopoly-inspired board game set across the Indian subco
 - **40-city Indian board** — from Guwahati to Delhi, every tile is a real Indian metro or landmark
 - **Deep mechanics** — house/hotel building, mortgage banking, timed auctions, player trading, jail escapes, tax strategies
 - **Cyberpunk soul** — neon cyan on obsidian black, glass panels, glow pulses, Framer Motion fluidity
-- **Production-ready** — SQLite persistence, reconnect tokens, Docker, 238 backend tests
+- **Production-ready** — SQLite persistence, reconnect tokens, Docker, 241 backend tests
 
 ---
 
@@ -75,7 +75,7 @@ A real-time multiplayer Monopoly-inspired board game set across the Indian subco
 | Toast notifications | ✅ | Success/error/warning/info |
 | Double-click guard | ✅ | Prevents duplicate socket emits |
 | Mobile responsive | 🟡 | Playable, board zoom/drag |
-| E2E tests | 🟡 | Unit tests done, Playwright pending |
+| E2E tests | ✅ | 24 Playwright scenarios, QA mode |
 
 ### Infrastructure
 | Feature | Status | Details |
@@ -254,7 +254,7 @@ backend/
 ├── schemas/                  # Pydantic models
 ├── services/                 # Rate limiter, session manager
 ├── utils/                    # HMAC, code gen, name gen
-└── tests/                    # 11 test files, 238 tests
+└── tests/                    # 11 test files, 241 tests
 ```
 
 ### Frontend Module Map
@@ -360,7 +360,7 @@ docker compose up --build
 ## 🧪 Testing
 
 ```bash
-# Backend — 238 tests
+# Backend — 241 tests
 cd backend && python -m pytest tests/ -v
 
 # Frontend — 78 tests
@@ -427,7 +427,8 @@ dino-wolf-BT-v2-organized/
 ├── docker/           # Multi-stage build
 ├── .env.example      # Environment template
 ├── setup.bat/.sh     # One-click install
-├── start.bat/.sh     # One-click launch
+├── start.bat/.sh     # One-click dev launch
+├── start-prod.bat/.sh# One-click production launch
 └── docker-compose.yml
 ```
 

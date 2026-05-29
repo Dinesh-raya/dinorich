@@ -80,7 +80,7 @@ class TestRoomCreation:
         host_page.wait_for_timeout(2000)
 
         # The room code should be displayed (5-char alphanumeric in a monospace element)
-        room_code_display = host_page.locator(".font-mono").first
+        room_code_display = host_page.locator('[data-testid="room-code"]')
         expect(room_code_display).to_be_visible(timeout=10000)
 
         # Extract room code text
@@ -112,7 +112,7 @@ class TestRoomJoin:
         host_page.wait_for_timeout(2000)
 
         # Get room code from waiting room
-        room_code_display = host_page.locator(".font-mono").first
+        room_code_display = host_page.locator('[data-testid="room-code"]')
         expect(room_code_display).to_be_visible(timeout=10000)
         room_code = room_code_display.text_content().strip()
 
@@ -168,7 +168,7 @@ class TestGameStart:
         host_page.wait_for_timeout(2000)
 
         # Get room code
-        room_code_display = host_page.locator(".font-mono").first
+        room_code_display = host_page.locator('[data-testid="room-code"]')
         expect(room_code_display).to_be_visible(timeout=10000)
         room_code = room_code_display.text_content().strip()
 

@@ -5,6 +5,14 @@ echo   DINO-RICHUP Production Mode
 echo ============================================
 echo.
 
+:: Auto-create .env if missing
+if not exist "%~dp0.env" (
+    if exist "%~dp0.env.example" (
+        copy "%~dp0.env.example" "%~dp0.env" >nul
+        echo Created .env from .env.example
+    )
+)
+
 :: Get local IP address
 for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /c:"IPv4" ^| findstr /v "127.0.0.1"') do (
     for /f "tokens=1" %%b in ("%%a") do set LOCAL_IP=%%b

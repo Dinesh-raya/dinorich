@@ -98,7 +98,7 @@ curl http://localhost:8000/health
 ```bash
 cd backend
 .venv\Scripts\python.exe -m pytest -q
-# Expected: 221+ passed, 2 skipped
+# Expected: 241 passed
 ```
 
 ### Frontend type check + tests
@@ -195,7 +195,6 @@ dino-wolf-BT-v2-organized/
 │   │   ├── property.py       # Rent calc, buy/build/mortgage
 │   │   ├── auction.py        # Auction state machine
 │   │   ├── trade_manager.py  # Trade offer system
-│   │   ├── bot.py            # Bot AI brain
 │   │   └── cards.py          # Treasury + Surprise card decks
 │   ├── persistence/          # SQLite snapshot system
 │   │   ├── db.py             # Schema + migrations
@@ -216,9 +215,9 @@ dino-wolf-BT-v2-organized/
 ├── shared/
 │   └── configs/
 │       └── board_config.json # All tile definitions, prices, rents
-├── start.bat                 # One-click dev launcher (Windows)
-├── start-prod.bat            # Production launcher (Windows)
-├── setup.bat                 # First-time setup (Windows)
+├── start.bat / start.sh      # One-click dev launcher
+├── start-prod.bat / .sh      # Production launcher
+├── setup.bat / setup.sh      # First-time setup
 └── setup-firewall.bat        # Open port 8000 for LAN (run as Admin)
 ```
 
