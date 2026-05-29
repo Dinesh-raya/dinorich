@@ -36,6 +36,9 @@ export const TurnPanel = ({
 
   return (
     <div
+      role="status"
+      aria-live="polite"
+      aria-label="Turn status"
       className={
         isMobile
           ? "fixed bottom-[calc(72px+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[92%] max-w-md z-30"

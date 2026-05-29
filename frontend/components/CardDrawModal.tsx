@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useGameStore } from '../stores/gameStore';
 import { animations } from '../animations';
 import boardData from '../../shared/configs/board_config.json';
@@ -28,6 +28,18 @@ export const CardDrawModal = () => {
       return () => clearTimeout(timer);
     }
   }, [lastCardDraw, clearCardDraw]);
+
+  // Close on Escape key
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') clearCardDraw();
+  }, [clearCardDraw]);
+
+  useEffect(() => {
+    if (lastCardDraw) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [lastCardDraw, handleKeyDown]);
 
   const { card, card_type, player_id } = lastCardDraw || {};
   const player = card && game && player_id ? game.room.players[player_id] : null;

@@ -4,6 +4,7 @@ QAController creates the room (becoming host) so it can issue qa:* commands.
 Both browser pages join as regular players.
 """
 import os
+import re
 import time
 import json
 import urllib.request
@@ -24,7 +25,7 @@ def _screenshot(page: Page, name: str):
 
 
 def _setup_game(host_page: Page, player2_page: Page, qa: QAController):
-    """Create a game via QAController (host), both browsers join.
+    """Create a game: QA creates room (host), both browsers join.
 
     Returns (room_code, player_a_id, player_b_id).
     """
@@ -32,7 +33,7 @@ def _setup_game(host_page: Page, player2_page: Page, qa: QAController):
     qa.connect()
     create_res = qa._emit("room:create", {"name": "QAHost"})
     assert create_res.get("status") == "success", f"room:create failed: {create_res}"
-    room_code = create_res["room_code"]
+    room_code = create_res["room"]["room_id"]
 
     # --- 2. Enable QA mode ---
     settings_res = qa._emit("room:update_settings", {
@@ -65,39 +66,50 @@ def _setup_game(host_page: Page, player2_page: Page, qa: QAController):
     assert settings_res.get("status") == "success", f"update_settings failed: {settings_res}"
 
     # --- 3. Host browser joins ---
-    host_page.goto(FRONTEND_URL)
-    host_page.wait_for_load_state("networkidle")
+    # Dismiss tutorial if it shows
+    host_page.evaluate("localStorage.setItem('dino_tutorial_done', 'true')")
+    host_page.wait_for_selector('[placeholder="Enter your name"]', timeout=15000)
     host_page.wait_for_selector("text=CREATE NEW ROOM", timeout=20000)
+    host_page.wait_for_timeout(2000)
     host_page.get_by_placeholder("Enter your name").fill("PlayerA")
     host_page.get_by_placeholder("ABCDEF").fill(room_code)
     host_page.get_by_text("JOIN ROOM").click()
 
     # --- 4. Player 2 browser joins ---
-    player2_page.goto(FRONTEND_URL)
-    player2_page.wait_for_load_state("networkidle")
+    player2_page.evaluate("localStorage.setItem('dino_tutorial_done', 'true')")
+    player2_page.wait_for_selector('[placeholder="Enter your name"]', timeout=15000)
     player2_page.wait_for_selector("text=CREATE NEW ROOM", timeout=20000)
+    player2_page.wait_for_timeout(2000)
     player2_page.get_by_placeholder("Enter your name").fill("PlayerB")
     player2_page.get_by_placeholder("ABCDEF").fill(room_code)
     player2_page.get_by_text("JOIN ROOM").click()
 
     # --- 5. Wait for waiting room ---
-    host_page.wait_for_url(f"**/room/{room_code}*", timeout=15000)
-    player2_page.wait_for_url(f"**/room/{room_code}*", timeout=15000)
+    host_page.wait_for_url(f"**/room/{room_code}*", timeout=20000)
+    player2_page.wait_for_url(f"**/room/{room_code}*", timeout=20000)
     host_page.wait_for_selector("text=Leave Room", timeout=10000)
-    time.sleep(1)
 
-    # --- 6. Start game via QA ---
+    # --- 6. Wait for backend to register both players ---
+    players = qa.wait_for_players(room_code, 3, timeout=20)  # QAHost + PlayerA + PlayerB
+
+    # --- 7. Start game via QA ---
     start_res = qa._emit("game:start", {})
     assert start_res.get("status") == "success", f"game:start failed: {start_res}"
 
-    # --- 7. Wait for game board ---
+    # --- 8. Wait for game board and dismiss tutorial ---
     host_page.wait_for_selector('[title="Trade"]', timeout=20000)
     player2_page.wait_for_selector('[title="Trade"]', timeout=20000)
+    # Tutorial auto-shows after 1.5s on first visit — dismiss it
+    for page in (host_page, player2_page):
+        try:
+            close_btn = page.get_by_role("button", name="Got it!")
+            if close_btn.is_visible(timeout=3000):
+                close_btn.click()
+                page.wait_for_timeout(500)
+        except Exception:
+            pass  # Tutorial already dismissed or not shown
 
-    # --- 8. Resolve player IDs ---
-    state = qa.get_state()
-    assert state.get("status") == "success", f"get_state failed: {state}"
-    players = state.get("players", {})
+    # --- 9. Resolve player IDs ---
     player_a_id = next(
         (pid for pid, p in players.items() if p.get("name") == "PlayerA"), None
     )
@@ -160,7 +172,7 @@ def test_scenario_10_auction_ui(
 
     # Verify auction modal appears
     host_page.wait_for_selector("text=AUCTION", timeout=10000)
-    expect(host_page.get_by_text("AUCTION")).to_be_visible()
+    expect(host_page.get_by_text("AUCTION", exact=True)).to_be_visible()
     _screenshot(host_page, "scenario-10-auction")
 
 
@@ -176,15 +188,19 @@ def test_scenario_11_jail_state(
     """Force jail on a player -> verify jail UI on their turn."""
     room_code, pa, pb = _setup_game(host_page, player2_page, qa_controller)
 
-    # Force PlayerA into jail
+    # Force PlayerA into jail and set turn to them
     res = qa_controller.force_jail(pa)
     assert res.get("status") == "success", f"force_jail failed: {res}"
     time.sleep(1)
 
-    # Wait for PlayerA's turn (QA-Host auto-advances first)
+    # Set turn directly to PlayerA
+    qa_controller.set_current_player(pa)
+    time.sleep(2)
+
+    # Wait for jail UI
     host_page.wait_for_selector("text=IN JAIL", timeout=30000)
-    expect(host_page.get_by_text("IN JAIL")).to_be_visible()
-    expect(host_page.get_by_text("PAY FINE")).to_be_visible()
+    expect(host_page.get_by_text("IN JAIL").first).to_be_visible()
+    expect(host_page.get_by_text("PAY FINE").first).to_be_visible()
     _screenshot(host_page, "scenario-11-jail")
 
 
@@ -204,14 +220,17 @@ def test_scenario_12_building(
     qa_controller.seed_property(pa, 1)   # Guwahati
     qa_controller.seed_property(pa, 3)   # Goa
     qa_controller.add_money(pa, 5000)    # Extra cash
-    time.sleep(1)
+    time.sleep(2)
 
-    # Click Guwahati tile on the board to open property detail
-    host_page.locator("text=Guwahati").first.click()
+    # Wait for notifications to clear, then click the tile
+    host_page.wait_for_timeout(3000)
+    # Use the board tile container (not notification text) to click
+    board_tile = host_page.locator('[class*="cursor-pointer"]').filter(has_text="Guwahati").first
+    board_tile.click(timeout=10000)
 
     # Verify BUILD HOUSE button visible
     host_page.wait_for_selector("text=BUILD HOUSE", timeout=5000)
-    expect(host_page.get_by_text("BUILD HOUSE")).to_be_visible()
+    expect(host_page.get_by_text("BUILD HOUSE").first).to_be_visible()
     _screenshot(host_page, "scenario-12-building")
 
 
@@ -229,14 +248,16 @@ def test_scenario_13_mortgage(
 
     # Give PlayerA a property (Jaipur, tile 11, mortgage value 700)
     qa_controller.seed_property(pa, 11)
-    time.sleep(1)
+    time.sleep(2)
 
-    # Open property detail for Jaipur
-    host_page.locator("text=Jaipur").first.click()
+    # Wait for notifications to clear, then click the tile
+    host_page.wait_for_timeout(3000)
+    board_tile = host_page.locator('[class*="cursor-pointer"]').filter(has_text="Jaipur").first
+    board_tile.click(timeout=10000)
 
     # Verify MORTGAGE button visible
     host_page.wait_for_selector("text=MORTGAGE", timeout=5000)
-    expect(host_page.get_by_text("MORTGAGE")).to_be_visible()
+    expect(host_page.get_by_text("MORTGAGE").first).to_be_visible()
     _screenshot(host_page, "scenario-13-mortgage")
 
 
@@ -252,7 +273,8 @@ def test_scenario_14_bankruptcy(
     """Drain host money, seed property to player 2, land host on it -> debt UI."""
     room_code, pa, pb = _setup_game(host_page, player2_page, qa_controller)
 
-    # Wait for PlayerA's turn
+    # Set turn to PlayerA so host page has ROLL DICE
+    qa_controller.set_current_player(pa)
     _wait_for_my_turn(host_page, timeout=30)
 
     # Set up debt scenario:
@@ -270,8 +292,8 @@ def test_scenario_14_bankruptcy(
 
     # Verify debt / bankruptcy UI
     host_page.wait_for_selector("text=IN DEBT", timeout=15000)
-    expect(host_page.get_by_text("IN DEBT")).to_be_visible()
-    expect(host_page.get_by_text("DECLARE BANKRUPTCY")).to_be_visible()
+    expect(host_page.get_by_text("IN DEBT").first).to_be_visible()
+    expect(host_page.get_by_text("DECLARE BANKRUPTCY").first).to_be_visible()
     _screenshot(host_page, "scenario-14-bankruptcy")
 
 

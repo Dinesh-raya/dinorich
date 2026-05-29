@@ -203,7 +203,7 @@ export const Board = () => {
   const isMobile = cellSize < 40;
 
   return (
-    <div ref={viewportRef} className={`flex-1 flex items-center justify-center p-1 lg:p-4 relative board-container ${isShaking ? 'animate-shake' : ''}`}>
+    <div ref={viewportRef} className={`flex-1 flex items-center justify-center p-1 lg:p-4 relative board-container overflow-x-hidden ${isShaking ? 'animate-shake' : ''}`}>
       <motion.div
         className="relative grid border-2 border-gold-500/30 shadow-2xl rounded-2xl overflow-visible"
         style={{
@@ -212,7 +212,7 @@ export const Board = () => {
           gridTemplateRows: 'repeat(11, var(--cell))',
           aspectRatio: '1/1',
           width: `${cellSize * 11}px`,
-          maxWidth: `${cellSize * 11}px`,
+          maxWidth: '100vw',
           position: 'relative',
           background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%)',
           boxShadow: '0 0 60px rgba(34, 211, 238, 0.1), 0 0 120px rgba(168, 85, 247, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.05)'

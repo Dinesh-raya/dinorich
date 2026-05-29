@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatMoney } from '../utils/format';
 import { useGameStore } from '../stores/gameStore';
@@ -13,6 +13,18 @@ interface BankruptModalProps {
 }
 
 export const BankruptModal = ({ isOpen, playerName, creditorName, onClose }: BankruptModalProps) => {
+  // Close on Escape key
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') onClose();
+  }, [onClose]);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, handleKeyDown]);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -121,6 +133,18 @@ export const GameOverModal = ({ isOpen, winnerName, isWinner, standings, onClose
   const { room, myId } = useGameStore();
   const isHost = room?.host_id === myId;
   const [loadingRematch, setLoadingRematch] = useState(false);
+
+  // Close on Escape key
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') onClose();
+  }, [onClose]);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, handleKeyDown]);
 
   const handleRematch = () => {
     setLoadingRematch(true);

@@ -12,6 +12,11 @@ import subprocess
 import pytest
 import socketio as sio_lib
 
+# Ensure e2e/ is on sys.path so qa_helpers can be imported when running from project root
+_e2e_dir = os.path.dirname(__file__)
+if _e2e_dir not in sys.path:
+    sys.path.insert(0, _e2e_dir)
+
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
@@ -22,9 +27,27 @@ FRONTEND_DIR = os.path.join(PROJECT_ROOT, "frontend")
 BACKEND_PORT = 8100
 FRONTEND_PORT = 3100
 BACKEND_URL = f"http://127.0.0.1:{BACKEND_PORT}"
-FRONTEND_URL = f"http://localhost:{FRONTEND_PORT}"
+FRONTEND_URL = f"http://127.0.0.1:{FRONTEND_PORT}"
 
 HEALTH_TIMEOUT = 30  # seconds to wait for servers
+
+
+def _kill_port_processes(port: int):
+    """Kill any process listening on the given port (Windows)."""
+    try:
+        result = subprocess.run(
+            ["netstat", "-ano"], capture_output=True, text=True, timeout=5
+        )
+        for line in result.stdout.splitlines():
+            if f":{port}" in line and "LISTENING" in line:
+                pid = line.strip().split()[-1]
+                if pid.isdigit() and int(pid) != os.getpid():
+                    try:
+                        os.kill(int(pid), signal.SIGTERM)
+                    except (OSError, ProcessLookupError):
+                        pass
+    except Exception:
+        pass
 
 
 def _wait_for_url(url: str, timeout: int = HEALTH_TIMEOUT):
@@ -50,8 +73,10 @@ def _wait_for_url(url: str, timeout: int = HEALTH_TIMEOUT):
 @pytest.fixture(scope="session")
 def backend_server():
     """Start the backend uvicorn server on :8100."""
+    _kill_port_processes(BACKEND_PORT)
     env = os.environ.copy()
     env["DINO_CORS_ORIGINS"] = "*"
+    env["E2E_TESTING"] = "1"
     proc = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "main:socket_app",
          "--host", "127.0.0.1", "--port", str(BACKEND_PORT)],
@@ -75,10 +100,15 @@ def backend_server():
 @pytest.fixture(scope="session")
 def frontend_server():
     """Start the Vite dev server on :3100."""
+    _kill_port_processes(FRONTEND_PORT)
+    # Write .env.e2e so Vite picks up the backend URL
+    env_file = os.path.join(FRONTEND_DIR, ".env.e2e")
+    with open(env_file, "w") as f:
+        f.write(f"VITE_API_URL={BACKEND_URL}\n")
     env = os.environ.copy()
     env["VITE_API_URL"] = BACKEND_URL
     proc = subprocess.Popen(
-        ["npm", "run", "dev", "--", "--port", str(FRONTEND_PORT)],
+        ["npm", "run", "dev", "--", "--port", str(FRONTEND_PORT), "--mode", "e2e"],
         cwd=FRONTEND_DIR,
         env=env,
         shell=True,
@@ -95,6 +125,11 @@ def frontend_server():
         except subprocess.TimeoutExpired:
             proc.kill()
             proc.wait()
+        # Clean up .env.e2e
+        try:
+            os.remove(env_file)
+        except OSError:
+            pass
 
 
 @pytest.fixture(scope="session")
@@ -125,7 +160,10 @@ def browser_context(servers):
 def host_page(browser_context):
     """A fresh browser page for the host player."""
     page = browser_context.new_page()
+    page.add_init_script("localStorage.clear(); localStorage.setItem('dino_tutorial_done', 'true')")
     page.goto(FRONTEND_URL)
+    page.wait_for_load_state("domcontentloaded")
+    page.wait_for_selector('[placeholder="Enter your name"]', timeout=15000)
     yield page
     page.close()
 
@@ -134,7 +172,10 @@ def host_page(browser_context):
 def player2_page(browser_context):
     """A fresh browser page for a second player."""
     page = browser_context.new_page()
+    page.add_init_script("localStorage.clear(); localStorage.setItem('dino_tutorial_done', 'true')")
     page.goto(FRONTEND_URL)
+    page.wait_for_load_state("domcontentloaded")
+    page.wait_for_selector('[placeholder="Enter your name"]', timeout=15000)
     yield page
     page.close()
 
@@ -150,3 +191,22 @@ def qa_controller(backend_server):
     controller = QAController()
     yield controller
     controller.disconnect()
+
+
+@pytest.fixture(autouse=False)
+def _reset_backend_state(backend_server):
+    """Reset all backend rooms/games between tests for isolation. Disabled by default."""
+    import urllib.request
+    import time as _time
+    try:
+        req = urllib.request.Request(
+            f"{BACKEND_URL}/qa/reset",
+            method="POST",
+            headers={"Content-Type": "application/json"},
+            data=b"{}",
+        )
+        urllib.request.urlopen(req, timeout=5)
+        _time.sleep(0.3)
+    except Exception:
+        pass
+    yield

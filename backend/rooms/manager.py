@@ -198,5 +198,16 @@ class RoomManager:
             del self.player_rooms[session_target_id]
         return room
 
+    def reset_all(self):
+        """Reset all rooms and state. Used by QA tests for isolation.
+
+        Replaces dicts (not .clear()) so async iterators on old refs are safe.
+        """
+        self.rooms = {}
+        self.player_rooms = {}
+        self.socket_to_session = {}
+        self.session_to_socket = {}
+        self._room_locks = {}
+
 # Global instance for Phase 2
 room_manager = RoomManager()

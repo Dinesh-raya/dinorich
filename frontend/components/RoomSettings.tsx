@@ -144,24 +144,24 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
             }}
           >
             {/* Header */}
-            <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gold-800/20">
-              <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-purple-300 mb-1 font-cyber">
+            <div className="flex justify-between items-start sm:items-center p-4 sm:p-6 border-b border-gold-800/20 gap-3">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg sm:text-2xl font-bold text-purple-300 mb-1 font-cyber">
                   ROOM SETTINGS
                 </h2>
-                <p className="text-text-muted text-xs sm:text-sm font-cyber">
+                <p className="text-text-muted text-[10px] sm:text-sm font-cyber truncate">
                   Room Code: <span className="text-purple-400 font-bold tracking-widest font-mono">{room?.room_id}</span>
                 </p>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                 {isHost ? (
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/20 border border-purple-500/30">
+                  <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/20 border border-purple-500/30">
                     <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
                     <span className="text-purple-300 text-xs font-bold">HOST</span>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface/50 border border-white/10">
+                  <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface/50 border border-white/10">
                     <span className="text-text-muted text-xs font-bold">PLAYER</span>
                   </div>
                 )}
@@ -169,7 +169,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                 <motion.button
                   onClick={onClose}
                   aria-label="Close room settings"
-                  className="w-11 h-11 min-h-[44px] min-w-[44px] rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-danger-400 hover:border-danger-500/30 transition-all flex items-center justify-center"
+                  className="min-h-[44px] min-w-[44px] rounded-lg bg-surface/50 border border-white/10 text-text-muted hover:text-danger-400 hover:border-danger-500/30 transition-all flex items-center justify-center"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                 >
@@ -512,19 +512,19 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
 
                   <div className="space-y-2">
                     {Object.values(room.players).map((player: any) => (
-                      <div key={player.id} className="flex items-center justify-between p-3 rounded-xl bg-surface/30 border border-white/5 hover:border-gold-800/20 transition-all">
-                        <div className="flex items-center gap-3">
+                      <div key={player.id} className="flex items-center justify-between p-3 rounded-xl bg-surface/30 border border-white/5 hover:border-gold-800/20 transition-all min-w-0">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
                           <div
-                            className="w-9 h-9 rounded-full border-2 shadow-lg"
+                            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 shadow-lg shrink-0"
                             style={{
                               backgroundColor: player.color,
                               borderColor: player.color,
                               boxShadow: `0 0 12px ${player.color}40`
                             }}
                           ></div>
-                          <div>
-                            <p className="font-medium text-text-main">{player.name}</p>
-                            <p className="text-[10px] text-text-muted font-mono">ID: {player.id.slice(0, 8)}...</p>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-text-main truncate">{player.name}</p>
+                            <p className="text-[10px] text-text-muted font-mono truncate">ID: {player.id.slice(0, 8)}...</p>
                           </div>
                         </div>
 
@@ -557,8 +557,8 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 p-4 sm:p-6 border-t border-gold-800/20">
-              <p className="text-[10px] sm:text-xs text-text-muted order-2 sm:order-1">
+            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-0 p-4 sm:p-6 border-t border-gold-800/20">
+              <p className="text-[10px] sm:text-xs text-text-muted order-2 sm:order-1 text-center sm:text-left">
                 {isLocked ? 'Settings are read-only during gameplay.' : 'Settings affect all players. Changes take effect immediately.'}
               </p>
 

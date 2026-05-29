@@ -240,6 +240,35 @@ async def health_check():
         "uptime": int(time.time() - SERVER_START_TIME),
     }
 
+# QA reset endpoint for E2E test isolation
+@app.post("/qa/reset")
+async def qa_reset():
+    """Reset all rooms and game state. For E2E test isolation only."""
+    try:
+        turn_manager.reset_all()
+        room_manager.reset_all()
+        auction_manager.auctions.clear()
+        trade_manager.active_trades.clear()
+        trade_manager.player_trades.clear()
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+    return {"status": "success"}
+
+
+# QA room info endpoint for E2E test verification
+@app.get("/qa/rooms/{room_code}/players")
+async def qa_room_players(room_code: str):
+    """Return player count and names for a room. For E2E test verification."""
+    room = room_manager.get_room(room_code)
+    if not room:
+        return {"status": "error", "message": "Room not found"}
+    players = {
+        pid: {"name": p.name, "connected": p.connected}
+        for pid, p in room.players.items()
+    }
+    return {"status": "success", "count": len(players), "players": players}
+
+
 # Serve frontend statically in production
 frontend_dist = os.path.join(os.path.dirname(__file__), '../frontend/dist')
 if os.path.exists(frontend_dist):

@@ -494,11 +494,23 @@ export function GameBoardView({
               </button>
             </div>
 
-            <div className="flex gap-1.5">
+            <div className="flex gap-1">
+              <button
+                onClick={() => {
+                  soundManager.playButtonClick();
+                  setShowTradeModal(true);
+                }}
+                aria-label="Open trade dialog"
+                className="btn-gold-ghost p-2.5 rounded-lg min-h-[44px] min-w-[44px] active:scale-95 transition-transform"
+                title="Trade"
+              >
+                <Handshake className="w-5 h-5" />
+              </button>
+
               <button
                 onClick={() => setShowMobileMenu(true)}
                 aria-label="Open players menu"
-                className="btn-gold-ghost p-3 rounded-xl min-h-[44px] min-w-[44px] active:scale-95 transition-transform"
+                className="btn-gold-ghost p-2.5 rounded-lg min-h-[44px] min-w-[44px] active:scale-95 transition-transform"
               >
                 <Users className="w-5 h-5" />
               </button>
@@ -506,37 +518,10 @@ export function GameBoardView({
               <button
                 onClick={() => {
                   soundManager.playButtonClick();
-                  setShowTradeModal(true);
-                }}
-                aria-label="Open trade dialog"
-                className="btn-gold-ghost p-3 rounded-xl min-h-[44px] min-w-[44px] active:scale-95 transition-transform"
-                title="Trade"
-              >
-                <Handshake className="w-5 h-5" />
-              </button>
-
-              {/* QA Panel button for mobile */}
-              {isQAMode && isHost && (
-                <button
-                  onClick={() => {
-                    soundManager.playButtonClick();
-                    setShowQAPanel(true);
-                  }}
-                  aria-label="Open QA testing panel"
-                  className="p-3 rounded-xl min-h-[44px] min-w-[44px] active:scale-95 transition-transform bg-purple-500/10 border border-purple-500/30 text-purple-300"
-                  title="QA Testing Panel"
-                >
-                  <Bug className="w-5 h-5" />
-                </button>
-              )}
-
-              <button
-                onClick={() => {
-                  soundManager.playButtonClick();
                   setShowGameHistory(true);
                 }}
                 aria-label={`View game history, ${game.history_log.length} events`}
-                className="btn-gold-ghost p-3 rounded-xl min-h-[44px] min-w-[44px] active:scale-95 transition-transform relative"
+                className="btn-gold-ghost p-2.5 rounded-lg min-h-[44px] min-w-[44px] active:scale-95 transition-transform relative"
                 title="Game History"
               >
                 <History className="w-5 h-5" />
@@ -546,27 +531,7 @@ export function GameBoardView({
                   </span>
                 )}
               </button>
-              <button
-                onClick={() => {
-                  soundManager.playButtonClick();
-                  setShowAudioSettings(true);
-                }}
-                aria-label="Open audio settings"
-                className="btn-gold-ghost p-3 rounded-xl min-h-[44px] min-w-[44px] active:scale-95 transition-transform"
-              >
-                <Volume2 className="w-5 h-5" />
-              </button>
 
-              <button
-                onClick={() => {
-                  soundManager.playButtonClick();
-                  setShowRoomSettings(true);
-                }}
-                aria-label="Open room settings"
-                className="btn-gold-ghost p-3 rounded-xl min-h-[44px] min-w-[44px] active:scale-95 transition-transform"
-              >
-                <Settings className="w-5 h-5" />
-              </button>
               {isMyTurn && (
                 <button
                   onClick={() => {
@@ -575,10 +540,25 @@ export function GameBoardView({
                     else pauseGame();
                   }}
                   aria-label={isPaused ? 'Resume game' : 'Pause game'}
-                  className={`btn-gold-ghost p-3 rounded-xl min-h-[44px] min-w-[44px] active:scale-95 transition-transform ${isPaused ? 'border border-success-500/50' : 'border border-warning-500/50'}`}
+                  className={`btn-gold-ghost p-2.5 rounded-lg min-h-[44px] min-w-[44px] active:scale-95 transition-transform ${isPaused ? 'border border-success-500/50' : 'border border-warning-500/50'}`}
                   title={isPaused ? 'Resume Game' : 'Pause Game'}
                 >
                   {isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
+                </button>
+              )}
+
+              {/* QA Panel button for mobile */}
+              {isQAMode && isHost && (
+                <button
+                  onClick={() => {
+                    soundManager.playButtonClick();
+                    setShowQAPanel(true);
+                  }}
+                  aria-label="Open QA testing panel"
+                  className="p-2.5 rounded-lg min-h-[44px] min-w-[44px] active:scale-95 transition-transform bg-purple-500/10 border border-purple-500/30 text-purple-300"
+                  title="QA Testing Panel"
+                >
+                  <Bug className="w-5 h-5" />
                 </button>
               )}
             </div>

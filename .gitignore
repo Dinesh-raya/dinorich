@@ -40,3 +40,4 @@ skills-lock.json
 e2e/screenshots/
 e2e/test-results/
 playwright-report/
+.claude/settings.local.json

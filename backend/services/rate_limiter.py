@@ -39,4 +39,7 @@ class SocketRateLimiter:
 
 rate_limiter = SocketRateLimiter()
 # Dedicated connection rate limiter: max 10 connections per 60 seconds per IP
-connection_rate_limiter = SocketRateLimiter(max_calls=10, per_seconds=60)
+# Increase to 100 during E2E tests (each test creates 3 connections)
+import os
+_conn_max = 100 if os.environ.get("E2E_TESTING") else 10
+connection_rate_limiter = SocketRateLimiter(max_calls=_conn_max, per_seconds=60)

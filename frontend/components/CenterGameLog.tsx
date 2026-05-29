@@ -57,6 +57,9 @@ export const CenterGameLog = ({ historyLog }: { historyLog: string[] }) => {
       >
       <div
         ref={scrollRef}
+        role="log"
+        aria-live="polite"
+        aria-label="Game activity feed"
         className="flex flex-col gap-1 max-h-40 overflow-y-auto scrollbar-hide px-1 py-1"
         style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 12%, black 85%, transparent 100%)' }}
       >

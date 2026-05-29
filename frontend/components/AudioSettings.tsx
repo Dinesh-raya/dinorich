@@ -54,6 +54,9 @@ export const AudioSettings = ({ isOpen, onClose }: AudioSettingsProps) => {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl p-4"
     >
       <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Audio settings"
         initial={{ scale: 0.8, y: 50, opacity: 0 }}
         animate={{ scale: 1, y: 0, opacity: 1 }}
         exit={{ scale: 0.8, y: 50, opacity: 0 }}

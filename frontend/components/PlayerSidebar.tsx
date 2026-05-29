@@ -145,17 +145,17 @@ export const PlayerSidebar = ({
 
         {/* Stats summary */}
         <div className="grid grid-cols-2 gap-1.5 mt-2">
-          <div className="bg-success-500/10 border border-success-500/20 rounded-lg p-1.5">
-            <div className="text-xs text-text-muted">Richest</div>
-            <div className="text-sm font-bold text-success-400 truncate" title={richestPlayer?.name ?? '-'}>
+          <div className="bg-success-500/10 border border-success-500/20 rounded-lg p-1.5 min-w-0">
+            <div className="text-[10px] text-text-muted">Richest</div>
+            <div className="text-xs sm:text-sm font-bold text-success-400 truncate" title={richestPlayer?.name ?? '-'}>
               {richestPlayer?.name ?? '-'}
             </div>
-            <div className="text-xs text-success-300">{formatMoney(richestPlayer?.money ?? 0)}</div>
+            <div className="text-[10px] text-success-300">{formatMoney(richestPlayer?.money ?? 0)}</div>
           </div>
-          <div className="bg-warning-500/10 border border-warning-500/20 rounded-lg p-2">
-            <div className="text-xs text-text-muted">Average</div>
-            <div className="text-sm font-bold text-warning-400">{formatMoney(averageMoney)}</div>
-            <div className="text-xs text-warning-300">per player</div>
+          <div className="bg-warning-500/10 border border-warning-500/20 rounded-lg p-1.5 min-w-0">
+            <div className="text-[10px] text-text-muted">Average</div>
+            <div className="text-xs sm:text-sm font-bold text-warning-400">{formatMoney(averageMoney)}</div>
+            <div className="text-[10px] text-warning-300">per player</div>
           </div>
         </div>
       </div>
@@ -233,11 +233,11 @@ export const PlayerSidebar = ({
                     </div>
 
                     {/* Money display */}
-                    <div className="text-right">
-                      <div className={`text-sm font-bold ${player.money < 0 ? 'text-danger-400' : 'text-success-400'}`}>
+                    <div className="text-right shrink-0">
+                      <div className={`text-xs sm:text-sm font-bold ${player.money < 0 ? 'text-danger-400' : 'text-success-400'}`}>
                         {formatMoney(player.money)}
                       </div>
-                      <div className="text-xs text-text-muted">
+                      <div className="text-[10px] text-text-muted">
                         {moneyPercentage.toFixed(1)}%
                       </div>
                     </div>

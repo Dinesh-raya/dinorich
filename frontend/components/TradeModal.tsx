@@ -520,16 +520,16 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                   </div>
 
                   {/* Trade Valuation Summary */}
-                  <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-surface/20 border border-white/10">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-4 p-3 sm:p-4 rounded-xl bg-surface/20 border border-white/10">
                     <div className="text-center">
-                      <p className="text-[10px] text-text-muted font-cyber">TOTAL OFFER VALUE</p>
-                      <p className="text-base sm:text-lg font-bold text-success-400">
+                      <p className="text-[9px] sm:text-[10px] text-text-muted font-cyber">TOTAL OFFER VALUE</p>
+                      <p className="text-sm sm:text-lg font-bold text-success-400">
                         {formatMoney(offeringMoney + offeringPropertiesValue)}
                       </p>
                     </div>
                     <div className="text-center">
-                      <p className="text-[10px] text-text-muted font-cyber">TOTAL REQUEST VALUE</p>
-                      <p className="text-base sm:text-lg font-bold text-accent-400">
+                      <p className="text-[9px] sm:text-[10px] text-text-muted font-cyber">TOTAL REQUEST VALUE</p>
+                      <p className="text-sm sm:text-lg font-bold text-accent-400">
                         {formatMoney(requestingMoney + requestingPropertiesValue)}
                       </p>
                     </div>

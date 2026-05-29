@@ -29,6 +29,11 @@ class TurnManager:
         self.active_doubles_count.pop(room_code, None)
         self._timers.cleanup_room(room_code)
 
+    def reset_all(self):
+        """Reset all game state. Used by QA tests for isolation."""
+        for room_code in list(self.games.keys()):
+            self.cleanup_room(room_code)
+
     def start_game(self, room_code: str, game_state: GameState):
         if not game_state.turn_order:
             return

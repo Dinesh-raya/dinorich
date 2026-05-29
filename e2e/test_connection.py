@@ -26,11 +26,12 @@ class TestConnection:
 
     def test_frontend_loads_lobby(self, host_page: Page):
         """The lobby screen renders with DINO-RICHUP title and name input."""
-        host_page.wait_for_load_state("networkidle")
+        host_page.wait_for_load_state("domcontentloaded")
+        host_page.wait_for_selector('[placeholder="Enter your name"]', timeout=15000)
 
-        # Title should contain DINO-RICHUP
-        heading = host_page.locator("h1")
-        expect(heading).to_contain_text("DINO-RICHUP")
+        # Wait for lobby heading (may be behind ConnectionScreen initially)
+        heading = host_page.get_by_role("heading", name="DINO-RICHUP")
+        expect(heading).to_be_visible(timeout=15000)
 
         # Name input should be visible
         name_input = host_page.get_by_placeholder("Enter your name")
@@ -40,13 +41,15 @@ class TestConnection:
 
     def test_create_room_button_visible(self, host_page: Page):
         """The CREATE NEW ROOM button is visible on the lobby."""
-        host_page.wait_for_load_state("networkidle")
+        host_page.wait_for_load_state("domcontentloaded")
+        host_page.wait_for_selector('[placeholder="Enter your name"]', timeout=15000)
         create_btn = host_page.get_by_role("button", name="Create a new game room")
         expect(create_btn).to_be_visible()
 
     def test_join_room_button_visible(self, host_page: Page):
         """The JOIN ROOM button is visible on the lobby."""
-        host_page.wait_for_load_state("networkidle")
+        host_page.wait_for_load_state("domcontentloaded")
+        host_page.wait_for_selector('[placeholder="Enter your name"]', timeout=15000)
         join_btn = host_page.get_by_role("button", name=re.compile("Join room"))
         expect(join_btn).to_be_visible()
 
@@ -60,7 +63,8 @@ class TestRoomCreation:
 
     def test_create_room_as_host(self, host_page: Page):
         """Host enters name, clicks Create Room, sees waiting room with code."""
-        host_page.wait_for_load_state("networkidle")
+        host_page.wait_for_load_state("domcontentloaded")
+        host_page.wait_for_selector('[placeholder="Enter your name"]', timeout=15000)
 
         # Enter player name
         name_input = host_page.get_by_placeholder("Enter your name")
@@ -100,7 +104,8 @@ class TestRoomJoin:
     def test_player2_joins_room(self, host_page: Page, player2_page: Page):
         """Host creates room, player2 joins using the room code."""
         # --- Host creates room ---
-        host_page.wait_for_load_state("networkidle")
+        host_page.wait_for_load_state("domcontentloaded")
+        host_page.wait_for_selector('[placeholder="Enter your name"]', timeout=15000)
         name_input = host_page.get_by_placeholder("Enter your name")
         name_input.fill("HostPlayer")
         host_page.get_by_role("button", name="Create a new game room").click()
@@ -114,7 +119,8 @@ class TestRoomJoin:
         host_page.screenshot(path=f"{SCREENSHOT_DIR}/04-host-waiting.png")
 
         # --- Player 2 joins ---
-        player2_page.wait_for_load_state("networkidle")
+        player2_page.wait_for_load_state("domcontentloaded")
+        player2_page.wait_for_selector('[placeholder="Enter your name"]', timeout=15000)
 
         # Enter name
         p2_name = player2_page.get_by_placeholder("Enter your name")
@@ -154,7 +160,8 @@ class TestGameStart:
     def test_host_starts_game(self, host_page: Page, player2_page: Page):
         """Host creates room, player2 joins, host starts game, both see board."""
         # --- Host creates room ---
-        host_page.wait_for_load_state("networkidle")
+        host_page.wait_for_load_state("domcontentloaded")
+        host_page.wait_for_selector('[placeholder="Enter your name"]', timeout=15000)
         name_input = host_page.get_by_placeholder("Enter your name")
         name_input.fill("HostPlayer")
         host_page.get_by_role("button", name="Create a new game room").click()
@@ -166,7 +173,8 @@ class TestGameStart:
         room_code = room_code_display.text_content().strip()
 
         # --- Player 2 joins ---
-        player2_page.wait_for_load_state("networkidle")
+        player2_page.wait_for_load_state("domcontentloaded")
+        player2_page.wait_for_selector('[placeholder="Enter your name"]', timeout=15000)
         player2_page.get_by_placeholder("Enter your name").fill("Player2")
         player2_page.get_by_placeholder("ABCDEF").fill(room_code)
         player2_page.get_by_role("button", name=re.compile("Join room")).click()

@@ -1,0 +1,92 @@
+<h2>In-Game UI: Where Do Controls & Info Live?</h2>
+<p class="subtitle">During gameplay, players need to see the board, their money, other players, and take actions. How do we arrange this?</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background: #0a0e1a; padding: 12px; min-height: 200px; display: flex; gap: 8px;">
+      <div style="width: 100px; background: rgba(226,183,20,0.05); border: 1px solid rgba(226,183,20,0.15); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
+        <div style="color: #e2b714; font-size: 8px; font-weight: bold; letter-spacing: 1px;">PLAYERS</div>
+        <div style="background: rgba(226,183,20,0.1); border: 1px solid #e2b714; border-radius: 4px; padding: 4px;">
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: #e2b714;"></div>
+            <div style="color: #e2b714; font-size: 7px; font-weight: bold;">You ₹14,200</div>
+          </div>
+        </div>
+        <div style="background: rgba(255,255,255,0.03); border-radius: 4px; padding: 4px;">
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: #3b82f6;"></div>
+            <div style="color: #888; font-size: 7px;">Ravi ₹12,800</div>
+          </div>
+        </div>
+        <div style="background: rgba(255,255,255,0.03); border-radius: 4px; padding: 4px;">
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: #22c55e;"></div>
+            <div style="color: #888; font-size: 7px;">Priya ₹11,500</div>
+          </div>
+        </div>
+      </div>
+      <div style="flex: 1; background: #111827; border: 1px solid #e2b714; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+        <div style="color: #e2b714; font-size: 9px; text-align: center;">
+          <div style="font-size: 20px; margin-bottom: 4px;">🎲</div>
+          <div>BOARD</div>
+        </div>
+      </div>
+      <div style="width: 100px; display: flex; flex-direction: column; gap: 6px;">
+        <div style="background: rgba(226,183,20,0.05); border: 1px solid rgba(226,183,20,0.15); border-radius: 8px; padding: 8px;">
+          <div style="color: #e2b714; font-size: 8px; font-weight: bold; letter-spacing: 1px; margin-bottom: 4px;">YOUR TURN</div>
+          <div style="background: #e2b714; color: #0a0e1a; padding: 4px; border-radius: 4px; font-size: 8px; font-weight: bold; text-align: center; margin-bottom: 3px;">ROLL DICE</div>
+          <div style="background: transparent; border: 1px solid #e2b714; color: #e2b714; padding: 4px; border-radius: 4px; font-size: 8px; text-align: center;">END TURN</div>
+        </div>
+        <div style="background: rgba(226,183,20,0.05); border: 1px solid rgba(226,183,20,0.15); border-radius: 8px; padding: 6px;">
+          <div style="color: #e2b714; font-size: 7px; font-weight: bold; margin-bottom: 3px;">ACTIVITY</div>
+          <div style="color: #666; font-size: 6px; line-height: 1.4;">
+            <div>Ravi landed on Delhi</div>
+            <div>Priya paid ₹200 tax</div>
+            <div>You drew Treasury</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Three-Column: Players | Board | Actions</h3>
+      <p>Left sidebar: player list with money. Center: full board. Right sidebar: turn actions + activity log. Classic layout, everything visible at once. Best for desktop. Mobile collapses sidebars into drawers.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background: #0a0e1a; padding: 12px; min-height: 200px; display: flex; flex-direction: column; gap: 6px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(226,183,20,0.05); border: 1px solid rgba(226,183,20,0.15); border-radius: 6px; padding: 6px 10px;">
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <div style="color: #e2b714; font-size: 10px; font-weight: bold;">DINO RICHUP</div>
+          <div style="color: #555; font-size: 7px;">|</div>
+          <div style="color: #888; font-size: 7px;">Turn: <span style="color: #e2b714; font-weight: bold;">You</span></div>
+          <div style="color: #555; font-size: 7px;">|</div>
+          <div style="color: #888; font-size: 7px;">₹<span style="color: #22c55e; font-weight: bold;">14,200</span></div>
+        </div>
+        <div style="display: flex; gap: 4px;">
+          <div style="background: rgba(226,183,20,0.1); border: 1px solid rgba(226,183,20,0.2); border-radius: 3px; padding: 2px 6px; color: #e2b714; font-size: 7px;">⚙️</div>
+          <div style="background: rgba(226,183,20,0.1); border: 1px solid rgba(226,183,20,0.2); border-radius: 3px; padding: 2px 6px; color: #e2b714; font-size: 7px;">🔊</div>
+          <div style="background: rgba(226,183,20,0.1); border: 1px solid rgba(226,183,20,0.2); border-radius: 3px; padding: 2px 6px; color: #e2b714; font-size: 7px;">💾</div>
+        </div>
+      </div>
+      <div style="flex: 1; background: #111827; border: 1px solid #e2b714; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+        <div style="color: #e2b714; font-size: 9px; text-align: center;">
+          <div style="font-size: 20px; margin-bottom: 4px;">🎲</div>
+          <div>BOARD — FULL WIDTH</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 6px;">
+        <div style="flex: 1; background: rgba(226,183,20,0.05); border: 1px solid rgba(226,183,20,0.15); border-radius: 6px; padding: 6px; display: flex; gap: 4px; justify-content: center;">
+          <div style="background: #e2b714; color: #0a0e1a; padding: 3px 8px; border-radius: 3px; font-size: 7px; font-weight: bold;">ROLL</div>
+          <div style="background: transparent; border: 1px solid #e2b714; color: #e2b714; padding: 3px 8px; border-radius: 3px; font-size: 7px;">END TURN</div>
+          <div style="background: transparent; border: 1px solid #e2b714; color: #e2b714; padding: 3px 8px; border-radius: 3px; font-size: 7px;">TRADE</div>
+          <div style="background: transparent; border: 1px solid #e2b714; color: #e2b714; padding: 3px 8px; border-radius: 3px; font-size: 7px;">BUILD</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Full-Width Board + Bottom Bar</h3>
+      <p>Board takes maximum space. Thin top bar: game name, turn, money, settings. Bottom bar: action buttons (Roll, End Turn, Trade, Build). Player info appears on hover/tap of tokens on board. Best for immersion. Great on both desktop and mobile.</p>
+    </div>
+  </div>
+</div>

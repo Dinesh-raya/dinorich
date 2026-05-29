@@ -125,6 +125,14 @@ class QAController:
         """
         return self._emit("qa:add_money", {"player_id": player_id, "amount": amount})
 
+    def reset(self) -> dict:
+        """Reset all backend game state — for test isolation."""
+        return self._emit("qa:reset")
+
+    def get_room_players(self) -> dict:
+        """Get room players — works in waiting room (before game start)."""
+        return self._emit("qa:room_players")
+
     def get_state(self) -> dict:
         """Fetch the full current game state (QA view).
 
@@ -144,3 +152,44 @@ class QAController:
             Server response dict with 'card' and 'card_type' keys.
         """
         return self._emit("qa:force_card", {"card_type": card_type, "card_index": card_index})
+
+    def set_current_player(self, player_id: str) -> dict:
+        """Set the active player by ID. Skips turn order rotation.
+
+        Args:
+            player_id: Session ID of the player to make active.
+
+        Returns:
+            Server response dict.
+        """
+        return self._emit("qa:set_current_player", {"player_id": player_id})
+
+    def wait_for_players(self, room_code: str, count: int, timeout: float = 15.0) -> dict:
+        """Poll /qa/rooms/{room_code}/players until the room has at least `count` players.
+
+        Uses HTTP endpoint (works before game:start, no socket dependency).
+        Returns the final player dict, or raises TimeoutError.
+        """
+        import time
+        import urllib.request
+        import json as _json
+
+        deadline = time.monotonic() + timeout
+        port = self._url.rstrip("/").split(":")[-1]
+        url = f"http://127.0.0.1:{port}/qa/rooms/{room_code}/players"
+        last_players = {}
+        while time.monotonic() < deadline:
+            try:
+                resp = urllib.request.urlopen(url, timeout=3)
+                data = _json.loads(resp.read())
+                players = data.get("players", {})
+                if len(players) >= count:
+                    return players
+                last_players = players
+            except Exception:
+                pass
+            time.sleep(0.5)
+        raise TimeoutError(
+            f"Only {len(last_players)} players after {timeout}s (expected {count}): "
+            f"{last_players}"
+        )
