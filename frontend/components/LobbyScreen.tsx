@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
 import { Building2 } from 'lucide-react';
-import { soundManager } from '../utils/audio';
 import { getRandomName } from '../src/utils/helpers';
 import { useState, useEffect } from 'react';
 import { loadAvatar, loadSavedName, saveName } from '../utils/playerProfile';
@@ -97,8 +96,6 @@ export function LobbyScreen({
             className="w-full btn-gold py-4 text-lg font-bold rounded-xl flex items-center justify-center gap-3 min-h-[56px] touch-ripple relative"
             aria-label="Create a new game room"
             onClick={() => {
-              soundManager.playButtonClick();
-              soundManager.playGameStart();
               createRoom(name || getRandomName());
             }}
             whileHover={{ scale: 1.02 }}
@@ -134,7 +131,6 @@ export function LobbyScreen({
               className="w-full btn-gold-outline py-4 text-lg font-bold rounded-xl flex items-center justify-center gap-3 min-h-[56px] touch-ripple relative"
               aria-label={`Join room ${roomCode || ''}`}
               onClick={() => {
-                soundManager.playButtonClick();
                 joinRoom(roomCode, name || getRandomName());
               }}
               whileHover={{ scale: 1.02 }}

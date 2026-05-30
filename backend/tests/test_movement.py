@@ -53,7 +53,7 @@ class TestMovePlayer:
         # 36 + 4 = 40 % 40 = 0, and 0 < 36 so passed_go = True
         assert game.room.players["p1"].position == 0
         assert passed_go is True
-        assert game.room.players["p1"].money == initial_money + GameRules.GO_REWARD
+        assert game.room.players["p1"].money == initial_money + GameRules.GO_LANDING_REWARD
 
     def test_jail_prevents_movement(self):
         game = make_test_game()

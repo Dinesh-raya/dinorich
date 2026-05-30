@@ -42,14 +42,14 @@ const getMobileTileName = (name: string) => {
 };
 
 export const BoardTile = memo(({
-  tile, pos, isCorner, isSide, ownerId, houses, hotels,
+  tile, pos, isCorner, isSide: _isSide, ownerId, houses, hotels,
   isMortgaged, hasMonopolyOnTile, tileColor, tileIcon,
   playerColor, playerName, ownerIcon, isLandingTile, isMyTile, cellSize, onTileClick
 }: BoardTileProps) => {
   const isCompact = cellSize < 35;
   return (
     <motion.div
-      className={`flex flex-col relative overflow-hidden cursor-pointer ${
+      className={`flex flex-col relative overflow-visible cursor-pointer ${
         isCorner ? 'p-1.5 justify-center items-center' : ''
       } ${hasMonopolyOnTile ? 'monopoly-glow' : ''}`}
       role="button"
@@ -62,9 +62,7 @@ export const BoardTile = memo(({
           ? '2px solid rgba(34, 211, 238, 0.4)'
           : ownerId
           ? `2px solid ${playerColor ? playerColor + 'cc' : 'rgba(255, 255, 255, 0.15)'}`
-          : isSide
-          ? '1px solid rgba(255, 255, 255, 0.15)'
-          : '1px solid rgba(255, 255, 255, 0.08)',
+          : '1px solid rgba(255, 255, 255, 0.15)',
         background: isCorner
           ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.9) 100%)'
           : ownerId
@@ -75,10 +73,6 @@ export const BoardTile = memo(({
           : ownerId && playerColor
             ? `0 0 8px ${playerColor}40, inset 0 0 4px ${playerColor}15`
             : undefined,
-        outline: ownerId && !isCorner
-          ? `1px solid ${playerColor || 'rgba(255, 255, 255, 0.15)'}40`
-          : undefined,
-        outlineOffset: '-3px',
         transition: 'all 0.2s ease'
       }}
       variants={animations.fadeIn}
@@ -155,7 +149,7 @@ export const BoardTile = memo(({
       {/* Special type indicator */}
       {!isCorner && !tile.color && (
         <div
-          className={`${isCompact ? 'h-3' : 'h-4'} w-full border-b border-white/10 flex items-center justify-center`}
+          className={`${isCompact ? 'h-3' : 'h-5'} w-full border-b border-white/10 flex items-center justify-center`}
           style={{ backgroundColor: tileColor }}
         >
           {tileIcon && <span className="text-xs">{tileIcon}</span>}
@@ -247,10 +241,9 @@ export const BoardTile = memo(({
         {/* Monopoly gold glow overlay */}
         {hasMonopolyOnTile && (
           <div
-            className="absolute inset-0 rounded-lg pointer-events-none z-10"
+            className="absolute inset-0 rounded-2xl pointer-events-none z-10"
             style={{
               boxShadow: 'inset 0 0 8px rgba(212, 164, 55, 0.2)',
-              border: '1px solid rgba(212, 164, 55, 0.2)',
             }}
           />
         )}

@@ -130,16 +130,16 @@ class TestQAAddMoney:
         game = make_test_game()
         p1 = game.room.players["p1"]
         initial = p1.money
-        p1.money += 5000
-        assert p1.money == initial + 5000
+        p1.money += 500
+        assert p1.money == initial + 500
 
     def test_add_money_negative_deducts(self):
         """Negative amount should decrease balance."""
         game = make_test_game()
         p1 = game.room.players["p1"]
         initial = p1.money
-        p1.money -= 3000
-        assert p1.money == initial - 3000
+        p1.money -= 300
+        assert p1.money == initial - 300
 
 
 class TestQAModeIntegration:

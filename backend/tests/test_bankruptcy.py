@@ -34,7 +34,7 @@ class TestBankruptcyWithCreditor:
 
     def test_mortgaged_property_interest_deducted(self):
         game = make_test_game()
-        # Tile 1 (Guwahati) mortgage value = 30000, 10% interest = 3000
+        # Tile 1 (Guwahati) mortgage value = 30, 10% interest = 3
         game.properties[1].owner_id = "p1"
         game.properties[1].is_mortgaged = True
         game.room.players["p1"].properties_owned = [1]
@@ -76,7 +76,7 @@ class TestBankruptcyToBank:
 
     def test_buildings_returned_at_half_price(self):
         game = make_test_game()
-        # Guwahati (tile 1, brown) house price = 500
+        # Guwahati (tile 1, brown) house price = 50
         game.room.players["p1"].properties_owned = [1]
         game.properties[1].owner_id = "p1"
         game.properties[1].houses = 3
@@ -105,7 +105,7 @@ class TestBankruptcyToBank:
 
     def test_debtor_money_set_to_zero(self):
         game = make_test_game()
-        game.room.players["p1"].money = -20000
+        game.room.players["p1"].money = -2000
         declare_bankruptcy(game, "p1")
         assert game.room.players["p1"].money == 0
 

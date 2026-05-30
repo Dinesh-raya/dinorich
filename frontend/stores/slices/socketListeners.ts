@@ -3,6 +3,7 @@ import { showToast } from '../../components/Toast';
 import { soundManager } from '../../utils/audio';
 import type { Player, GameState, TurnState, RoomState } from './types';
 import type { StoreState } from './storeTypes';
+import boardData from '../../../shared/configs/board_config.json';
 
 interface SocketResponse {
   status: 'success' | 'error';
@@ -20,10 +21,16 @@ interface GameStateUpdate {
   turn: TurnState;
 }
 
+const HOUSE_PRICES: Record<string, number> = {
+  brown: 50, light_blue: 60, pink: 100, orange: 100,
+  red: 150, yellow: 150, green: 200, dark_blue: 200,
+};
+
 let prevPlayerPositions: Record<string, number> = {};
 let prevPlayerMoney: Record<string, number> = {};
 let prevPlayerBankrupt: Record<string, boolean> = {};
 let prevPlayerInJail: Record<string, boolean> = {};
+let prevHotelCounts: Record<string, number> = {};
 let moneyChangeTimer: ReturnType<typeof setTimeout> | null = null;
 let _listenersSetup = false;
 let _registeredListeners: Array<{ event: string; handler: (...args: any[]) => void; target: 'socket' | 'manager' }> = [];
@@ -63,16 +70,41 @@ function removeRegisteredListeners() {
   _registeredListeners = [];
 }
 
+function calculateTotalWorth(game: GameState, playerId: string): number {
+  const player = game.room.players[playerId];
+  if (!player) return 0;
+  let total = player.money || 0;
+  for (const propId of player.properties_owned || []) {
+    const propState = game.properties?.[propId];
+    if (propState?.is_mortgaged) continue;
+    const config = (boardData as any).tiles?.[propId];
+    if (config?.price) total += config.price;
+    const color = config?.color;
+    if (color) {
+      const hp = HOUSE_PRICES[color] || 50;
+      total += (propState?.houses || 0) * hp;
+      total += (propState?.hotels || 0) * hp * 5;
+    }
+  }
+  return total;
+}
+
+function countAllHotels(game: GameState): number {
+  let count = 0;
+  if (game.properties) {
+    for (const prop of Object.values(game.properties)) {
+      count += (prop as any).hotels || 0;
+    }
+  }
+  return count;
+}
+
 export function setupSocketListeners(get: () => StoreState, set: (partial: Partial<StoreState>) => void) {
-  // Prevent duplicate listeners during HMR or re-registration.
-  // Only remove application-level listeners; never touch socket.io engine
-  // listeners (reconnection, ping/pong, transport upgrades).
   if (_listenersSetup) {
     removeRegisteredListeners();
   }
   _listenersSetup = true;
 
-  // Helper to track a listener so it can be cleaned up on re-registration
   function listen(event: string, handler: (...args: any[]) => void, target: 'socket' | 'manager' = 'socket') {
     _registeredListeners.push({ event, handler, target });
     if (target === 'socket') {
@@ -84,9 +116,7 @@ export function setupSocketListeners(get: () => StoreState, set: (partial: Parti
 
   listen('connect', () => {
     set({ connected: true, error: null });
-    // myId is set by session:init — don't use ephemeral socket.id here
 
-    // Auto-rejoin room if credentials are in localStorage
     if (areCredentialsExpired()) {
       clearAllCredentials();
       return;
@@ -120,9 +150,6 @@ export function setupSocketListeners(get: () => StoreState, set: (partial: Parti
             saveCredentialsWithExpiry(refreshedCredentials);
           }
         } else {
-          // Only clear credentials if the room truly doesn't exist.
-          // For transient errors (e.g., "Cannot join a game already in progress"),
-          // keep credentials so the player can retry on next reconnect.
           if (response.message === 'Room not found') {
             localStorage.removeItem('dino_room_code');
             localStorage.removeItem('dino_reconnect_token');
@@ -151,9 +178,6 @@ export function setupSocketListeners(get: () => StoreState, set: (partial: Parti
   listen('room:state_update', (room: any) => {
     const prevStatus = get().room?.status;
     set({ room });
-    // Only clear game state when transitioning FROM playing TO waiting (e.g., game reset).
-    // Don't clear on every 'waiting' status update, as room:state_update can fire during
-    // gameplay for reconnection corrections where the room status is briefly 'waiting'.
     if (room && room.status === 'waiting' && prevStatus === 'playing') {
       set({ game: null, turn: null, gameOver: null, auction: null, diceResult: null, lastCardDraw: null, incomingTrade: null, outgoingTradeId: null, moneyChange: null });
     }
@@ -162,10 +186,8 @@ export function setupSocketListeners(get: () => StoreState, set: (partial: Parti
   listen('game:start', (data: { game: any; turn: any }) => {
     set({ game: data.game, turn: data.turn, room: data.game.room, gameOver: null, pendingAction: null });
     showToast('Game started! Roll the dice to begin.', 'success');
-    soundManager.playGameStart();
   });
 
-  // Clear pendingAction on any socket error/disconnect
   listen('disconnect', () => {
     set({ connected: false, pendingAction: null });
   });
@@ -176,7 +198,6 @@ export function setupSocketListeners(get: () => StoreState, set: (partial: Parti
 
     if (prevGame && data.game) {
       const players = data.game.room.players;
-      const myId = get().myId;
 
       for (const pid of Object.keys(prevPlayerPositions)) {
         if (!players[pid]) {
@@ -184,54 +205,39 @@ export function setupSocketListeners(get: () => StoreState, set: (partial: Parti
           delete prevPlayerMoney[pid];
           delete prevPlayerBankrupt[pid];
           delete prevPlayerInJail[pid];
+          delete prevHotelCounts[pid];
         }
       }
 
-      // Pass Go detection: board has 40 tiles (indices 0-39), so wrapping around
-      // means position drops by more than half the board size (20).
-      const BOARD_SIZE = 40;
-      const HALF_BOARD = BOARD_SIZE / 2;
+      
 
       for (const [pid, raw] of Object.entries(players)) {
         const player = raw as Player & { passed_go?: boolean };
-        const prevPos = prevPlayerPositions[pid];
+        // prevPos tracked for position changes
         const prevMoney = prevPlayerMoney[pid];
         const prevBankrupt = prevPlayerBankrupt[pid];
-        const prevInJail = prevPlayerInJail[pid];
 
-        // Pass Go detection: prefer backend flag if available, otherwise use
-        // positional heuristic. Exclude jail entries (Go to Jail) which cause
-        // a position drop that is NOT passing GO.
-        const passedGo = player.passed_go ?? (
-          prevPos !== undefined &&
-          player.position < prevPos &&
-          prevPos - player.position > HALF_BOARD &&
-          !(prevInJail === false && player.is_in_jail === true)
-        );
-        if (passedGo) {
-          if (pid === myId) soundManager.playPassGo();
+        // Detect debt (negative money) — play for ALL players
+        if (prevMoney !== undefined && player.money < 0 && prevMoney >= 0) {
+          soundManager.play('player_debt');
         }
 
-        if (prevPos !== undefined && player.position === 10 && prevPos !== 10) {
-          if (pid === myId) soundManager.playJailEntry();
-        }
-
-        if (prevPos !== undefined && prevPos === 10 && player.position !== 10) {
-          if (pid === myId) soundManager.playJailEscape();
-        }
-
-        if (prevMoney !== undefined && player.money < prevMoney && pid === myId) {
-          const landedTile = data.game.properties?.[player.position];
-          if (landedTile && landedTile.owner_id && landedTile.owner_id !== pid) {
-            soundManager.playPayRent();
+        // Detect big rent (>50% of total worth paid) — play for ALL players
+        if (prevMoney !== undefined && player.money < prevMoney) {
+          const diff = prevMoney - player.money;
+          const worth = calculateTotalWorth(data.game, pid);
+          if (worth > 0 && diff > worth * 0.5) {
+            soundManager.play('big_rent');
           }
         }
 
+        // Detect bankruptcy — play for ALL players
         if (prevBankrupt !== undefined && !prevBankrupt && player.is_bankrupt) {
-          if (pid === myId) soundManager.playBankruptcy();
+          soundManager.play('player_debt');
         }
 
-        if (prevMoney !== undefined && player.money !== prevMoney && pid === myId) {
+        // Money change display (for the local player only)
+        if (prevMoney !== undefined && player.money !== prevMoney && pid === get().myId) {
           const diff = player.money - prevMoney;
           const ts = Date.now();
           set({ moneyChange: { amount: diff, playerId: pid, timestamp: ts } });
@@ -248,6 +254,23 @@ export function setupSocketListeners(get: () => StoreState, set: (partial: Parti
         prevPlayerBankrupt[pid] = player.is_bankrupt;
         prevPlayerInJail[pid] = player.is_in_jail;
       }
+
+      // Detect hotel built — play for ALL players
+      const currentHotels = countAllHotels(data.game);
+      const prevHotels = Object.values(prevHotelCounts).reduce((a, b) => a + b, 0);
+      if (currentHotels > prevHotels) {
+        soundManager.play('build_hotel');
+      }
+      // Update hotel counts
+      for (const [pid, raw] of Object.entries(players)) {
+        const player = raw as Player;
+        let hCount = 0;
+        for (const propId of player.properties_owned || []) {
+          hCount += (data.game.properties?.[propId] as any)?.hotels || 0;
+        }
+        prevHotelCounts[pid] = hCount;
+      }
+
     }
   });
 
@@ -263,11 +286,12 @@ export function setupSocketListeners(get: () => StoreState, set: (partial: Parti
   listen('auction:end', () => {
     set({ auction: null });
     showToast('Auction ended!', 'info');
-    soundManager.playAuctionEnd();
   });
 
   listen('game:dice_result', (data: any) => {
     set({ diceResult: data });
+    // Play dice roll sound for ALL players
+    soundManager.play('dice_roll');
   });
 
   listen('game:paused', (data: { game: GameState }) => {
@@ -293,16 +317,12 @@ export function setupSocketListeners(get: () => StoreState, set: (partial: Parti
 
   listen('game:over', (data: { winner_id: string | null; winner_name: string }) => {
     set({ gameOver: data });
-    const myId = get().myId;
-    const isWinner = myId ? data.winner_id === myId : false;
-    soundManager.playGameEnd(isWinner);
   });
 
   listen('card:result', (data: any) => {
     set({ lastCardDraw: data });
     const playerName = data.player_id === get().myId ? 'You' : 'A player';
     showToast(`${playerName} drew: ${data.card.text}`, 'info', 5000);
-    soundManager.playCardDraw(data.card_type);
   });
 
   listen('trade:offer', (data: any) => {
@@ -315,16 +335,10 @@ export function setupSocketListeners(get: () => StoreState, set: (partial: Parti
     }
   });
 
-  // NOTE: These trade event handlers clear incomingTrade/outgoingTradeId unconditionally for
-  // ALL players, not just the trade participants. This is intentional — the backend broadcasts
-  // trade lifecycle events to all connected clients, and clearing stale trade state for everyone
-  // prevents stuck UI. Filtering by participant would require the event payload to include
-  // player IDs, which it currently does not.
-
   listen('trade:completed', () => {
     set({ incomingTrade: null, outgoingTradeId: null });
     showToast('Trade completed!', 'success');
-    soundManager.playTradeComplete();
+    soundManager.play('trade_accepted');
   });
 
   listen('trade:rejected', () => {
@@ -352,4 +366,5 @@ export function resetSocketTracking() {
   prevPlayerMoney = {};
   prevPlayerBankrupt = {};
   prevPlayerInJail = {};
+  prevHotelCounts = {};
 }

@@ -1,7 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useCallback } from 'react';
 import { useGameStore } from '../stores/gameStore';
-import { soundManager } from '../utils/audio';
 import boardData from '../../shared/configs/board_config.json';
 import { formatMoney } from '../utils/format';
 
@@ -23,14 +22,14 @@ const COLOR_MAP: Record<string, string> = {
 
 // House prices by color group (matches GameRules.HOUSE_PRICES)
 const HOUSE_PRICES: Record<string, number> = {
-  brown: 500,
-  light_blue: 600,
-  pink: 1000,
-  orange: 1000,
-  red: 1500,
-  yellow: 1500,
-  green: 2000,
-  dark_blue: 2000,
+  brown: 50,
+  light_blue: 60,
+  pink: 100,
+  orange: 100,
+  red: 150,
+  yellow: 150,
+  green: 200,
+  dark_blue: 200,
 };
 
 const HOTEL_PRICE_MULTIPLIER = 5;
@@ -175,7 +174,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
               <div>
                 <h3 className="text-sm font-bold text-text-muted mb-3">RENT (by airports owned)</h3>
                 <div className="grid grid-cols-2 gap-2">
-                  {[250, 500, 1000, 2000].map((rent, i) => (
+                  {[25, 50, 100, 200].map((rent, i) => (
                     <div key={i} className="p-3 rounded-xl text-center bg-surface/50 border border-white/5">
                       <div className="text-xs text-text-muted mb-1">{i + 1} Airport{i > 0 ? 's' : ''}</div>
                       <div className="text-sm font-bold text-white">{formatMoney(rent)}</div>
@@ -190,14 +189,29 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
               <div>
                 <h3 className="text-sm font-bold text-text-muted mb-3">RENT</h3>
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="p-3 rounded-xl text-center bg-surface/50 border border-white/5">
-                    <div className="text-xs text-text-muted mb-1">1 Utility</div>
-                    <div className="text-sm font-bold text-white">Dice x 40</div>
-                  </div>
-                  <div className="p-3 rounded-xl text-center bg-surface/50 border border-white/5">
-                    <div className="text-xs text-text-muted mb-1">2 Utilities</div>
-                    <div className="text-sm font-bold text-white">Dice x 100</div>
-                  </div>
+                  {tileConfig.name === 'NTPC Power' ? (
+                    <>
+                      <div className="p-3 rounded-xl text-center bg-surface/50 border border-white/5">
+                        <div className="text-xs text-text-muted mb-1">1 Utility</div>
+                        <div className="text-sm font-bold text-white">Dice² × 0.5</div>
+                      </div>
+                      <div className="p-3 rounded-xl text-center bg-surface/50 border border-white/5">
+                        <div className="text-xs text-text-muted mb-1">2 Utilities</div>
+                        <div className="text-sm font-bold text-white">Dice² × 1</div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="p-3 rounded-xl text-center bg-surface/50 border border-white/5">
+                        <div className="text-xs text-text-muted mb-1">1 Utility</div>
+                        <div className="text-sm font-bold text-white">Dice×3 + 2×alive</div>
+                      </div>
+                      <div className="p-3 rounded-xl text-center bg-surface/50 border border-white/5">
+                        <div className="text-xs text-text-muted mb-1">2 Utilities</div>
+                        <div className="text-sm font-bold text-white">Dice×6 + 4×alive</div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -235,13 +249,13 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                 <div className="flex justify-between items-center">
                   <span className="text-text-muted">House Cost</span>
                   <span className="font-bold text-white">
-                    {formatMoney(HOUSE_PRICES[tileConfig.color] || 500)}
+                    {formatMoney(HOUSE_PRICES[tileConfig.color] || 50)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center mt-1">
                   <span className="text-text-muted">Hotel Cost</span>
                   <span className="font-bold text-white">
-                    {formatMoney((HOUSE_PRICES[tileConfig.color] || 500) * HOTEL_PRICE_MULTIPLIER)}
+                    {formatMoney((HOUSE_PRICES[tileConfig.color] || 50) * HOTEL_PRICE_MULTIPLIER)}
                   </span>
                 </div>
               </div>
@@ -256,7 +270,6 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                     <motion.button
                       className="w-full py-2 px-4 min-h-[44px] bg-gold-500/20 border border-gold-500/30 rounded-xl text-accent-300 font-bold text-sm hover:bg-accent-500/30 transition-colors"
                       onClick={() => {
-                        soundManager.playButtonClick();
                         useGameStore.getState().unmortgageProperty(tileId);
                       }}
                       whileHover={{ scale: 1.02 }}
@@ -268,7 +281,6 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                     <motion.button
                       className="w-full py-2 px-4 min-h-[44px] bg-warning-500/20 border border-warning-500/30 rounded-xl text-warning-300 font-bold text-sm hover:bg-warning-500/30 transition-colors"
                       onClick={() => {
-                        soundManager.playButtonClick();
                         useGameStore.getState().mortgageProperty(tileId);
                       }}
                       whileHover={{ scale: 1.02 }}
@@ -283,7 +295,7 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                 {isProperty && tileConfig.color && !propState.is_mortgaged && (() => {
                   const colorGroup = boardData.tiles.filter((t: any) => t.color === tileConfig.color && t.type === 'property');
                   const hasMonopoly = colorGroup.every((t: any) => game.properties?.[t.id]?.owner_id === myId);
-                  const housePrice = HOUSE_PRICES[tileConfig.color] || 500;
+                  const housePrice = HOUSE_PRICES[tileConfig.color] || 50;
                   const hotelPrice = housePrice * HOTEL_PRICE_MULTIPLIER;
 
                   if (!hasMonopoly) return null;
@@ -295,7 +307,6 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                         <motion.button
                           className="flex-1 py-2 px-3 min-h-[44px] bg-success-500/20 border border-success-500/30 rounded-xl text-success-300 font-bold text-xs hover:bg-success-500/30 transition-colors"
                           onClick={() => {
-                            soundManager.playButtonClick();
                             useGameStore.getState().buildHouse(tileId);
                           }}
                           whileHover={{ scale: 1.02 }}
@@ -310,7 +321,6 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                         <motion.button
                           className="flex-1 py-2 px-3 min-h-[44px] bg-danger-500/20 border border-danger-500/30 rounded-xl text-danger-300 font-bold text-xs hover:bg-danger-500/30 transition-colors"
                           onClick={() => {
-                            soundManager.playButtonClick();
                             useGameStore.getState().buildHotel(tileId);
                           }}
                           whileHover={{ scale: 1.02 }}
@@ -325,7 +335,6 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                         <motion.button
                           className="flex-1 py-2 px-3 min-h-[44px] bg-warning-500/20 border border-warning-500/30 rounded-xl text-warning-300 font-bold text-xs hover:bg-warning-500/30 transition-colors"
                           onClick={() => {
-                            soundManager.playButtonClick();
                             useGameStore.getState().sellHotel(tileId);
                           }}
                           whileHover={{ scale: 1.02 }}
@@ -340,7 +349,6 @@ export const PropertyDetailModal = ({ tileId, onClose }: PropertyDetailModalProp
                         <motion.button
                           className="flex-1 py-2 px-3 min-h-[44px] bg-warning-500/20 border border-warning-500/30 rounded-xl text-warning-300 font-bold text-xs hover:bg-warning-500/30 transition-colors"
                           onClick={() => {
-                            soundManager.playButtonClick();
                             useGameStore.getState().sellHouse(tileId);
                           }}
                           whileHover={{ scale: 1.02 }}

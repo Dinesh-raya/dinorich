@@ -508,7 +508,7 @@ describe('TurnPanel', () => {
       expect(screen.getByText('Income Tax')).toBeInTheDocument();
       expect(screen.getByText('Choose payment method')).toBeInTheDocument();
       expect(screen.getByText(/PAY \u20B92,400/)).toBeInTheDocument();
-      expect(screen.getByText('PAY 10% OF WORTH')).toBeInTheDocument();
+      expect(screen.getByText(/PAY 10%/)).toBeInTheDocument();
     });
   });
 

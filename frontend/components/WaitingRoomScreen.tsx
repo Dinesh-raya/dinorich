@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
 import { Users, Crown, Copy, LogOut, Settings, FolderOpen, Share2 } from 'lucide-react';
-import { soundManager } from '../utils/audio';
 import { showToast } from './Toast';
 import { RoomSettings } from './RoomSettings';
 import { useGameStore } from '../stores/gameStore';
@@ -146,7 +145,6 @@ export function WaitingRoomScreen({
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 flex-shrink-0 pt-4 border-t border-white/5">
           <motion.button
             onClick={() => {
-              soundManager.playButtonClick();
               leaveGame();
             }}
             aria-label="Leave the game room"
@@ -159,7 +157,6 @@ export function WaitingRoomScreen({
 
           <motion.button
             onClick={() => {
-              soundManager.playButtonClick();
               setShowRoomSettings(true);
             }}
             aria-label="Open room settings"
@@ -173,7 +170,6 @@ export function WaitingRoomScreen({
           {isHost && hasSave && (
             <motion.button
               onClick={() => {
-                soundManager.playButtonClick();
                 loadGame?.();
               }}
               className="btn-gold-ghost flex-1 py-4 rounded-xl min-h-[56px] border border-gold-500/30 text-gold-500"
@@ -189,8 +185,6 @@ export function WaitingRoomScreen({
               className="btn-gold flex-1 py-4 text-lg font-bold rounded-xl min-h-[56px]"
               aria-label="Start the game"
               onClick={() => {
-                soundManager.playButtonClick();
-                soundManager.playGameStart();
                 useGameStore.getState().startGame();
               }}
               whileHover={{ scale: 1.02 }}

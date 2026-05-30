@@ -14,6 +14,17 @@ export function useBankruptcyAndGameOver(
   setShowGameOverModal: (show: boolean) => void
 ) {
   const prevBankruptStatus = useRef<Record<string, boolean>>({});
+  const gameOverShown = useRef<boolean>(false);
+  const prevGameId = useRef<string | null>(null);
+
+  // Reset when a new game starts (different room/game)
+  useEffect(() => {
+    if (game && game.room.room_id !== prevGameId.current) {
+      prevGameId.current = game.room.room_id;
+      gameOverShown.current = false;
+      prevBankruptStatus.current = {};
+    }
+  }, [game?.room.room_id]);
 
   useEffect(() => {
     if (!game) return;
@@ -24,19 +35,26 @@ export function useBankruptcyAndGameOver(
     for (const [id, player] of Object.entries(players)) {
       const wasBankrupt = prevBankruptStatus.current[id] || false;
       if (player.is_bankrupt && !wasBankrupt) {
-        const creditorId = game.turn_order.find((tid: string) => tid !== id && !players[tid]?.is_bankrupt);
-        setBankruptPlayer({
-          name: player.name,
-          creditorName: creditorId ? players[creditorId]?.name : undefined
-        });
+        // Find the actual creditor from the game history log
+        // Backend logs: "{name} went bankrupt and transferred assets to {creditor}"
+        const bankruptEntry = [...(game.history_log || [])].reverse().find(
+          (entry: string) => entry.includes(player.name) && entry.includes('went bankrupt')
+        );
+        let creditorName: string | undefined;
+        if (bankruptEntry && bankruptEntry.includes('transferred assets to')) {
+          const match = bankruptEntry.match(/transferred assets to (.+)$/);
+          if (match) creditorName = match[1].trim();
+        }
+        setBankruptPlayer({ name: player.name, creditorName });
         setShowBankruptModal(true);
       }
       prevBankruptStatus.current[id] = player.is_bankrupt;
     }
 
-    // Check for game over
+    // Check for game over — only show once per game
     const activePlayers = Object.values(players).filter((p) => !p.is_bankrupt);
-    if (game.room.status === 'finished' && activePlayers.length === 1) {
+    if (game.room.status === 'finished' && activePlayers.length === 1 && !gameOverShown.current) {
+      gameOverShown.current = true;
       const winner = activePlayers[0];
       setGameWinner({
         name: winner.name,

@@ -46,7 +46,7 @@ def declare_bankruptcy(
                 if config and config.get("type") == "property":
                     color = config.get("color")
                     if color:
-                        house_price = GameRules.HOUSE_PRICES.get(color, 500)
+                        house_price = GameRules.HOUSE_PRICES.get(color, 50)
                         building_refund += prop_state.houses * (house_price // 2)
                         building_refund += prop_state.hotels * (house_price * 5 // 2)
 
@@ -94,7 +94,7 @@ def declare_bankruptcy(
             if config and config.get("type") == "property":
                 color = config.get("color")
                 if color:
-                    house_price = GameRules.HOUSE_PRICES.get(color, 500)
+                    house_price = GameRules.HOUSE_PRICES.get(color, 50)
                     building_refund += prop_state.houses * (house_price // 2)
                     building_refund += prop_state.hotels * (house_price * 5 // 2)
 

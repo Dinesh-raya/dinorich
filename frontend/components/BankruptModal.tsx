@@ -148,11 +148,16 @@ export const GameOverModal = ({ isOpen, winnerName, isWinner, standings, onClose
 
   const handleRematch = () => {
     setLoadingRematch(true);
+    const timeout = setTimeout(() => {
+      setLoadingRematch(false);
+      showToast('Rematch request timed out. Try again.', 'error');
+    }, 10000);
     socket.emit('game:rematch', {}, (response: any) => {
+      clearTimeout(timeout);
       setLoadingRematch(false);
       if (response.status === 'success') {
         showToast('Rematch started! Back to lobby.', 'success');
-        onClose(); // Close the game over overlay
+        onClose();
       } else {
         showToast(response.message || 'Failed to start rematch', 'error');
       }

@@ -4,7 +4,7 @@ import { useGameStore } from '../stores/gameStore';
 import { animations } from '../animations';
 import { TokenVisualizer } from './TokenVisualizer';
 import { PropertyDetailModal } from './PropertyDetailModal';
-import { soundManager } from '../utils/audio';
+
 import { BoardTile } from './BoardTile';
 import { CenterGameLog } from './CenterGameLog';
 import { TurnPanel } from './TurnPanel';
@@ -142,9 +142,6 @@ export const Board = () => {
       setDiceValues({ die1: diceResult.die1, die2: diceResult.die2 });
       setIsRolling(false);
 
-      // Play movement sound after dice land
-      soundManager.playPlayerMove();
-
       // Start movement animation and highlight landing tile
       setIsMoving(true);
       const timers: ReturnType<typeof setTimeout>[] = [];
@@ -181,7 +178,6 @@ export const Board = () => {
     if (!turn?.can_roll || isRolling) return;
 
     setIsRolling(true);
-    soundManager.playButtonClick();
 
     // Send roll to backend — DiceAnim handles all randomization
     useGameStore.getState().rollDice();
@@ -194,7 +190,6 @@ export const Board = () => {
 
   // Stable callback for tile clicks — prevents BoardTile re-renders from inline arrow
   const handleTileClick = useCallback((id: number) => {
-    soundManager.playButtonClick();
     setSelectedTile(id);
   }, []);
 

@@ -1,9 +1,35 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { animations } from '../animations';
-import { soundManager, hapticFeedback } from '../utils/audio';
+import { hapticFeedback } from '../utils/audio';
 import { formatMoney } from '../utils/format';
 import { DiceAnim } from './DiceAnim';
 import { useGameStore } from '../stores/gameStore';
+import boardData from '../../shared/configs/board_config.json';
+
+const HOUSE_PRICES: Record<string, number> = {
+  brown: 50, light_blue: 60, pink: 100, orange: 100,
+  red: 150, yellow: 150, green: 200, dark_blue: 200,
+};
+const HOTEL_PRICE_MULTIPLIER = 5;
+
+function calculate10Percent(game: any, playerId: string): number {
+  const player = game?.room?.players?.[playerId];
+  if (!player) return 0;
+  let totalWorth = player.money || 0;
+  for (const propId of player.properties_owned || []) {
+    const propState = game.properties?.[propId];
+    if (propState?.is_mortgaged) continue;
+    const config = (boardData as any).tiles?.[propId];
+    if (config?.price) totalWorth += config.price;
+    const color = config?.color;
+    if (color) {
+      const housePrice = HOUSE_PRICES[color] || 50;
+      totalWorth += (propState?.houses || 0) * housePrice;
+      totalWorth += (propState?.hotels || 0) * housePrice * HOTEL_PRICE_MULTIPLIER;
+    }
+  }
+  return Math.floor(totalWorth * 0.1);
+}
 
 export interface TurnPanelProps {
   isMobile: boolean;
@@ -151,7 +177,6 @@ export const TurnPanel = ({
                 <motion.button
                   className="btn-gold py-2.5 px-5 text-xs md:text-sm font-bold rounded-full bg-red-600 hover:bg-red-500 border-red-500 w-full active:scale-[0.97] transition-transform"
                   onClick={() => {
-                    soundManager.playButtonClick();
                     useGameStore.getState().declareBankruptcy();
                   }}
                   whileHover={{ scale: 1.05 }}
@@ -178,20 +203,18 @@ export const TurnPanel = ({
                   <motion.button
                     className="flex-1 py-2.5 btn-danger-action font-bold text-sm rounded-xl min-h-[44px] active:scale-[0.97] transition-transform"
                     onClick={() => {
-                      soundManager.playButtonClick();
                       useGameStore.getState().payJailFine();
                     }}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     disabled={!!pendingAction}
                   >
-                    {pendingAction === 'payJailFine' ? 'PAYING...' : 'PAY FINE (₹500)'}
+                    {pendingAction === 'payJailFine' ? 'PAYING...' : 'PAY FINE (₹50)'}
                   </motion.button>
                   {(game.room.players[myId]?.get_out_of_jail_cards ?? 0) > 0 && (
                     <motion.button
                       className="flex-1 py-2.5 btn-gold-ghost font-bold text-sm rounded-xl border border-gold-500/20 min-h-[44px]"
                       onClick={() => {
-                        soundManager.playButtonClick();
                         useGameStore.getState().useJailCard();
                       }}
                       whileHover={{ scale: 1.05 }}
@@ -232,7 +255,6 @@ export const TurnPanel = ({
                 aria-label="End your turn"
                 onClick={() => {
                   hapticFeedback('light');
-                  soundManager.playButtonClick();
                   useGameStore.getState().endTurn();
                 }}
                 whileHover={{ scale: 1.05 }}
@@ -258,7 +280,6 @@ export const TurnPanel = ({
                   <motion.button
                     className="btn-gold-ghost py-2 px-4 text-xs md:text-sm border-danger-500/30 text-danger-400 min-h-[44px] active:scale-[0.97] transition-transform"
                     onClick={() => {
-                      soundManager.playButtonClick();
                       useGameStore.getState().payTax(false);
                     }}
                     whileHover={{ scale: 1.05 }}
@@ -269,13 +290,12 @@ export const TurnPanel = ({
                   <motion.button
                     className="btn-gold-ghost py-2 px-4 text-xs md:text-sm border-warning-500/30 text-warning-400 min-h-[44px] active:scale-[0.97] transition-transform"
                     onClick={() => {
-                      soundManager.playButtonClick();
                       useGameStore.getState().payTax(true);
                     }}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    PAY 10% OF WORTH
+                    PAY 10% (₹{calculate10Percent(game, myId).toLocaleString()})
                   </motion.button>
                 </div>
               </motion.div>
@@ -315,7 +335,6 @@ export const TurnPanel = ({
                       aria-label="Start auction for this property"
                       onClick={() => {
                         const me = game.room.players[myId!];
-                        soundManager.playAuctionBid();
                         useGameStore.getState().startAuction(me.position);
                       }}
                       whileHover={{ scale: 1.03 }}

@@ -21,11 +21,11 @@ class TestCreateTrade:
     def test_valid_money_trade(self):
         game = make_test_game()
         tm = TradeManager()
-        trade = tm.create_trade(game, "p1", "p2", offering_money=10000)
+        trade = tm.create_trade(game, "p1", "p2", offering_money=100)
         assert trade is not None
         assert trade.from_player_id == "p1"
         assert trade.to_player_id == "p2"
-        assert trade.offering_money == 10000
+        assert trade.offering_money == 100
         assert trade.status == "pending"
 
     def test_valid_property_trade(self):
@@ -33,7 +33,7 @@ class TestCreateTrade:
         game.room.players["p1"].properties_owned = [1]
         tm = TradeManager()
         trade = tm.create_trade(game, "p1", "p2",
-                                offering_properties=[1], requesting_money=5000)
+                                offering_properties=[1], requesting_money=500)
         assert trade is not None
         assert trade.offering_properties == [1]
 
@@ -49,41 +49,41 @@ class TestCreateTrade:
     def test_invalid_from_player(self):
         game = make_test_game()
         tm = TradeManager()
-        trade = tm.create_trade(game, "NOPE", "p2", offering_money=10000)
+        trade = tm.create_trade(game, "NOPE", "p2", offering_money=100)
         assert trade is None
 
     def test_invalid_to_player(self):
         game = make_test_game()
         tm = TradeManager()
-        trade = tm.create_trade(game, "p1", "NOPE", offering_money=10000)
+        trade = tm.create_trade(game, "p1", "NOPE", offering_money=100)
         assert trade is None
 
     def test_from_player_bankrupt(self):
         game = make_test_game()
         game.room.players["p1"].is_bankrupt = True
         tm = TradeManager()
-        trade = tm.create_trade(game, "p1", "p2", offering_money=10000)
+        trade = tm.create_trade(game, "p1", "p2", offering_money=100)
         assert trade is None
 
     def test_to_player_bankrupt(self):
         game = make_test_game()
         game.room.players["p2"].is_bankrupt = True
         tm = TradeManager()
-        trade = tm.create_trade(game, "p1", "p2", offering_money=10000)
+        trade = tm.create_trade(game, "p1", "p2", offering_money=100)
         assert trade is None
 
     def test_insufficient_money_from_player(self):
         game = make_test_game()
-        game.room.players["p1"].money = 5000
+        game.room.players["p1"].money = 50
         tm = TradeManager()
-        trade = tm.create_trade(game, "p1", "p2", offering_money=10000)
+        trade = tm.create_trade(game, "p1", "p2", offering_money=100)
         assert trade is None
 
     def test_insufficient_money_to_player(self):
         game = make_test_game()
-        game.room.players["p2"].money = 1000
+        game.room.players["p2"].money = 100
         tm = TradeManager()
-        trade = tm.create_trade(game, "p1", "p2", requesting_money=5000)
+        trade = tm.create_trade(game, "p1", "p2", requesting_money=500)
         assert trade is None
 
     def test_property_not_owned_by_from(self):
@@ -118,7 +118,7 @@ class TestCreateTrade:
     def test_trade_tracked_for_both_players(self):
         game = make_test_game()
         tm = TradeManager()
-        trade = tm.create_trade(game, "p1", "p2", offering_money=5000)
+        trade = tm.create_trade(game, "p1", "p2", offering_money=500)
         assert trade.trade_id in tm.player_trades["p1"]
         assert trade.trade_id in tm.player_trades["p2"]
 
@@ -136,11 +136,11 @@ class TestAcceptTrade:
         p1_initial = p1.money
         p2_initial = p2.money
         trade = tm.create_trade(game, "p1", "p2",
-                                offering_money=10000, requesting_money=3000)
+                                offering_money=100, requesting_money=300)
         result = tm.accept_trade(game, trade.trade_id, "p2")
         assert result is True
-        assert p1.money == p1_initial - 10000 + 3000
-        assert p2.money == p2_initial + 10000 - 3000
+        assert p1.money == p1_initial - 100 + 300
+        assert p2.money == p2_initial + 100 - 300
         assert trade.status == "accepted"
 
     def test_accept_property_trade(self):
@@ -170,7 +170,7 @@ class TestAcceptTrade:
     def test_wrong_player_cannot_accept(self):
         game = make_test_game()
         tm = TradeManager()
-        trade = tm.create_trade(game, "p1", "p2", offering_money=5000)
+        trade = tm.create_trade(game, "p1", "p2", offering_money=500)
         result = tm.accept_trade(game, trade.trade_id, "p1")
         assert result is False
 
@@ -183,7 +183,7 @@ class TestAcceptTrade:
     def test_already_accepted_trade_returns_false(self):
         game = make_test_game()
         tm = TradeManager()
-        trade = tm.create_trade(game, "p1", "p2", offering_money=5000)
+        trade = tm.create_trade(game, "p1", "p2", offering_money=500)
         tm.accept_trade(game, trade.trade_id, "p2")
         result = tm.accept_trade(game, trade.trade_id, "p2")
         assert result is False
@@ -192,9 +192,9 @@ class TestAcceptTrade:
         game = make_test_game()
         tm = TradeManager()
         trade = tm.create_trade(game, "p1", "p2",
-                                offering_money=10000, requesting_money=5000)
+                                offering_money=100, requesting_money=500)
         # Reduce p1 money after creating trade (simulates spending)
-        game.room.players["p1"].money = 5000
+        game.room.players["p1"].money = 50
         result = tm.accept_trade(game, trade.trade_id, "p2")
         assert result is False
 
@@ -212,7 +212,7 @@ class TestAcceptTrade:
     def test_trade_cleaned_up_after_accept(self):
         game = make_test_game()
         tm = TradeManager()
-        trade = tm.create_trade(game, "p1", "p2", offering_money=5000)
+        trade = tm.create_trade(game, "p1", "p2", offering_money=500)
         tid = trade.trade_id
         tm.accept_trade(game, tid, "p2")
         assert tid not in tm.active_trades
@@ -228,7 +228,7 @@ class TestRejectTrade:
     def test_recipient_can_reject(self):
         game = make_test_game()
         tm = TradeManager()
-        trade = tm.create_trade(game, "p1", "p2", offering_money=5000)
+        trade = tm.create_trade(game, "p1", "p2", offering_money=500)
         result = tm.reject_trade(trade.trade_id, "p2")
         assert result is True
         assert trade.status == "rejected"
@@ -236,7 +236,7 @@ class TestRejectTrade:
     def test_initiator_cannot_reject(self):
         game = make_test_game()
         tm = TradeManager()
-        trade = tm.create_trade(game, "p1", "p2", offering_money=5000)
+        trade = tm.create_trade(game, "p1", "p2", offering_money=500)
         result = tm.reject_trade(trade.trade_id, "p1")
         assert result is False
 
@@ -248,7 +248,7 @@ class TestRejectTrade:
     def test_already_rejected_trade_returns_false(self):
         game = make_test_game()
         tm = TradeManager()
-        trade = tm.create_trade(game, "p1", "p2", offering_money=5000)
+        trade = tm.create_trade(game, "p1", "p2", offering_money=500)
         tm.reject_trade(trade.trade_id, "p2")
         result = tm.reject_trade(trade.trade_id, "p2")
         assert result is False
@@ -256,7 +256,7 @@ class TestRejectTrade:
     def test_trade_cleaned_up_after_reject(self):
         game = make_test_game()
         tm = TradeManager()
-        trade = tm.create_trade(game, "p1", "p2", offering_money=5000)
+        trade = tm.create_trade(game, "p1", "p2", offering_money=500)
         tid = trade.trade_id
         tm.reject_trade(tid, "p2")
         assert tid not in tm.active_trades
@@ -270,7 +270,7 @@ class TestCancelTrade:
     def test_initiator_can_cancel(self):
         game = make_test_game()
         tm = TradeManager()
-        trade = tm.create_trade(game, "p1", "p2", offering_money=5000)
+        trade = tm.create_trade(game, "p1", "p2", offering_money=500)
         result = tm.cancel_trade(trade.trade_id, "p1")
         assert result is True
         assert trade.status == "cancelled"
@@ -278,7 +278,7 @@ class TestCancelTrade:
     def test_recipient_cannot_cancel(self):
         game = make_test_game()
         tm = TradeManager()
-        trade = tm.create_trade(game, "p1", "p2", offering_money=5000)
+        trade = tm.create_trade(game, "p1", "p2", offering_money=500)
         result = tm.cancel_trade(trade.trade_id, "p2")
         assert result is False
 
@@ -290,7 +290,7 @@ class TestCancelTrade:
     def test_trade_cleaned_up_after_cancel(self):
         game = make_test_game()
         tm = TradeManager()
-        trade = tm.create_trade(game, "p1", "p2", offering_money=5000)
+        trade = tm.create_trade(game, "p1", "p2", offering_money=500)
         tid = trade.trade_id
         tm.cancel_trade(tid, "p1")
         assert tid not in tm.active_trades
@@ -304,7 +304,7 @@ class TestGetTrades:
     def test_get_trade_returns_trade(self):
         game = make_test_game()
         tm = TradeManager()
-        trade = tm.create_trade(game, "p1", "p2", offering_money=5000)
+        trade = tm.create_trade(game, "p1", "p2", offering_money=500)
         found = tm.get_trade(trade.trade_id)
         assert found is trade
 
@@ -315,8 +315,8 @@ class TestGetTrades:
     def test_get_player_trades_returns_active_trades(self):
         game = make_test_game()
         tm = TradeManager()
-        t1 = tm.create_trade(game, "p1", "p2", offering_money=1000)
-        t2 = tm.create_trade(game, "p1", "p2", offering_money=2000)
+        t1 = tm.create_trade(game, "p1", "p2", offering_money=100)
+        t2 = tm.create_trade(game, "p1", "p2", offering_money=200)
         trades = tm.get_player_trades("p1")
         assert len(trades) == 2
         trade_ids = [t.trade_id for t in trades]
@@ -331,8 +331,8 @@ class TestGetTrades:
     def test_get_player_trades_excludes_completed(self):
         game = make_test_game()
         tm = TradeManager()
-        t1 = tm.create_trade(game, "p1", "p2", offering_money=1000)
-        t2 = tm.create_trade(game, "p1", "p2", offering_money=2000)
+        t1 = tm.create_trade(game, "p1", "p2", offering_money=100)
+        t2 = tm.create_trade(game, "p1", "p2", offering_money=200)
         tm.accept_trade(game, t1.trade_id, "p2")
         trades = tm.get_player_trades("p1")
         assert len(trades) == 1
@@ -351,20 +351,20 @@ class TestCounterTrade:
         game.properties[1].owner_id = "p1"
         tm = TradeManager()
         original = tm.create_trade(game, "p1", "p2",
-                                   offering_properties=[1], requesting_money=5000)
+                                   offering_properties=[1], requesting_money=500)
         assert original is not None
         original_id = original.trade_id
 
         # p2 counters: offers less money, keeps asking for property 1
         counter = tm.counter_trade(
             game, original_id, "p2",
-            counter_money_offer=3000, counter_money_request=0,
+            counter_money_offer=300, counter_money_request=0,
             counter_properties_offer=[], counter_properties_request=[1],
         )
         assert counter is not None
         assert counter.from_player_id == "p2"      # countering player initiates
         assert counter.to_player_id == "p1"         # original initiator receives
-        assert counter.offering_money == 3000
+        assert counter.offering_money == 300
         assert counter.requesting_properties == [1]
         assert counter.status == "pending"
 
@@ -377,10 +377,10 @@ class TestCounterTrade:
         game = make_test_game()
         game.room.players["p2"].get_out_of_jail_cards = 2
         tm = TradeManager()
-        original = tm.create_trade(game, "p1", "p2", offering_money=5000)
+        original = tm.create_trade(game, "p1", "p2", offering_money=500)
         counter = tm.counter_trade(
             game, original.trade_id, "p2",
-            counter_money_offer=2000, counter_money_request=0,
+            counter_money_offer=200, counter_money_request=0,
             counter_properties_offer=[], counter_properties_request=[],
             counter_jail_cards_offer=1, counter_jail_cards_request=0,
         )
@@ -391,10 +391,10 @@ class TestCounterTrade:
         """Only the trade recipient (to_player) can counter."""
         game = make_test_game()
         tm = TradeManager()
-        original = tm.create_trade(game, "p1", "p2", offering_money=5000)
+        original = tm.create_trade(game, "p1", "p2", offering_money=500)
         counter = tm.counter_trade(
             game, original.trade_id, "p1",  # p1 is initiator, NOT recipient
-            counter_money_offer=3000, counter_money_request=0,
+            counter_money_offer=300, counter_money_request=0,
             counter_properties_offer=[], counter_properties_request=[],
         )
         assert counter is None
@@ -412,11 +412,11 @@ class TestCounterTrade:
     def test_already_rejected_trade_returns_none(self):
         game = make_test_game()
         tm = TradeManager()
-        original = tm.create_trade(game, "p1", "p2", offering_money=5000)
+        original = tm.create_trade(game, "p1", "p2", offering_money=500)
         tm.reject_trade(original.trade_id, "p2")
         counter = tm.counter_trade(
             game, original.trade_id, "p2",
-            counter_money_offer=3000, counter_money_request=0,
+            counter_money_offer=300, counter_money_request=0,
             counter_properties_offer=[], counter_properties_request=[],
         )
         assert counter is None
@@ -425,10 +425,10 @@ class TestCounterTrade:
         """The new counter trade should appear in active_trades and player_trades."""
         game = make_test_game()
         tm = TradeManager()
-        original = tm.create_trade(game, "p1", "p2", offering_money=5000)
+        original = tm.create_trade(game, "p1", "p2", offering_money=500)
         counter = tm.counter_trade(
             game, original.trade_id, "p2",
-            counter_money_offer=3000, counter_money_request=0,
+            counter_money_offer=300, counter_money_request=0,
             counter_properties_offer=[], counter_properties_request=[],
         )
         assert counter.trade_id in tm.active_trades
@@ -441,28 +441,28 @@ class TestCounterTrade:
         p1 = game.room.players["p1"]
         p2 = game.room.players["p2"]
         tm = TradeManager()
-        original = tm.create_trade(game, "p1", "p2", offering_money=5000)
+        original = tm.create_trade(game, "p1", "p2", offering_money=500)
         counter = tm.counter_trade(
             game, original.trade_id, "p2",
-            counter_money_offer=3000, counter_money_request=0,
+            counter_money_offer=300, counter_money_request=0,
             counter_properties_offer=[], counter_properties_request=[],
         )
         p1_before = p1.money
         p2_before = p2.money
         result = tm.accept_trade(game, counter.trade_id, "p1")
         assert result is True
-        assert p1.money == p1_before + 3000
-        assert p2.money == p2_before - 3000
+        assert p1.money == p1_before + 300
+        assert p2.money == p2_before - 300
 
     def test_counter_invalid_money_returns_none(self):
         """Counter-offer with more money than player has should fail."""
         game = make_test_game()
-        game.room.players["p2"].money = 1000
+        game.room.players["p2"].money = 100
         tm = TradeManager()
         original = tm.create_trade(game, "p1", "p2", offering_money=500)
         counter = tm.counter_trade(
             game, original.trade_id, "p2",
-            counter_money_offer=50000, counter_money_request=0,
+            counter_money_offer=5000, counter_money_request=0,
             counter_properties_offer=[], counter_properties_request=[],
         )
         assert counter is None
@@ -476,8 +476,8 @@ class TestCleanupRoom:
     def test_cleanup_room_removes_all_trades(self):
         game = make_test_game()
         tm = TradeManager()
-        tm.create_trade(game, "p1", "p2", offering_money=1000)
-        tm.create_trade(game, "p1", "p2", offering_money=2000)
+        tm.create_trade(game, "p1", "p2", offering_money=100)
+        tm.create_trade(game, "p1", "p2", offering_money=200)
         assert len(tm.active_trades) == 2
 
         tm.cleanup_room("TEST01")

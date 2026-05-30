@@ -37,7 +37,7 @@ class TestRoomLifecycle:
         game = init_game_state(room)
         assert game is not None
         assert len(game.turn_order) == 1
-        assert game.room.players["test_p1"].money == 15000
+        assert game.room.players["test_p1"].money == 1500
 
 
 @pytest.mark.skipif(not has_deps, reason="requires python-socketio and httpx in test environment")

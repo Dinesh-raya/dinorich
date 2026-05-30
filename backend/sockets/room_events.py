@@ -218,14 +218,11 @@ async def room_leave(sid):
                 )
             await persist_room(room_code)
         else:
-            # Active game: treat as disconnect (don't remove from room.players)
+            # Active game: fully remove player so they can join another game
             if session_id in room.players:
+                player_name = room.players[session_id].name
+                room.players[session_id].is_bankrupt = True
                 room.players[session_id].connected = False
-                await sio.emit(
-                    ROOM_EVENTS["STATE_UPDATE"],
-                    room.model_dump(),
-                    room=room_code
-                )
 
                 # Skip turn if it's the leaving player's turn
                 from engine.turn_manager import turn_manager
@@ -235,10 +232,21 @@ async def room_leave(sid):
                     if new_turn:
                         game = turn_manager.get_game(room_code)
                         if game:
-                            game.add_log(f"{room.players[session_id].name} left the game, turn skipped")
+                            game.add_log(f"{player_name} left the game")
                             from sockets.helpers import emit_game_state
                             await emit_game_state(room_code, game, new_turn)
                             await persist_game(room_code)
+
+                # Remove from player_rooms so they can join another game
+                if session_id in room_manager.player_rooms:
+                    del room_manager.player_rooms[session_id]
+                await sio.leave_room(sid, room_code)
+                await sio.emit(
+                    ROOM_EVENTS["STATE_UPDATE"],
+                    room.model_dump(),
+                    room=room_code
+                )
+                await persist_room(room_code)
 
                 # Start disconnect timeout (player can rejoin)
                 import asyncio

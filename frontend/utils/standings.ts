@@ -26,13 +26,15 @@ export interface Standing {
 // Helper to calculate standings
 export function calculateStandings(players: Record<string, Player>, game: GameState): Standing[] {
   const HOUSE_PRICES: Record<TileColor, number> = {
-    brown: 500, light_blue: 600, pink: 1000, orange: 1000,
-    red: 1500, yellow: 1500, green: 2000, dark_blue: 2000
+    brown: 50, light_blue: 60, pink: 100, orange: 100,
+    red: 150, yellow: 150, green: 200, dark_blue: 200
   };
   const allPlayers = Object.values(players);
   return allPlayers.map((p) => {
     const props = (p.properties_owned || []).map((id) => game.properties?.[id] as PropertyState | undefined).filter((prop): prop is PropertyState => prop != null);
     const propValue = props.reduce((sum, prop) => {
+      // Mortgaged properties: skip (mortgage cash is already in player.money)
+      if (prop.is_mortgaged) return sum;
       const config = (boardData.tiles as BoardTile[]).find((t) => t.id === prop.tile_id);
       const price = config?.price || 0;
       const color = config?.color;

@@ -54,22 +54,22 @@ def calculate_rent(game_state: GameState, property_id: int, dice_total: int = 0)
           (1–4 for houses, 5 for hotel).
 
     **Airports** (Indian railway-station equivalents):
-        - ₹250 × 2^(airports_owned − 1).
-        - Owning 1 → ₹250, 2 → ₹500, 3 → ₹1,000, 4 → ₹2,000.
+        - ₹25 × 2^(airports_owned − 1).
+        - Owning 1 → ₹25, 2 → ₹50, 3 → ₹100, 4 → ₹200.
 
     **Utilities** — CUSTOM THEMATIC FORMULAS (not standard Monopoly):
         These are intentional game-design decisions, documented here
         to prevent accidental "fixes":
 
         *NTPC Power (tile 12)* — Exponential surge pricing:
-            - 1 utility owned: dice² × 5
-            - 2 utilities owned: dice² × 10
+            - 1 utility owned: dice² × 0.5
+            - 2 utilities owned: dice² × 1
             Represents the exponential nature of electricity demand pricing.
             High rolls hurt much more than low rolls.
 
         *Jal Jeevan Water (tile 28)* — Scarcity pricing tied to alive players:
-            - 1 utility owned: dice × 30 + 20 × alive_players
-            - 2 utilities owned: dice × 60 + 40 × alive_players
+            - 1 utility owned: dice × 3 + 2 × alive_players
+            - 2 utilities owned: dice × 6 + 4 × alive_players
             Represents water scarcity — rent increases as fewer players go
             bankrupt (more demand), but scales linearly with dice roll.
 
@@ -114,7 +114,7 @@ def calculate_rent(game_state: GameState, property_id: int, dice_total: int = 0)
         # Airport rent: ₹250 × 2^(owned − 1), same as standard Monopoly railroad formula
         board = get_board_config()
         owned_airports = sum(1 for p in owner.properties_owned if board.get(p, {}).get("type") == "airport")
-        return 250 * (2 ** (owned_airports - 1))
+        return 25 * (2 ** (owned_airports - 1))
 
     elif config["type"] == "utility":
         board = get_board_config()
@@ -124,16 +124,16 @@ def calculate_rent(game_state: GameState, property_id: int, dice_total: int = 0)
         if tile_name == "NTPC Power":
             # NTPC Power — Exponential surge pricing (THEMATIC, see docstring)
             # Formula: dice² × multiplier   (5 if solo, 10 if both owned)
-            multiplier = 10 if owned_utilities >= 2 else 5
-            return dice_total * dice_total * multiplier
+            multiplier = 1 if owned_utilities >= 2 else 0.5
+            return int(dice_total * dice_total * multiplier)
 
         elif tile_name == "Jal Jeevan Water":
             # Jal Jeevan Water — Scarcity pricing (THEMATIC, see docstring)
             # Formula: dice × base + per_player × alive_players
             alive_players = sum(1 for p in game_state.room.players.values() if not p.is_bankrupt)
             if owned_utilities >= 2:
-                return dice_total * 60 + 40 * alive_players
-            return dice_total * 30 + 20 * alive_players
+                return dice_total * 6 + 4 * alive_players
+            return dice_total * 3 + 2 * alive_players
 
     return 0
 

@@ -3,13 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../stores/gameStore';
 import { animations } from '../animations';
 import { THEME } from '../constants/theme';
-import { soundManager } from '../utils/audio';
+
 import { formatMoney } from '../utils/format';
 import boardData from '../../shared/configs/board_config.json';
 
 const HOUSE_PRICES: Record<string, number> = {
-  brown: 500, light_blue: 600, pink: 1000, orange: 1000,
-  red: 1500, yellow: 1500, green: 2000, dark_blue: 2000
+  brown: 50, light_blue: 60, pink: 100, orange: 100,
+  red: 150, yellow: 150, green: 200, dark_blue: 200
 };
 
 const getHeaderColor = (color?: string) => {
@@ -103,34 +103,50 @@ const PropertyCard = ({ tile }: { tile: any }) => {
           <div className="space-y-0.5 mt-1">
             <div className="flex justify-between border-b border-white/5 pb-0.5">
               <span className="text-text-muted">1 Owned:</span>
-              <span className="text-white">₹250</span>
+              <span className="text-white">₹25</span>
             </div>
             <div className="flex justify-between border-b border-white/5 pb-0.5">
               <span className="text-text-muted">2 Owned:</span>
-              <span className="text-white">₹500</span>
+              <span className="text-white">₹50</span>
             </div>
             <div className="flex justify-between border-b border-white/5 pb-0.5">
               <span className="text-text-muted">3 Owned:</span>
-              <span className="text-white">₹1,000</span>
+              <span className="text-white">₹100</span>
             </div>
             <div className="flex justify-between pb-0.5">
               <span className="text-text-muted">4 Owned:</span>
-              <span className="text-white">₹2,000</span>
+              <span className="text-white">₹200</span>
             </div>
           </div>
         )}
 
         {isUtility && (
           <div className="space-y-0.5 mt-1">
-            <div className="text-text-muted mb-0.5 text-[9px]">Rent = Dice Roll times:</div>
-            <div className="flex justify-between border-b border-white/5 pb-0.5">
-              <span className="text-text-muted">1 Owned:</span>
-              <span className="text-white">40x</span>
-            </div>
-            <div className="flex justify-between pb-0.5">
-              <span className="text-text-muted">2 Owned:</span>
-              <span className="text-white">100x</span>
-            </div>
+            {tile.name === 'NTPC Power' ? (
+              <>
+                <div className="text-text-muted mb-0.5 text-[9px]">Rent = Dice² × multiplier</div>
+                <div className="flex justify-between border-b border-white/5 pb-0.5">
+                  <span className="text-text-muted">1 Owned:</span>
+                  <span className="text-white">Dice² × 0.5</span>
+                </div>
+                <div className="flex justify-between pb-0.5">
+                  <span className="text-text-muted">2 Owned:</span>
+                  <span className="text-white">Dice² × 1</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-text-muted mb-0.5 text-[9px]">Rent = Dice × mult + alive bonus</div>
+                <div className="flex justify-between border-b border-white/5 pb-0.5">
+                  <span className="text-text-muted">1 Owned:</span>
+                  <span className="text-white">Dice×3 + 2×alive</span>
+                </div>
+                <div className="flex justify-between pb-0.5">
+                  <span className="text-text-muted">2 Owned:</span>
+                  <span className="text-white">Dice×6 + 4×alive</span>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -193,7 +209,7 @@ export const AuctionModal = () => {
     const rawBid = auction.current_bid + amount;
     const newBid = Math.ceil(rawBid / 100) * 100;
     if (newBid <= myMoney) {
-      soundManager.playAuctionBid();
+
       placeBid && placeBid(newBid);
     }
   };
@@ -202,7 +218,7 @@ export const AuctionModal = () => {
     if (!auction) return;
     const roundedBid = Math.round(bidAmount);
     if (roundedBid > auction.current_bid && roundedBid <= myMoney) {
-      soundManager.playAuctionBid();
+
       placeBid && placeBid(roundedBid);
     }
   };
@@ -392,7 +408,6 @@ export const AuctionModal = () => {
                 <div className="pt-4 border-t border-white/10 flex justify-center">
                   <motion.button
                     onClick={() => {
-                      soundManager.playAuctionEnd();
                       endAuction();
                     }}
                     className="btn-gold-ghost w-full sm:w-1/2 py-2.5 rounded-xl min-h-[44px]"

@@ -78,21 +78,22 @@ export function GameHistory({
           return log.toLowerCase().includes(q);
         }
         return true;
-      });
+      })
+      .reverse();
   }, [historyLog, activeCategory, searchQuery]);
 
-  const scrollToBottom = useCallback(() => {
+  const scrollToLatest = useCallback(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTop = 0;
     }
   }, []);
 
   useEffect(() => {
     if (historyLog.length > prevLengthRef.current) {
-      scrollToBottom();
+      scrollToLatest();
     }
     prevLengthRef.current = historyLog.length;
-  }, [historyLog.length, scrollToBottom]);
+  }, [historyLog.length, scrollToLatest]);
 
   useEffect(() => {
     if (isOpen && searchRef.current) {

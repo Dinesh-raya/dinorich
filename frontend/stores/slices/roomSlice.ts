@@ -145,9 +145,9 @@ export const createRoomSlice: StateCreator<StoreState, [], [], RoomSlice> = (set
     socket.emit('room:leave', (response: any) => {
       if (response?.status === 'error') {
         showToast(response.message || 'Failed to leave room', 'error');
-      } else {
-        clearState();
       }
+      // Always clear local state so user can join another game
+      clearState();
     });
   },
 });

@@ -28,7 +28,7 @@ class QAMode(BaseModel):
 
 class RoomSettings(BaseModel):
     max_players: int = Field(6, ge=2, le=6, description="Maximum players allowed (2-6)")
-    starting_cash: int = Field(15000, ge=5000, le=100000, description="Initial money for each player")
+    starting_cash: int = Field(1500, ge=500, le=10000, description="Initial money for each player")
     auction_enabled: bool = Field(True, description="Whether auctions are enabled")
     double_rent_enabled: bool = Field(True, description="Whether double rent applies to monopolies")
     mortgage_enabled: bool = Field(True, description="Whether properties can be mortgaged")

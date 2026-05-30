@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { soundManager } from '../utils/audio';
 
 interface TutorialStep {
   title: string;
@@ -89,7 +88,6 @@ export function Tutorial() {
   const close = useCallback(() => {
     setIsOpen(false);
     localStorage.setItem(STORAGE_KEY, 'true');
-    soundManager.playButtonClick();
   }, []);
 
   // Close on Escape key
@@ -103,7 +101,6 @@ export function Tutorial() {
   }, [isOpen, close]);
 
   const next = useCallback(() => {
-    soundManager.playButtonClick();
     if (step < TUTORIAL_STEPS.length - 1) {
       setStep(step + 1);
     } else {
@@ -112,7 +109,6 @@ export function Tutorial() {
   }, [step, close]);
 
   const prev = useCallback(() => {
-    soundManager.playButtonClick();
     if (step > 0) {
       setStep(step - 1);
     }

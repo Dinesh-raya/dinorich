@@ -2,19 +2,8 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { DiceAnim } from '../DiceAnim';
 
-vi.mock('../../utils/audio', () => ({
-  soundManager: {
-    playDiceRoll: vi.fn(),
-    playDiceLand: vi.fn(),
-    playDiceDouble: vi.fn(),
-  },
-}));
-
-import { soundManager } from '../../utils/audio';
-
 beforeEach(() => {
   vi.useFakeTimers();
-  vi.clearAllMocks();
 });
 
 afterEach(() => {
@@ -117,42 +106,9 @@ describe('DiceAnim', () => {
     expect(onComplete).not.toHaveBeenCalled();
   });
 
-  it('plays dice roll sound when rolling starts', () => {
-    render(<DiceAnim die1={3} die2={5} isRolling={true} />);
-    expect(soundManager.playDiceRoll).toHaveBeenCalledOnce();
-  });
 
-  it('plays dice land sound after 1.2s', () => {
-    render(<DiceAnim die1={3} die2={5} isRolling={true} />);
 
-    expect(soundManager.playDiceLand).not.toHaveBeenCalled();
 
-    act(() => {
-      vi.advanceTimersByTime(1200);
-    });
-
-    expect(soundManager.playDiceLand).toHaveBeenCalledOnce();
-  });
-
-  it('plays dice double sound when dice are equal', () => {
-    render(<DiceAnim die1={4} die2={4} isRolling={true} />);
-
-    act(() => {
-      vi.advanceTimersByTime(1200);
-    });
-
-    expect(soundManager.playDiceDouble).toHaveBeenCalledOnce();
-  });
-
-  it('does not play dice double sound when dice are different', () => {
-    render(<DiceAnim die1={3} die2={5} isRolling={true} />);
-
-    act(() => {
-      vi.advanceTimersByTime(1200);
-    });
-
-    expect(soundManager.playDiceDouble).not.toHaveBeenCalled();
-  });
 
   it('does not show total when showTotal is false', () => {
     const { rerender } = render(

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../stores/gameStore';
-import { soundManager } from '../utils/audio';
 import { socket } from '../services/socket';
 import { showToast } from './Toast';
 import { formatMoney } from '../utils/format';
@@ -62,14 +61,27 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
         // Validate that the current user still owns the properties being offered in the counter
         const ownedPropIds = new Set(myPlayer?.properties_owned || []);
         const validOfferingProps = (counterOffer.requesting_properties || []).filter(
-          (propId) => ownedPropIds.has(propId)
+          (propId) => {
+            if (!ownedPropIds.has(propId)) return false;
+            const propState = game?.properties[propId];
+            if (propState && ((propState.houses || 0) > 0 || (propState.hotels || 0) > 0)) return false;
+            return true;
+          }
+        );
+        // Also filter requesting properties that now have buildings
+        const validRequestingProps = (counterOffer.offering_properties || []).filter(
+          (propId) => {
+            const propState = game?.properties[propId];
+            if (propState && ((propState.houses || 0) > 0 || (propState.hotels || 0) > 0)) return false;
+            return true;
+          }
         );
 
         setSelectedPlayer(counterOffer.from_player_id);
         setOfferingMoney(counterOffer.requesting_money);
         setRequestingMoney(counterOffer.offering_money);
         setOfferingProperties(validOfferingProps);
-        setRequestingProperties(counterOffer.offering_properties || []);
+        setRequestingProperties(validRequestingProps);
         setOfferingJailCards(counterOffer.requesting_get_out_of_jail_cards || 0);
         setRequestingJailCards(counterOffer.offering_get_out_of_jail_cards || 0);
         setStep('configure-trade');
@@ -102,8 +114,6 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
 
   const handleSubmitTrade = () => {
     if (!selectedPlayer || !myId) return;
-
-    soundManager.playButtonClick();
 
     if (counterOffer) {
       socket.emit('trade:counter', {
@@ -359,14 +369,18 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                               const prop = game.properties[propId];
                               if (!prop) return null;
                               const boardTile = boardData.tiles.find((t: any) => t.id === propId);
+                              const hasBuildings = (prop.houses || 0) > 0 || (prop.hotels || 0) > 0;
                               return (
                                 <button
                                   key={propId}
-                                  onClick={() => handleToggleOfferingProperty(propId)}
+                                  onClick={() => !hasBuildings && handleToggleOfferingProperty(propId)}
+                                  disabled={hasBuildings}
                                   className={`p-2.5 rounded-lg border text-left text-[11px] transition-all flex flex-col justify-between ${
-                                    offeringProperties.includes(propId)
-                                      ? 'border-success-500 bg-success-500/10'
-                                      : 'border-white/10 bg-surface/30 hover:border-white/20'
+                                    hasBuildings
+                                      ? 'border-white/5 bg-surface/10 opacity-50 cursor-not-allowed'
+                                      : offeringProperties.includes(propId)
+                                        ? 'border-success-500 bg-success-500/10'
+                                        : 'border-white/10 bg-surface/30 hover:border-white/20'
                                   }`}
                                 >
                                   <div className="flex items-center gap-1.5 min-w-0">
@@ -382,6 +396,9 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                                   </div>
                                   {prop.is_mortgaged && (
                                     <div className="text-[9px] text-danger-400 font-bold mt-0.5">⚠ MORTGAGED</div>
+                                  )}
+                                  {hasBuildings && (
+                                    <div className="text-[9px] text-warning-400 font-bold mt-0.5">🏠 HAS BUILDINGS — Cannot trade</div>
                                   )}
                                 </button>
                               );
@@ -462,14 +479,18 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                               const prop = game.properties[propId];
                               if (!prop) return null;
                               const boardTile = boardData.tiles.find((t: any) => t.id === propId);
+                              const hasBuildings = (prop.houses || 0) > 0 || (prop.hotels || 0) > 0;
                               return (
                                 <button
                                   key={propId}
-                                  onClick={() => handleToggleRequestingProperty(propId)}
+                                  onClick={() => !hasBuildings && handleToggleRequestingProperty(propId)}
+                                  disabled={hasBuildings}
                                   className={`p-2.5 rounded-lg border text-left text-[11px] transition-all flex flex-col justify-between ${
-                                    requestingProperties.includes(propId)
-                                      ? 'border-gold-500 bg-accent-500/10'
-                                      : 'border-white/10 bg-surface/30 hover:border-white/20'
+                                    hasBuildings
+                                      ? 'border-white/5 bg-surface/10 opacity-50 cursor-not-allowed'
+                                      : requestingProperties.includes(propId)
+                                        ? 'border-gold-500 bg-accent-500/10'
+                                        : 'border-white/10 bg-surface/30 hover:border-white/20'
                                   }`}
                                 >
                                   <div className="flex items-center gap-1.5 min-w-0">
@@ -485,6 +506,9 @@ export const TradeModal = ({ isOpen, onClose, counterOffer, onClearCounterOffer 
                                   </div>
                                   {prop.is_mortgaged && (
                                     <div className="text-[9px] text-danger-400 font-bold mt-0.5">⚠ MORTGAGED</div>
+                                  )}
+                                  {hasBuildings && (
+                                    <div className="text-[9px] text-warning-400 font-bold mt-0.5">🏠 HAS BUILDINGS — Cannot trade</div>
                                   )}
                                 </button>
                               );

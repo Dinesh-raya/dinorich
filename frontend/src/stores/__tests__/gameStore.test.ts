@@ -26,31 +26,11 @@ vi.mock('../../../services/socket', () => ({
 
 vi.mock('../../../utils/audio', () => ({
   soundManager: {
-    playButtonClick: vi.fn(),
-    playGameStart: vi.fn(),
-    playBuyProperty: vi.fn(),
-    playAuctionBid: vi.fn(),
-    playAuctionEnd: vi.fn(),
-    playBankruptcy: vi.fn(),
-    playJailEntry: vi.fn(),
-    playJailEscape: vi.fn(),
-    playPayRent: vi.fn(),
-    playPlayerMove: vi.fn(),
-    playPassGo: vi.fn(),
-    playCardDraw: vi.fn(),
-    playBuild: vi.fn(),
-    playMortgage: vi.fn(),
-    playUnmortgage: vi.fn(),
-    playTradeComplete: vi.fn(),
-    playGameEnd: vi.fn(),
-    playDiceRoll: vi.fn(),
-    playDiceLand: vi.fn(),
-    playDiceDouble: vi.fn(),
+    play: vi.fn(),
     isSoundEnabled: vi.fn(() => true),
-    setSoundEnabled: vi.fn(),
-    setVolume: vi.fn(),
     toggleSound: vi.fn(() => true),
   },
+  hapticFeedback: vi.fn(),
 }));
 
 vi.mock('../../../components/Toast', () => ({

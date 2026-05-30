@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { socket } from '../services/socket';
 import { useGameStore } from '../stores/gameStore';
-import { soundManager } from '../utils/audio';
 
 const QUICK_MESSAGES = [
   { label: 'Nice!', emoji: '👍' },
@@ -93,7 +92,6 @@ export function QuickChat() {
   }, [isExpanded]);
 
   const sendMessage = useCallback((label: string, emoji: string) => {
-    soundManager.playButtonClick();
     socket.emit('chat:quick', { message: label, emoji });
     setIsExpanded(false);
   }, []);
@@ -142,7 +140,6 @@ export function QuickChat() {
         {/* Toggle button */}
         <motion.button
           onClick={() => {
-            soundManager.playButtonClick();
             setIsExpanded(!isExpanded);
           }}
           aria-label={isExpanded ? 'Close quick chat' : 'Open quick chat'}

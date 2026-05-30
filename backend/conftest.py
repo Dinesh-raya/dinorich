@@ -6,7 +6,7 @@ from schemas.player import PlayerState
 from schemas.game import GameState, PropertyState
 
 
-def make_player(pid: str, name: str, money: int = 15000, color: str = "#ff0000", **kwargs) -> PlayerState:
+def make_player(pid: str, name: str, money: int = 1500, color: str = "#ff0000", **kwargs) -> PlayerState:
     """Create a PlayerState with sensible defaults."""
     return PlayerState(id=pid, name=name, color=color, money=money, **kwargs)
 

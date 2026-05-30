@@ -1,17 +1,18 @@
 class GameRules:
     MIN_PLAYERS = 1
     MAX_PLAYERS = 6
-    INITIAL_BALANCE = 15000
+    INITIAL_BALANCE = 1500
     BOARD_SIZE = 40
 
     # Jail rules
     MAX_JAIL_TURNS = 3
-    JAIL_FINE = 500
+    JAIL_FINE = 50
     GO_TO_JAIL_TILE = 30
     JAIL_TILE = 10
 
-    # Passing GO
-    GO_REWARD = 1500
+    # GO rewards
+    GO_REWARD = 200          # passing GO
+    GO_LANDING_REWARD = 300  # landing exactly on GO
 
     # Timing (seconds)
     DEFAULT_TURN_TIMER = 60
@@ -23,14 +24,14 @@ class GameRules:
 
     # House/Hotel building rules
     HOUSE_PRICES = {
-        "brown": 500,
-        "light_blue": 600,
-        "pink": 1000,
-        "orange": 1000,
-        "red": 1500,
-        "yellow": 1500,
-        "green": 2000,
-        "dark_blue": 2000
+        "brown": 50,
+        "light_blue": 60,
+        "pink": 100,
+        "orange": 100,
+        "red": 150,
+        "yellow": 150,
+        "green": 200,
+        "dark_blue": 200
     }
     HOTEL_PRICE_MULTIPLIER = 5
 

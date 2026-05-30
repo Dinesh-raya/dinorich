@@ -44,7 +44,7 @@ export const CenterGameLog = ({ historyLog }: { historyLog: string[] }) => {
   if (historyLog.length === 0) return null;
 
   return (
-    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-[85%] max-w-xs z-[5] pointer-events-none">
+    <div className="absolute top-16 md:top-20 left-1/2 -translate-x-1/2 w-[85%] max-w-xs z-[5] pointer-events-none">
       <div className="text-[9px] text-gold-500/40 font-cyber tracking-widest uppercase mb-1 px-2">
         Activity
       </div>
@@ -60,7 +60,7 @@ export const CenterGameLog = ({ historyLog }: { historyLog: string[] }) => {
         role="log"
         aria-live="polite"
         aria-label="Game activity feed"
-        className="flex flex-col gap-1 max-h-40 overflow-y-auto scrollbar-hide px-1 py-1"
+        className="flex flex-col gap-1 max-h-28 md:max-h-32 overflow-y-auto scrollbar-hide px-1 py-1"
         style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 12%, black 85%, transparent 100%)' }}
       >
         {historyLog.map((log, i) => {

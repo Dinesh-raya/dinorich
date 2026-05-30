@@ -1,8 +1,8 @@
 import type React from 'react';
 import { useState, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Copy, Share2, X, Menu, Handshake, Volume2, Settings, Save, Play, Pause, Users, Bug, History } from 'lucide-react';
-import { soundManager } from '../utils/audio';
+import { Copy, Share2, X, Menu, Handshake, Volume2, Settings, Save, Play, Pause, Users, Bug, History, LogOut } from 'lucide-react';
+
 import { showToast } from './Toast';
 import { useGameStore } from '../stores/gameStore';
 import { Board } from './Board';
@@ -15,6 +15,7 @@ import { QuickChat } from './QuickChat';
 import { GameHistory, GameHistoryButton } from './GameHistory';
 import type { TradeOffer, GameState, RoomState } from '../stores/slices/types';
 import { mapPlayersForSidebar, type Standing } from '../src/utils/helpers';
+import { formatMoney } from '../utils/format';
 
 // Lazy-loaded modals (heavy, only shown on user interaction)
 const AuctionModal = lazy(() => import('./AuctionModal').then(m => ({ default: m.AuctionModal })));
@@ -143,7 +144,7 @@ export function GameBoardView({
           <div data-tutorial="money" className="panel-dark px-4 py-2 rounded-xl flex items-center gap-2">
             <div className="flex flex-col">
               <span className="text-text-muted text-[10px] font-cyber tracking-wider uppercase">Money</span>
-              <span className="text-success-400 font-bold font-cyber text-sm">{'\u20B9'}{myMoney ?? 0}</span>
+              <span className="text-success-400 font-bold font-cyber text-sm">{formatMoney(myMoney ?? 0)}</span>
             </div>
           </div>
 
@@ -153,7 +154,7 @@ export function GameBoardView({
           <div className="flex items-center gap-1.5">
             <motion.button
               onClick={() => {
-                soundManager.playButtonClick();
+
                 navigator.clipboard.writeText(room?.room_id || '');
                 showToast('Room code copied to clipboard!', 'success');
               }}
@@ -167,7 +168,7 @@ export function GameBoardView({
 
             <motion.button
               onClick={() => {
-                soundManager.playButtonClick();
+
                 setShowTradeModal(true);
               }}
               aria-label="Open trade dialog"
@@ -182,16 +183,27 @@ export function GameBoardView({
             <GameHistoryButton
               historyLog={game.history_log}
               onClick={() => {
-                soundManager.playButtonClick();
+
                 setShowGameHistory(true);
               }}
             />
+
+            <motion.button
+              onClick={() => leaveGame()}
+              aria-label="Leave game"
+              className="btn-gold-ghost px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 min-h-[36px] text-danger-400 hover:bg-danger-500/10"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              title="Leave Game"
+            >
+              <LogOut className="w-4 h-4" /> <span>Leave</span>
+            </motion.button>
 
             {/* QA Panel button - visible only to host when QA mode is enabled */}
             {isQAMode && isHost && (
               <motion.button
                 onClick={() => {
-                  soundManager.playButtonClick();
+  
                   setShowQAPanel(true);
                 }}
                 aria-label="Open QA testing panel"
@@ -211,7 +223,7 @@ export function GameBoardView({
           <div className="flex items-center gap-1.5">
             <motion.button
               onClick={() => {
-                soundManager.playButtonClick();
+
                 setShowAudioSettings(true);
               }}
               aria-label="Open audio settings"
@@ -224,7 +236,7 @@ export function GameBoardView({
 
             <motion.button
               onClick={() => {
-                soundManager.playButtonClick();
+
                 setShowRoomSettings(true);
               }}
               aria-label="Open room settings"
@@ -238,7 +250,7 @@ export function GameBoardView({
             {isHost && (
               <motion.button
                 onClick={() => {
-                  soundManager.playButtonClick();
+  
                   saveGame();
                 }}
                 aria-label="Save game"
@@ -258,7 +270,7 @@ export function GameBoardView({
               <div className="h-8 w-px bg-gradient-to-b from-transparent via-gold-500/20 to-transparent mx-2"></div>
               <motion.button
                 onClick={() => {
-                  soundManager.playButtonClick();
+  
                   if (isPaused) resumeGame();
                   else pauseGame();
                 }}
@@ -314,7 +326,7 @@ export function GameBoardView({
                 <div className="space-y-3 mb-6">
                   <button
                     onClick={() => {
-                      soundManager.playButtonClick();
+      
                       setShowGameHistory(true);
                       setShowMobileMenu(false);
                     }}
@@ -329,7 +341,7 @@ export function GameBoardView({
 
                   <button
                     onClick={() => {
-                      soundManager.playButtonClick();
+      
                       setShowAudioSettings(true);
                       setShowMobileMenu(false);
                     }}
@@ -341,7 +353,7 @@ export function GameBoardView({
 
                   <button
                     onClick={() => {
-                      soundManager.playButtonClick();
+      
                       setShowRoomSettings(true);
                       setShowMobileMenu(false);
                     }}
@@ -354,7 +366,7 @@ export function GameBoardView({
                   {isHost && (
                     <button
                       onClick={() => {
-                        soundManager.playButtonClick();
+        
                         saveGame();
                         setShowMobileMenu(false);
                       }}
@@ -417,7 +429,7 @@ export function GameBoardView({
                 {isMyTurn && (
                 <motion.button
                   onClick={() => {
-                    soundManager.playButtonClick();
+    
                     resumeGame();
                   }}
                   className="mt-6 btn-gold px-8 py-3 text-lg font-bold rounded-xl min-h-[48px]"
@@ -458,13 +470,13 @@ export function GameBoardView({
           <div className="flex justify-between items-center px-2">
             <div className="text-center min-w-[60px]">
               <p className="text-[10px] text-text-muted font-cyber tracking-wider uppercase">Money</p>
-              <p className="text-lg font-bold text-success-400 font-cyber">{'\u20B9'}{myMoney ?? 0}</p>
+              <p className="text-lg font-bold text-success-400 font-cyber">{formatMoney(myMoney ?? 0)}</p>
             </div>
 
             <div className="flex gap-1.5">
               <button
                 onClick={() => {
-                  soundManager.playButtonClick();
+  
                   navigator.clipboard.writeText(room?.room_id || '');
                   showToast('Room code copied!', 'success');
                 }}
@@ -475,7 +487,7 @@ export function GameBoardView({
               </button>
               <button
                 onClick={() => {
-                  soundManager.playButtonClick();
+  
                   if (navigator.share) {
                     navigator.share({
                       title: 'DINO-RICHUP',
@@ -497,7 +509,7 @@ export function GameBoardView({
             <div className="flex gap-1">
               <button
                 onClick={() => {
-                  soundManager.playButtonClick();
+  
                   setShowTradeModal(true);
                 }}
                 aria-label="Open trade dialog"
@@ -517,7 +529,7 @@ export function GameBoardView({
 
               <button
                 onClick={() => {
-                  soundManager.playButtonClick();
+  
                   setShowGameHistory(true);
                 }}
                 aria-label={`View game history, ${game.history_log.length} events`}
@@ -535,7 +547,7 @@ export function GameBoardView({
               {isMyTurn && (
                 <button
                   onClick={() => {
-                    soundManager.playButtonClick();
+    
                     if (isPaused) resumeGame();
                     else pauseGame();
                   }}
@@ -551,7 +563,7 @@ export function GameBoardView({
               {isQAMode && isHost && (
                 <button
                   onClick={() => {
-                    soundManager.playButtonClick();
+    
                     setShowQAPanel(true);
                   }}
                   aria-label="Open QA testing panel"

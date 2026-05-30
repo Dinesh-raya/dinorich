@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { soundManager } from '../utils/audio';
+
 
 interface DiceAnimProps {
   die1: number;
@@ -126,13 +126,13 @@ export const DiceAnim = ({
     if (completeTimerRef.current) clearTimeout(completeTimerRef.current);
 
     if (isRolling) {
-      soundManager.playDiceRoll();
+
 
       // Play land sound when dice settle
       soundTimerRef.current = setTimeout(() => {
-        soundManager.playDiceLand();
+
         if (die1 === die2) {
-          soundManager.playDiceDouble();
+
         }
       }, 1200);
 

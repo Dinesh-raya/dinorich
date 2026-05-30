@@ -1,7 +1,6 @@
 import { StateCreator } from 'zustand';
 import { socket } from '../../services/socket';
 import { showToast } from '../../components/Toast';
-import { soundManager } from '../../utils/audio';
 import type { StoreState } from './storeTypes';
 
 export interface PropertySlice {
@@ -28,7 +27,6 @@ export const createPropertySlice: StateCreator<StoreState, [], [], PropertySlice
         showToast(response.message, 'error');
       } else {
         showToast('Property purchased!', 'success');
-        soundManager.playBuyProperty();
       }
     });
   },
@@ -43,7 +41,6 @@ export const createPropertySlice: StateCreator<StoreState, [], [], PropertySlice
         showToast(response.message, 'error');
       } else {
         showToast('House built!', 'success');
-        soundManager.playBuild('house');
       }
     });
   },
@@ -58,7 +55,6 @@ export const createPropertySlice: StateCreator<StoreState, [], [], PropertySlice
         showToast(response.message, 'error');
       } else {
         showToast('Hotel built!', 'success');
-        soundManager.playBuild('hotel');
       }
     });
   },
@@ -101,7 +97,6 @@ export const createPropertySlice: StateCreator<StoreState, [], [], PropertySlice
         showToast(response.message, 'error');
       } else {
         showToast('Property mortgaged!', 'success');
-        soundManager.playMortgage();
       }
     });
   },
@@ -116,7 +111,6 @@ export const createPropertySlice: StateCreator<StoreState, [], [], PropertySlice
         showToast(response.message, 'error');
       } else {
         showToast('Property unmortgaged!', 'success');
-        soundManager.playUnmortgage();
       }
     });
   },

@@ -43,7 +43,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
   // Default settings
   const defaultSettings: RoomSettingsType = {
     max_players: 6,
-    starting_cash: 15000,
+    starting_cash: 1500,
     auction_enabled: true,
     double_rent_enabled: true,
     mortgage_enabled: true,
@@ -85,7 +85,7 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
     casual: { double_rent_enabled: false, free_parking_jackpot: true, jail_strict_mode: false, turn_timer_seconds: 90 },
     competitive: { double_rent_enabled: true, turn_timer_seconds: 45 },
     turbo: { starting_cash: 10000, turn_timer_seconds: 30 },
-    chaos: { starting_cash: 50000, free_parking_jackpot: true, double_rent_enabled: false, turn_timer_seconds: 120, auction_enabled: false, jail_strict_mode: false },
+    chaos: { starting_cash: 10000, free_parking_jackpot: true, double_rent_enabled: false, turn_timer_seconds: 120, auction_enabled: false, jail_strict_mode: false },
   };
 
   const handleSettingChange = (key: keyof RoomSettingsType, value: any) => {
@@ -304,11 +304,11 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                     </div>
                     <div className="flex items-center gap-3">
                       <motion.button
-                        onClick={() => handleSettingChange('starting_cash', Math.max(5000, settings.starting_cash - 500))}
+                        onClick={() => handleSettingChange('starting_cash', Math.max(500, settings.starting_cash - 500))}
                         className="min-w-[44px] min-h-[44px] rounded-lg bg-surface/50 border border-white/10 text-purple-300 hover:bg-purple-500/20 hover:border-purple-500/30 transition-all"
                         whileHover={isHost && !isLocked ? { scale: 1.1 } : undefined}
                         whileTap={isHost && !isLocked ? { scale: 0.9 } : undefined}
-                        disabled={!isHost || isLocked || settings.starting_cash <= 5000}
+                        disabled={!isHost || isLocked || settings.starting_cash <= 500}
                       >
                         −
                       </motion.button>
@@ -318,11 +318,11 @@ export const RoomSettings = ({ isOpen, onClose }: RoomSettingsProps) => {
                       </div>
 
                       <motion.button
-                        onClick={() => handleSettingChange('starting_cash', Math.min(100000, settings.starting_cash + 500))}
+                        onClick={() => handleSettingChange('starting_cash', Math.min(10000, settings.starting_cash + 500))}
                         className="min-w-[44px] min-h-[44px] rounded-lg bg-surface/50 border border-white/10 text-purple-300 hover:bg-purple-500/20 hover:border-purple-500/30 transition-all"
                         whileHover={isHost && !isLocked ? { scale: 1.1 } : undefined}
                         whileTap={isHost && !isLocked ? { scale: 0.9 } : undefined}
-                        disabled={!isHost || isLocked || settings.starting_cash >= 100000}
+                        disabled={!isHost || isLocked || settings.starting_cash >= 10000}
                       >
                         +
                       </motion.button>

@@ -91,6 +91,18 @@ function App() {
     return () => clearTimeout(timer);
   }, [room, game]);
 
+  // Reset all modals when game ends or player leaves
+  useEffect(() => {
+    if (!game) {
+      setShowGameOverModal(false);
+      setShowBankruptModal(false);
+      setShowTradeModal(false);
+      setBankruptPlayer(null);
+      setGameWinner(null);
+      setGameStandings([]);
+    }
+  }, [game]);
+
   // Check for saved games when in waiting room
   useEffect(() => {
     if (room && room.status === 'waiting') {

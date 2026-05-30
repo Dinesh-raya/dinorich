@@ -149,7 +149,7 @@ class TestExecuteCardMoveTo:
         card = make_card("move_to", target=0)
         engine.execute_card(game, "p1", card)
         assert game.room.players["p1"].position == 0
-        assert game.room.players["p1"].money == initial_money + GameRules.GO_REWARD
+        assert game.room.players["p1"].money == initial_money + GameRules.GO_LANDING_REWARD
 
     def test_move_to_not_passing_go_no_reward(self):
         game = make_test_game()
